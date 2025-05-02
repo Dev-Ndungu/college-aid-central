@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +11,7 @@ type AuthContextType = {
   userRole: 'student' | 'writer' | null;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithMicrosoft: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer') => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -149,6 +151,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithMicrosoft = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+      
+      // No need to navigate or show success message here
+      // The OAuth flow will handle the redirect
+    } catch (error: any) {
+      console.error('Error signing in with Microsoft:', error);
+      toast({
+        variant: "destructive",
+        title: "Microsoft Sign In Failed",
+        description: error.message || "An error occurred during Microsoft sign in.",
+      });
+      setIsLoading(false);
+    }
+  };
+
   const signUp = async (email: string, password: string, role: 'student' | 'writer') => {
     try {
       setIsLoading(true);
@@ -224,6 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRole,
     signIn,
     signInWithGoogle,
+    signInWithMicrosoft,
     signUp,
     signOut
   };

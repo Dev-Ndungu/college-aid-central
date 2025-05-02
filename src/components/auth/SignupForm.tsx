@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Mail } from "lucide-react";
+import { Google, Mail, Microsoft } from "lucide-react";
 
 const SignupForm = () => {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ const SignupForm = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"student" | "writer">("student");
   const [passwordError, setPasswordError] = useState("");
-  const { signUp, signInWithGoogle, isLoading } = useAuth();
+  const { signUp, signInWithGoogle, signInWithMicrosoft, isLoading } = useAuth();
 
   const validatePassword = () => {
     if (password !== confirmPassword) {
@@ -39,6 +39,10 @@ const SignupForm = () => {
 
   const handleGoogleSignIn = async () => {
     await signInWithGoogle();
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    await signInWithMicrosoft();
   };
 
   return (
@@ -119,16 +123,29 @@ const SignupForm = () => {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={handleGoogleSignIn}
-        disabled={isLoading}
-      >
-        <Mail className="mr-2 h-4 w-4" />
-        Google
-      </Button>
+      <div className="flex flex-col space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+        >
+          <Google className="mr-2 h-4 w-4" />
+          Google
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleMicrosoftSignIn}
+          disabled={isLoading}
+        >
+          <Microsoft className="mr-2 h-4 w-4" />
+          Microsoft
+        </Button>
+      </div>
 
       <div className="text-center text-sm">
         Already have an account?{" "}

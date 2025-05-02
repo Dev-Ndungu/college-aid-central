@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Mail } from "lucide-react";
+import { Google, Mail, Microsoft } from "lucide-react";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { signIn, signInWithGoogle, isLoading } = useAuth();
+  const { signIn, signInWithGoogle, signInWithMicrosoft, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +20,10 @@ const LoginForm = () => {
 
   const handleGoogleSignIn = async () => {
     await signInWithGoogle();
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    await signInWithMicrosoft();
   };
 
   return (
@@ -71,16 +75,29 @@ const LoginForm = () => {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={handleGoogleSignIn}
-        disabled={isLoading}
-      >
-        <Mail className="mr-2 h-4 w-4" />
-        Google
-      </Button>
+      <div className="flex flex-col space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+        >
+          <Google className="mr-2 h-4 w-4" />
+          Google
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleMicrosoftSignIn}
+          disabled={isLoading}
+        >
+          <Microsoft className="mr-2 h-4 w-4" />
+          Microsoft
+        </Button>
+      </div>
 
       <div className="text-center text-sm">
         Don't have an account?{" "}
