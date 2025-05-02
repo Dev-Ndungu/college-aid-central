@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Google, Mail, Microsoft } from "lucide-react";
+import { Mail, Globe, LucideIcon } from "lucide-react";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -83,7 +83,7 @@ const LoginForm = () => {
           onClick={handleGoogleSignIn}
           disabled={isLoading}
         >
-          <Google className="mr-2 h-4 w-4" />
+          <Globe className="mr-2 h-4 w-4" />
           Google
         </Button>
 
@@ -94,7 +94,7 @@ const LoginForm = () => {
           onClick={handleMicrosoftSignIn}
           disabled={isLoading}
         >
-          <Microsoft className="mr-2 h-4 w-4" />
+          <Mail className="mr-2 h-4 w-4" />
           Microsoft
         </Button>
       </div>

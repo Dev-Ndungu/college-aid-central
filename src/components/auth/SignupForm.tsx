@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Google, Mail, Microsoft } from "lucide-react";
+import { Mail, Globe } from "lucide-react";
 
 const SignupForm = () => {
   const [email, setEmail] = useState("");
@@ -131,7 +131,7 @@ const SignupForm = () => {
           onClick={handleGoogleSignIn}
           disabled={isLoading}
         >
-          <Google className="mr-2 h-4 w-4" />
+          <Globe className="mr-2 h-4 w-4" />
           Google
         </Button>
 
@@ -142,7 +142,7 @@ const SignupForm = () => {
           onClick={handleMicrosoftSignIn}
           disabled={isLoading}
         >
-          <Microsoft className="mr-2 h-4 w-4" />
+          <Mail className="mr-2 h-4 w-4" />
           Microsoft
         </Button>
       </div>
