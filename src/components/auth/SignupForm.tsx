@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Google } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const SignupForm = () => {
   const [email, setEmail] = useState("");
@@ -126,7 +126,7 @@ const SignupForm = () => {
         onClick={handleGoogleSignIn}
         disabled={isLoading}
       >
-        <Google className="mr-2 h-4 w-4" />
+        <Mail className="mr-2 h-4 w-4" />
         Google
       </Button>
 
