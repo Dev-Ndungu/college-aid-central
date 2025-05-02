@@ -78,7 +78,16 @@ export const useAssignments = () => {
     };
   }, [isAuthenticated]);
 
-  const createAssignment = async (assignmentData: Omit<Assignment, 'id' | 'created_at' | 'updated_at'>) => {
+  // Fixed TypeScript error: Changed the parameter type to match what Supabase expects
+  const createAssignment = async (assignmentData: {
+    title: string;
+    subject: string;
+    description?: string | null;
+    status?: string;
+    progress?: number | null;
+    due_date?: string | null;
+    user_id: string; // This was missing in the original type
+  }) => {
     try {
       const { data, error } = await supabase
         .from('assignments')
