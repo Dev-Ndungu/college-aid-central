@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +9,7 @@ type AuthContextType = {
   userEmail: string | null;
   userRole: 'student' | 'writer' | null;
   signIn: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer') => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -122,6 +122,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+      
+      // No need to navigate or show success message here
+      // The OAuth flow will handle the redirect
+    } catch (error: any) {
+      console.error('Error signing in with Google:', error);
+      toast({
+        variant: "destructive",
+        title: "Google Sign In Failed",
+        description: error.message || "An error occurred during Google sign in.",
+      });
+      setIsLoading(false);
+    }
+  };
+
   const signUp = async (email: string, password: string, role: 'student' | 'writer') => {
     try {
       setIsLoading(true);
@@ -196,6 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userEmail,
     userRole,
     signIn,
+    signInWithGoogle,
     signUp,
     signOut
   };
