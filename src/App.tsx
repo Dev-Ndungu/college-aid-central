@@ -14,6 +14,7 @@ import Contact from "./pages/Contact";
 import HowItWorks from "./pages/HowItWorks";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
+import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => {
             <Route path="/signup" element={<Signup />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/submit-assignment" element={<AssignmentSubmission />} />
+            <Route path="/messages" element={<Messages />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/how-it-works" element={<HowItWorks />} />

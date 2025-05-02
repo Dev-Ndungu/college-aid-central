@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,26 +31,111 @@ import {
 import { cn } from "@/lib/utils";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const AssignmentSubmission = () => {
   const [date, setDate] = React.useState<Date>();
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const { isAuthenticated, userRole } = useAuth();
+  const navigate = useNavigate();
+  
+  // Form state
+  const [title, setTitle] = useState('');
+  const [subject, setSubject] = useState('');
+  const [assignmentType, setAssignmentType] = useState('');
+  const [description, setDescription] = useState('');
+
+  React.useEffect(() => {
+    // Redirect to login if not authenticated or if user is a writer
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else if (userRole === 'writer') {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, userRole, navigate]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setSelectedFile(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "You must be logged in to submit an assignment."
+        });
+        navigate('/login');
+        return;
+      }
 
-    // Simulate submission
-    setTimeout(() => {
+      // Create the assignment in the database
+      const { data, error } = await supabase
+        .from('assignments')
+        .insert([
+          {
+            title,
+            subject,
+            description,
+            due_date: date ? date.toISOString() : null,
+            user_id: user.id,
+            status: 'in-progress',
+            progress: 0
+          }
+        ])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      // Handle file upload if a file was selected
+      if (selectedFile && data[0].id) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${data[0].id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `assignments/${fileName}`;
+
+        // Upload the file to Supabase Storage
+        // Note: You'd need to create a 'assignments' bucket in Supabase Storage
+        // const { error: uploadError } = await supabase.storage
+        //   .from('assignments')
+        //   .upload(filePath, selectedFile);
+
+        // if (uploadError) {
+        //   console.error('Error uploading file:', uploadError);
+        //   // Continue with the process even if the file upload fails
+        // }
+      }
+
+      // Show success message
+      toast({
+        title: "Assignment Submitted",
+        description: "Your assignment has been successfully submitted."
+      });
+
+      // Redirect to dashboard
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Error submitting assignment:', error);
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: error.message || "An error occurred while submitting your assignment."
+      });
+    } finally {
       setLoading(false);
-      alert('Assignment submitted successfully! This functionality will be implemented with backend integration.');
-    }, 1500);
+    }
   };
 
   return (
@@ -79,12 +165,14 @@ const AssignmentSubmission = () => {
                     id="title" 
                     placeholder="e.g., Research Paper on Climate Change" 
                     required 
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="subject">Subject</Label>
-                  <Select required>
+                  <Select required value={subject} onValueChange={setSubject}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select subject" />
                     </SelectTrigger>
@@ -103,7 +191,7 @@ const AssignmentSubmission = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="type">Assignment Type</Label>
-                  <Select required>
+                  <Select required value={assignmentType} onValueChange={setAssignmentType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select assignment type" />
                     </SelectTrigger>
@@ -152,6 +240,8 @@ const AssignmentSubmission = () => {
                     placeholder="Provide detailed instructions for your assignment..."
                     rows={5}
                     required
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
                 
@@ -181,8 +271,8 @@ const AssignmentSubmission = () => {
               </CardContent>
               
               <CardFooter className="flex justify-between">
-                <Button type="button" variant="outline">
-                  Save as Draft
+                <Button type="button" variant="outline" onClick={() => navigate('/dashboard')}>
+                  Cancel
                 </Button>
                 <Button type="submit" disabled={loading}>
                   {loading ? "Submitting..." : "Submit Assignment"}
