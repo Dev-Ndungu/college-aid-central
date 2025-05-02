@@ -1,26 +1,39 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from "sonner";
 
 const LoginForm = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [userRole, setUserRole] = React.useState<'student' | 'writer'>('student');
   const [loading, setLoading] = React.useState(false);
+  const navigate = useNavigate();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     // Here we would typically handle the authentication logic
-    // For now, we'll just simulate a loading state
+    // For now, we'll just simulate a login
     setTimeout(() => {
       setLoading(false);
       console.log('Login attempted with:', { email, password });
-      alert('Login functionality will be implemented with backend integration.');
+      
+      // Store login state in localStorage
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userRole', userRole);
+      localStorage.setItem('userEmail', email);
+      
+      toast.success(`Logged in successfully as a ${userRole}!`);
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
     }, 1000);
   };
 
@@ -63,6 +76,24 @@ const LoginForm = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label>I am a:</Label>
+            <RadioGroup 
+              defaultValue="student" 
+              value={userRole}
+              onValueChange={(value) => setUserRole(value as 'student' | 'writer')}
+              className="flex space-x-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="student" id="student" />
+                <Label htmlFor="student">Student</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="writer" id="writer" />
+                <Label htmlFor="writer">Writer</Label>
+              </div>
+            </RadioGroup>
           </div>
           <Button 
             type="submit" 

@@ -1,35 +1,49 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from "sonner";
 
 const SignupForm = () => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [name, setName] = React.useState('');
+  const [userRole, setUserRole] = React.useState<'student' | 'writer'>('student');
   const [agreeTerms, setAgreeTerms] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const navigate = useNavigate();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!agreeTerms) {
-      alert('Please agree to the terms and conditions');
+      toast.error('Please agree to the terms and conditions');
       return;
     }
     
     setLoading(true);
     
     // Here we would typically handle the signup logic
-    // For now, we'll just simulate a loading state
+    // For now, we'll just simulate a signup process
     setTimeout(() => {
       setLoading(false);
       console.log('Signup attempted with:', { name, email, password });
-      alert('Signup functionality will be implemented with backend integration.');
+      
+      // Store login state in localStorage
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userRole', userRole);
+      localStorage.setItem('userName', name);
+      localStorage.setItem('userEmail', email);
+      
+      toast.success(`Account created successfully! Logged in as a ${userRole}`);
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
     }, 1000);
   };
 
@@ -77,6 +91,24 @@ const SignupForm = () => {
             <p className="text-xs text-gray-500">
               Password must be at least 8 characters long
             </p>
+          </div>
+          <div className="space-y-2">
+            <Label>I am a:</Label>
+            <RadioGroup 
+              defaultValue="student" 
+              value={userRole}
+              onValueChange={(value) => setUserRole(value as 'student' | 'writer')}
+              className="flex space-x-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="student" id="signup-student" />
+                <Label htmlFor="signup-student">Student</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="writer" id="signup-writer" />
+                <Label htmlFor="signup-writer">Writer</Label>
+              </div>
+            </RadioGroup>
           </div>
           <div className="flex items-start space-x-2 pt-2">
             <Checkbox 
