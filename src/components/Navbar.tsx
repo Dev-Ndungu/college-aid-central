@@ -1,34 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<'student' | 'writer' | null>(null);
+  const { isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check localStorage for login status
-    const loggedInStatus = localStorage.getItem('isLoggedIn') === 'true';
-    const storedRole = localStorage.getItem('userRole') as 'student' | 'writer' | null;
-    
-    setIsLoggedIn(loggedInStatus);
-    setUserRole(storedRole);
-  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userRole');
-    setIsLoggedIn(false);
-    setUserRole(null);
-    navigate('/');
+  const handleLogout = async () => {
+    await signOut();
   };
 
   return (
@@ -56,7 +43,7 @@ const Navbar = () => {
               Contact
             </Link>
             
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-2">
                 <Button variant="outline" asChild>
                   <Link to="/dashboard">Dashboard</Link>
@@ -124,7 +111,7 @@ const Navbar = () => {
               </Link>
               <hr className="my-2 border-gray-200" />
               
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 <>
                   <Button 
                     variant="outline" 

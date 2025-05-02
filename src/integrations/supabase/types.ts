@@ -9,7 +9,89 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      assignments: {
+        Row: {
+          completed_date: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          grade: string | null
+          id: string
+          progress: number | null
+          status: string
+          subject: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          grade?: string | null
+          id?: string
+          progress?: number | null
+          status?: string
+          subject: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          grade?: string | null
+          id?: string
+          progress?: number | null
+          status?: string
+          subject?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          role?: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

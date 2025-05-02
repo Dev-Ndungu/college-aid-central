@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -12,11 +12,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
-  FileText, 
-  Calendar,
   UserRound
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -24,30 +19,27 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import WriterDashboard from '@/components/dashboard/WriterDashboard';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<'student' | 'writer' | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { isAuthenticated, userEmail, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is logged in
-    const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const role = localStorage.getItem('userRole') as 'student' | 'writer' | null;
-    const email = localStorage.getItem('userEmail');
-
-    if (!loggedIn) {
+    if (!isLoading && !isAuthenticated) {
       navigate('/login');
-      return;
     }
+  }, [isAuthenticated, isLoading, navigate]);
 
-    setIsLoggedIn(loggedIn);
-    setUserRole(role);
-    setUserEmail(email);
-  }, [navigate]);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
-  if (!isLoggedIn || !userRole) {
+  if (!isAuthenticated || !userRole) {
     return null; // Will redirect to login in useEffect
   }
 
@@ -70,7 +62,7 @@ const Dashboard = () => {
               </div>
               
               {userRole === 'student' && (
-                <Button>
+                <Button onClick={() => navigate('/submit-assignment')}>
                   <Plus className="mr-2 h-4 w-4" /> New Assignment
                 </Button>
               )}

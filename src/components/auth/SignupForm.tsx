@@ -1,153 +1,114 @@
 
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SignupForm = () => {
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [name, setName] = React.useState('');
-  const [userRole, setUserRole] = React.useState<'student' | 'writer'>('student');
-  const [agreeTerms, setAgreeTerms] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
-  const navigate = useNavigate();
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!agreeTerms) {
-      toast.error('Please agree to the terms and conditions');
-      return;
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<"student" | "writer">("student");
+  const [passwordError, setPasswordError] = useState("");
+  const { signUp, isLoading } = useAuth();
+
+  const validatePassword = () => {
+    if (password !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return false;
     }
-    
-    setLoading(true);
-    
-    // Here we would typically handle the signup logic
-    // For now, we'll just simulate a signup process
-    setTimeout(() => {
-      setLoading(false);
-      console.log('Signup attempted with:', { name, email, password });
-      
-      // Store login state in localStorage
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userRole', userRole);
-      localStorage.setItem('userName', name);
-      localStorage.setItem('userEmail', email);
-      
-      toast.success(`Account created successfully! Logged in as a ${userRole}`);
-      
-      // Redirect to dashboard
-      navigate('/dashboard');
-    }, 1000);
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters");
+      return false;
+    }
+    setPasswordError("");
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validatePassword()) {
+      await signUp(email, password, role);
+    }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
-        <CardDescription className="text-center">
-          Sign up to start using our assignment services
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input 
-              id="name"
-              placeholder="John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input 
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <p className="text-xs text-gray-500">
-              Password must be at least 8 characters long
-            </p>
-          </div>
-          <div className="space-y-2">
-            <Label>I am a:</Label>
-            <RadioGroup 
-              defaultValue="student" 
-              value={userRole}
-              onValueChange={(value) => setUserRole(value as 'student' | 'writer')}
-              className="flex space-x-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="student" id="signup-student" />
-                <Label htmlFor="signup-student">Student</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="writer" id="signup-writer" />
-                <Label htmlFor="signup-writer">Writer</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <div className="flex items-start space-x-2 pt-2">
-            <Checkbox 
-              id="terms" 
-              checked={agreeTerms}
-              onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-            />
-            <Label 
-              htmlFor="terms" 
-              className="text-sm leading-tight"
-            >
-              I agree to the{" "}
-              <Link to="/terms" className="text-brand-500 hover:underline">
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link to="/privacy" className="text-brand-500 hover:underline">
-                Privacy Policy
-              </Link>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          placeholder="Create a password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
+        {passwordError && (
+          <p className="text-red-500 text-sm">{passwordError}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label>I am a</Label>
+        <RadioGroup
+          value={role}
+          onValueChange={(value) => setRole(value as "student" | "writer")}
+          className="flex space-x-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="student" id="student" />
+            <Label htmlFor="student" className="cursor-pointer">
+              Student
             </Label>
           </div>
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={loading || !agreeTerms}
-          >
-            {loading ? 'Creating Account...' : 'Create Account'}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="text-center text-sm">
-          Already have an account?{" "}
-          <Link to="/login" className="text-brand-500 hover:underline font-medium">
-            Log in
-          </Link>
-        </div>
-      </CardFooter>
-    </Card>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="writer" id="writer" />
+            <Label htmlFor="writer" className="cursor-pointer">
+              Writer
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Creating Account..." : "Create Account"}
+      </Button>
+      <div className="text-center text-sm">
+        Already have an account?{" "}
+        <Link
+          to="/login"
+          className="font-medium text-brand-500 hover:text-brand-600"
+        >
+          Sign in
+        </Link>
+      </div>
+    </form>
   );
 };
 
