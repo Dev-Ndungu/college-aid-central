@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,7 @@ const SignupForm = () => {
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"student" | "writer">("student");
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -65,6 +66,11 @@ const SignupForm = () => {
       role: "student",
     },
   });
+
+  // Update the form's role value when selectedRole changes
+  useEffect(() => {
+    form.setValue("role", selectedRole);
+  }, [selectedRole, form]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -88,6 +94,8 @@ const SignupForm = () => {
   const handleGoogleSignIn = async () => {
     try {
       setErrorMessage(null);
+      // Pass the selected role to Google sign-in
+      console.log("Starting Google Sign In with role:", selectedRole);
       await signInWithGoogle();
     } catch (error: any) {
       console.error("Google sign in error:", error);
@@ -231,7 +239,10 @@ const SignupForm = () => {
                 <FormLabel>I am a</FormLabel>
                 <FormControl>
                   <RadioGroup
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setSelectedRole(value as "student" | "writer");
+                    }}
                     value={field.value}
                     className="flex space-x-4"
                   >

@@ -31,6 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<'student' | 'writer' | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Store the selected role for Google sign-in
+  const [googleSignupRole, setGoogleSignupRole] = useState<'student' | 'writer'>('student');
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -154,10 +157,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
+      // Get the selected role from localStorage to ensure it persists through the redirect
+      const selectedRole = localStorage.getItem('googleSignupRole') || 'student';
+      console.log("Starting Google sign-in with role:", selectedRole);
+      
       // Use the current full origin
       const redirectTo = `${window.location.origin}/profile-completion`;
       console.log("Redirect URL for Google auth:", redirectTo);
       
+      // Store the role in the metadata
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -165,6 +173,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
+          },
+          // Pass the selected role as user_metadata
+          data: {
+            role: selectedRole
           }
         }
       });
@@ -197,6 +209,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       
       console.log("Starting signup process with role:", role);
+      
+      // Store the role in localStorage for Google signup
+      localStorage.setItem('googleSignupRole', role);
+      
       // Create the metadata object with role and any provided profile data
       const metadata = { 
         role,

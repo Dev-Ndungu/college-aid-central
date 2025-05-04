@@ -4,6 +4,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import SignupForm from '@/components/auth/SignupForm';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 const Signup = () => {
   return (
@@ -17,6 +19,14 @@ const Signup = () => {
               Join our platform to get expert assistance with your assignments
             </p>
           </div>
+          
+          <Alert variant="default" className="bg-blue-50 border-blue-200">
+            <InfoIcon className="h-4 w-4 text-blue-600 mr-2" />
+            <AlertDescription className="text-blue-700">
+              Make sure to select your role (Student or Writer) before clicking "Continue with Google"
+            </AlertDescription>
+          </Alert>
+          
           <SignupForm />
         </Card>
       </main>
