@@ -15,6 +15,8 @@ export type Assignment = {
   grade: string | null;
   created_at: string | null;
   updated_at: string | null;
+  writer_id?: string | null;
+  user_id: string;
 };
 
 export const useAssignments = () => {
@@ -62,12 +64,55 @@ export const useAssignments = () => {
           .eq('status', 'completed')
           .order('completed_date', { ascending: false });
         
-        // If user is a student, only get their assignments
+        // Filter assignments based on user role
         if (userRole === 'student') {
+          // Students see their own assignments
           activeQuery = activeQuery.eq('user_id', userId);
           completedQuery = completedQuery.eq('user_id', userId);
+        } else if (userRole === 'writer') {
+          // Writers see:
+          // 1. Assignments marked as 'submitted' (available to take)
+          // 2. Assignments they are currently working on (assigned to them)
+          const submittedQuery = supabase
+            .from('assignments')
+            .select('*')
+            .eq('status', 'submitted')
+            .is('writer_id', null)
+            .order('due_date', { ascending: true });
+          
+          const assignedToMeQuery = supabase
+            .from('assignments')
+            .select('*')
+            .neq('status', 'completed')
+            .eq('writer_id', userId)
+            .order('due_date', { ascending: true });
+          
+          completedQuery = completedQuery.eq('writer_id', userId);
+          
+          // Fetch both submitted and assigned assignments
+          const { data: submitted, error: submittedError } = await submittedQuery;
+          
+          if (submittedError) throw submittedError;
+          
+          const { data: assigned, error: assignedError } = await assignedToMeQuery;
+          
+          if (assignedError) throw assignedError;
+          
+          // Combine the results
+          const active = [...(submitted || []), ...(assigned || [])];
+          setActiveAssignments(active);
+          
+          // Get completed assignments
+          const { data: completed, error: completedError } = await completedQuery;
+          
+          if (completedError) throw completedError;
+          setCompletedAssignments(completed || []);
+          
+          setIsLoading(false);
+          return; // Exit early as we've already set the assignments
         }
 
+        // For students or other roles, continue with the original queries
         // Fetch active assignments
         const { data: active, error: activeError } = await activeQuery;
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -20,6 +19,9 @@ import {
 } from 'lucide-react';
 import { useAssignments } from '@/hooks/useAssignments';
 import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Get status color
 const getStatusColor = (status: string) => {
@@ -82,10 +84,74 @@ const renderStars = (rating: number) => {
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, error } = useAssignments();
+  const { toast } = useToast();
+  const { userEmail } = useAuth();
+  const [processing, setProcessing] = React.useState<string | null>(null);
   
   // Filter assignments by status
-  const availableAssignments = activeAssignments.filter(a => a.status === 'available' || a.status === 'submitted');
+  const availableAssignments = activeAssignments.filter(a => a.status === 'submitted');
   const currentAssignments = activeAssignments.filter(a => a.status === 'in-progress' || a.status === 'review');
+
+  const takeAssignment = async (assignmentId: string) => {
+    setProcessing(assignmentId);
+    try {
+      // First, get the writer's ID from profiles
+      if (!userEmail) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "User information not available. Please log in again."
+        });
+        setProcessing(null);
+        return;
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
+
+      if (profileError || !profileData) {
+        throw new Error("Could not find your user profile. Please log in again.");
+      }
+
+      // Update the assignment to assign it to this writer
+      const { data, error } = await supabase
+        .from('assignments')
+        .update({ 
+          status: 'in-progress',
+          writer_id: profileData.id 
+        })
+        .eq('id', assignmentId)
+        .select();
+
+      if (error) {
+        if (error.message.includes("writer_id")) {
+          toast({
+            variant: "destructive",
+            title: "Assignment Already Taken",
+            description: "This assignment has already been taken by another writer."
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({
+          title: "Assignment Taken",
+          description: "You have successfully taken this assignment."
+        });
+      }
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to take assignment."
+      });
+    } finally {
+      setProcessing(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -169,7 +235,6 @@ const WriterDashboard = () => {
                         <CardDescription>{assignment.subject}</CardDescription>
                       </div>
                       <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
-                        {/* Fictional budget based on word count */}
                         ${Math.floor((assignment.title?.length || 0) * 0.8) + 50}
                       </span>
                     </div>
@@ -191,13 +256,26 @@ const WriterDashboard = () => {
                         }</span>
                       </div>
                     </div>
+                    {assignment.description && (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-700 line-clamp-3">{assignment.description}</p>
+                      </div>
+                    )}
                   </CardContent>
                   <CardFooter className="border-t pt-4">
-                    <Button variant="outline" size="sm" className="mr-2">
-                      View Details
-                    </Button>
-                    <Button size="sm">
-                      Apply for Job
+                    <Button 
+                      size="sm" 
+                      disabled={processing === assignment.id}
+                      onClick={() => takeAssignment(assignment.id)}
+                    >
+                      {processing === assignment.id ? (
+                        <>
+                          <Loader className="h-4 w-4 mr-2 animate-spin" />
+                          Taking...
+                        </>
+                      ) : (
+                        'Take Assignment'
+                      )}
                     </Button>
                   </CardFooter>
                 </Card>
