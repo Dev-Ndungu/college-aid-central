@@ -52,7 +52,7 @@ const Dashboard = () => {
           return;
         }
 
-        if (data && typeof data === 'object' && 'full_name' in data) {
+        if (data && 'full_name' in data) {
           setUserName(data.full_name);
         }
       } catch (error) {
@@ -93,8 +93,8 @@ const Dashboard = () => {
     return null; // Will redirect to login in useEffect
   }
 
-  // Display either user name if available, or fall back to email
-  const displayName = userName || userEmail?.split('@')[0] || "User";
+  // Display either user name if available, or fall back to email's prefix
+  const displayName = userName || (userEmail ? userEmail.split('@')[0] : "User");
 
   return (
     <div className="min-h-screen flex flex-col">

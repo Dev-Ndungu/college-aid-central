@@ -32,6 +32,24 @@ export const useAssignments = () => {
         setIsLoading(true);
         setError(null);
 
+        // First, get the user's ID from the profiles table using their email
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', userEmail)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+          throw new Error('Unable to fetch your profile information.');
+        }
+
+        if (!profileData?.id) {
+          throw new Error('User profile not found.');
+        }
+
+        const userId = profileData.id;
+
         let activeQuery = supabase
           .from('assignments')
           .select('*')
@@ -46,8 +64,8 @@ export const useAssignments = () => {
         
         // If user is a student, only get their assignments
         if (userRole === 'student') {
-          activeQuery = activeQuery.eq('user_id', userEmail);
-          completedQuery = completedQuery.eq('user_id', userEmail);
+          activeQuery = activeQuery.eq('user_id', userId);
+          completedQuery = completedQuery.eq('user_id', userId);
         }
 
         // Fetch active assignments

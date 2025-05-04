@@ -39,7 +39,7 @@ const AssignmentSubmission = () => {
   const [date, setDate] = React.useState<Date>();
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(false);
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, userEmail } = useAuth();
   const navigate = useNavigate();
   
   // Form state
@@ -67,17 +67,26 @@ const AssignmentSubmission = () => {
     setLoading(true);
     
     try {
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
+      // Get the current user from profiles
+      if (!userEmail) {
         toast({
           variant: "destructive",
           title: "Authentication Error",
-          description: "You must be logged in to submit an assignment."
+          description: "User email not available. Please log in again."
         });
         navigate('/login');
         return;
+      }
+
+      // Get the user ID from profiles using email
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
+
+      if (profileError || !profileData) {
+        throw new Error("Could not find your user profile. Please log in again.");
       }
 
       // Create the assignment in the database
@@ -89,7 +98,7 @@ const AssignmentSubmission = () => {
             subject,
             description,
             due_date: date ? date.toISOString() : null,
-            user_id: user.id,
+            user_id: profileData.id, // Use the correct UUID from profiles
             status: 'in-progress',
             progress: 0
           }
