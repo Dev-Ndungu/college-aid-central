@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -165,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const redirectTo = `${window.location.origin}/profile-completion`;
       console.log("Redirect URL for Google auth:", redirectTo);
       
-      // Store the role in the metadata
+      // Store the role in the queryParams object instead of data
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -173,10 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          },
-          // Pass the selected role as user_metadata
-          data: {
-            role: selectedRole
+            role: selectedRole // Pass role as a query parameter
           }
         }
       });
