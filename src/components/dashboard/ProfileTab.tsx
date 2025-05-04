@@ -73,18 +73,18 @@ const ProfileTab = () => {
           .single();
           
         if (error) {
-          throw error;
+          console.error("Error fetching profile:", error);
+          // Don't throw the error, just log it and continue with default values
+          return;
         }
         
         if (data) {
           // Convert null values to defaults
-          const profileData = data as ProfileData;
-          
           form.reset({
-            fullName: profileData.full_name || "",
-            institutionType: (profileData.institution_type as "university" | "college") || "university",
-            institution: profileData.institution || "",
-            gender: (profileData.gender as "male" | "female" | "other") || "male",
+            fullName: data.full_name || "",
+            institutionType: (data.institution_type as "university" | "college") || "university",
+            institution: data.institution || "",
+            gender: (data.gender as "male" | "female" | "other") || "male",
           });
         }
       } catch (error) {
@@ -102,7 +102,7 @@ const ProfileTab = () => {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'profiles', filter: `email=eq.${userEmail}` }, 
         (payload) => {
-          const newData = payload.new as ProfileData;
+          const newData = payload.new as any;
           
           if (newData) {
             form.reset({
