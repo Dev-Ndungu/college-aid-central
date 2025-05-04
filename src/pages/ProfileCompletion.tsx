@@ -28,9 +28,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Building, GraduationCap, Loader, User } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Please enter your name"),
+  institutionType: z.enum(["university", "college"]),
   institution: z.string().min(2, "Please enter your institution name"),
   gender: z.enum(["male", "female", "other"]),
 });
@@ -47,6 +49,7 @@ const ProfileCompletion = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
+      institutionType: "university",
       institution: "",
       gender: "male",
     },
@@ -71,6 +74,7 @@ const ProfileCompletion = () => {
         .update({
           full_name: data.fullName,
           institution: data.institution,
+          institution_type: data.institutionType,
           gender: data.gender,
         })
         .eq('email', userEmail);
@@ -143,10 +147,41 @@ const ProfileCompletion = () => {
               
               <FormField
                 control={form.control}
+                name="institutionType"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel>Institution Type</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        className="flex space-x-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="university" id="university" />
+                          <FormLabel htmlFor="university" className="cursor-pointer">
+                            University
+                          </FormLabel>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="college" id="college" />
+                          <FormLabel htmlFor="college" className="cursor-pointer">
+                            College
+                          </FormLabel>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="institution"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Institution</FormLabel>
+                    <FormLabel>Institution Name</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -19,11 +19,13 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import WriterDashboard from '@/components/dashboard/WriterDashboard';
+import ProfileTab from '@/components/dashboard/ProfileTab';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
   const { isAuthenticated, userEmail, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -69,7 +71,20 @@ const Dashboard = () => {
             </div>
           </header>
 
-          {userRole === 'student' ? <StudentDashboard /> : <WriterDashboard />}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-8">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="profile">Profile</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dashboard">
+              {userRole === 'student' ? <StudentDashboard /> : <WriterDashboard />}
+            </TabsContent>
+
+            <TabsContent value="profile">
+              <ProfileTab />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       <Footer />

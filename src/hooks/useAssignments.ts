@@ -22,32 +22,42 @@ export const useAssignments = () => {
   const [completedAssignments, setCompletedAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userRole, userEmail } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !userEmail) return;
 
     const fetchAssignments = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Fetch active assignments
-        const { data: active, error: activeError } = await supabase
+        let activeQuery = supabase
           .from('assignments')
           .select('*')
           .neq('status', 'completed')
           .order('due_date', { ascending: true });
+          
+        let completedQuery = supabase
+          .from('assignments')
+          .select('*')
+          .eq('status', 'completed')
+          .order('completed_date', { ascending: false });
+        
+        // If user is a student, only get their assignments
+        if (userRole === 'student') {
+          activeQuery = activeQuery.eq('user_id', userEmail);
+          completedQuery = completedQuery.eq('user_id', userEmail);
+        }
+
+        // Fetch active assignments
+        const { data: active, error: activeError } = await activeQuery;
 
         if (activeError) throw activeError;
         setActiveAssignments(active || []);
 
         // Fetch completed assignments
-        const { data: completed, error: completedError } = await supabase
-          .from('assignments')
-          .select('*')
-          .eq('status', 'completed')
-          .order('completed_date', { ascending: false });
+        const { data: completed, error: completedError } = await completedQuery;
 
         if (completedError) throw completedError;
         setCompletedAssignments(completed || []);
@@ -76,7 +86,7 @@ export const useAssignments = () => {
     return () => {
       supabase.removeChannel(assignmentsSubscription);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, userEmail, userRole]);
 
   // Fixed TypeScript error: Changed the parameter type to match what Supabase expects
   const createAssignment = async (assignmentData: {

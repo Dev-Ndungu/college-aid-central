@@ -120,7 +120,9 @@ export type Database = {
           created_at: string | null
           email: string
           full_name: string | null
+          gender: string | null
           id: string
+          institution_type: string | null
           role: string
           updated_at: string | null
         }
@@ -129,7 +131,9 @@ export type Database = {
           created_at?: string | null
           email: string
           full_name?: string | null
+          gender?: string | null
           id: string
+          institution_type?: string | null
           role?: string
           updated_at?: string | null
         }
@@ -138,7 +142,9 @@ export type Database = {
           created_at?: string | null
           email?: string
           full_name?: string | null
+          gender?: string | null
           id?: string
+          institution_type?: string | null
           role?: string
           updated_at?: string | null
         }

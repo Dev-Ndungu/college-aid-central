@@ -14,53 +14,11 @@ import {
   Clock, 
   CheckCircle, 
   AlertCircle, 
-  Calendar 
+  Calendar,
+  Loader
 } from 'lucide-react';
-
-// Mock data for assignments
-const activeAssignments = [
-  {
-    id: 1,
-    title: "Research Paper on Climate Change",
-    subject: "Environmental Science",
-    dueDate: "2025-06-01",
-    status: "in-progress",
-    progress: 60,
-  },
-  {
-    id: 2,
-    title: "Analysis of Shakespeare's Hamlet",
-    subject: "English Literature",
-    dueDate: "2025-05-15",
-    status: "submitted",
-    progress: 30,
-  },
-  {
-    id: 3,
-    title: "Statistical Analysis Project",
-    subject: "Statistics",
-    dueDate: "2025-05-20",
-    status: "review",
-    progress: 80,
-  },
-];
-
-const completedAssignments = [
-  {
-    id: 4,
-    title: "Economics Research Paper",
-    subject: "Economics",
-    completedDate: "2025-04-10",
-    grade: "A",
-  },
-  {
-    id: 5,
-    title: "Biology Lab Report",
-    subject: "Biology",
-    completedDate: "2025-04-05",
-    grade: "A-",
-  },
-];
+import { useAssignments } from '@/hooks/useAssignments';
+import { format } from 'date-fns';
 
 // Get status color
 const getStatusColor = (status: string) => {
@@ -90,11 +48,50 @@ const getStatusLabel = (status: string) => {
     case 'completed':
       return 'Completed';
     default:
-      return status;
+      return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+};
+
+// Format date display
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return 'Not set';
+  try {
+    return format(new Date(dateStr), 'MMM d, yyyy');
+  } catch (e) {
+    return 'Invalid date';
   }
 };
 
 const StudentDashboard = () => {
+  const { activeAssignments, completedAssignments, isLoading, error } = useAssignments();
+  
+  // Count upcoming deadlines (assignments due within 7 days)
+  const upcomingDeadlines = activeAssignments.filter(assignment => {
+    if (!assignment.due_date) return false;
+    const dueDate = new Date(assignment.due_date);
+    const today = new Date();
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(today.getDate() + 7);
+    return dueDate <= sevenDaysFromNow && dueDate >= today;
+  }).length;
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader className="h-8 w-8 animate-spin text-brand-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 my-4">
+        <h3 className="text-lg font-semibold">Error loading assignments</h3>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -130,7 +127,7 @@ const StudentDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">2</p>
+            <p className="text-3xl font-bold">{upcomingDeadlines}</p>
           </CardContent>
         </Card>
       </div>
@@ -143,82 +140,103 @@ const StudentDashboard = () => {
         </TabsList>
         
         <TabsContent value="active" className="mt-6">
-          <div className="grid grid-cols-1 gap-6">
-            {activeAssignments.map((assignment) => (
-              <Card key={assignment.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{assignment.title}</CardTitle>
-                      <CardDescription>{assignment.subject}</CardDescription>
+          {activeAssignments.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-10">
+                <p className="text-gray-500">No active assignments found</p>
+                <Button className="mt-4" variant="outline" size="sm">
+                  Create a new assignment
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {activeAssignments.map((assignment) => (
+                <Card key={assignment.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{assignment.title}</CardTitle>
+                        <CardDescription>{assignment.subject}</CardDescription>
+                      </div>
+                      <span 
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
+                      >
+                        {getStatusLabel(assignment.status)}
+                      </span>
                     </div>
-                    <span 
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
-                    >
-                      {getStatusLabel(assignment.status)}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Progress</span>
-                      <span>{assignment.progress}%</span>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Progress</span>
+                        <span>{assignment.progress || 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-brand-500 h-2.5 rounded-full" 
+                          style={{ width: `${assignment.progress || 0}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-brand-500 h-2.5 rounded-full" 
-                        style={{ width: `${assignment.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Due: {new Date(assignment.dueDate).toLocaleDateString()}
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <Button variant="outline" size="sm" className="mr-2">
-                    View Details
-                  </Button>
-                  <Button size="sm">
-                    Track Progress
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                    {assignment.due_date && (
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        Due: {formatDate(assignment.due_date)}
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="border-t pt-4">
+                    <Button variant="outline" size="sm" className="mr-2">
+                      View Details
+                    </Button>
+                    <Button size="sm">
+                      Track Progress
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="completed" className="mt-6">
-          <div className="grid grid-cols-1 gap-6">
-            {completedAssignments.map((assignment) => (
-              <Card key={assignment.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{assignment.title}</CardTitle>
-                      <CardDescription>{assignment.subject}</CardDescription>
+          {completedAssignments.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-10">
+                <p className="text-gray-500">No completed assignments found</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {completedAssignments.map((assignment) => (
+                <Card key={assignment.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{assignment.title}</CardTitle>
+                        <CardDescription>{assignment.subject}</CardDescription>
+                      </div>
+                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
+                        Grade: {assignment.grade || "Pending"}
+                      </span>
                     </div>
-                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
-                      Grade: {assignment.grade}
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
-                    Completed: {new Date(assignment.completedDate).toLocaleDateString()}
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <Button variant="outline" size="sm">
-                    View Assignment
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                      Completed: {formatDate(assignment.completed_date)}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t pt-4">
+                    <Button variant="outline" size="sm">
+                      View Assignment
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="feedback" className="mt-6">
