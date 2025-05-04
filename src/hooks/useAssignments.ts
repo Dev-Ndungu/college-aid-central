@@ -26,132 +26,119 @@ export const useAssignments = () => {
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, userRole, userEmail } = useAuth();
 
-  useEffect(() => {
+  const fetchAssignments = async () => {
     if (!isAuthenticated || !userEmail) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    const fetchAssignments = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+      // First, get the user's ID from the profiles table using their email
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
 
-        // First, get the user's ID from the profiles table using their email
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', userEmail)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching user profile:', profileError);
-          throw new Error('Unable to fetch your profile information.');
-        }
-
-        if (!profileData?.id) {
-          throw new Error('User profile not found.');
-        }
-
-        const userId = profileData.id;
-        console.log('User ID:', userId);
-        console.log('User role:', userRole);
-
-        // For students - only show their own assignments
-        if (userRole === 'student') {
-          // Fetch active assignments
-          const { data: active, error: activeError } = await supabase
-            .from('assignments')
-            .select('*')
-            .eq('user_id', userId)
-            .neq('status', 'completed')
-            .order('due_date', { ascending: true });
-
-          if (activeError) throw activeError;
-          setActiveAssignments(active || []);
-
-          // Fetch completed assignments
-          const { data: completed, error: completedError } = await supabase
-            .from('assignments')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('status', 'completed')
-            .order('completed_date', { ascending: false });
-
-          if (completedError) throw completedError;
-          setCompletedAssignments(completed || []);
-        }
-        // For writers - show all available assignments and their own assigned ones
-        else if (userRole === 'writer') {
-          console.log('Fetching assignments for writer');
-          
-          // First, get ALL assignments from the database to check what's there
-          const { data: allAssignments, error: allError } = await supabase
-            .from('assignments')
-            .select('*');
-            
-          if (allError) {
-            console.error('Error checking all assignments:', allError);
-            throw allError;
-          }
-          
-          console.log('All assignments in system:', allAssignments);
-          
-          // 1. Explicitly fetch only assignments with status 'submitted' AND writer_id is NULL
-          const { data: availableAssignments, error: availableError } = await supabase
-            .from('assignments')
-            .select('*')
-            .eq('status', 'submitted')
-            .is('writer_id', null);
-            
-          if (availableError) {
-            console.error('Error fetching available assignments:', availableError);
-            throw availableError;
-          }
-          
-          console.log('Available assignments found:', availableAssignments?.length || 0);
-          console.log('Available assignments:', availableAssignments);
-          
-          // 2. Fetch assignments assigned to this specific writer
-          const { data: assignedToWriter, error: assignedError } = await supabase
-            .from('assignments')
-            .select('*')
-            .eq('writer_id', userId)
-            .neq('status', 'completed');
-            
-          if (assignedError) {
-            console.error('Error fetching writer\'s assignments:', assignedError);
-            throw assignedError;
-          }
-          
-          console.log('Writer\'s assignments found:', assignedToWriter?.length || 0);
-          
-          // Combine the results to get all active assignments for this writer
-          const combinedActive = [
-            ...(availableAssignments || []), 
-            ...(assignedToWriter || [])
-          ];
-          
-          console.log('Combined active assignments:', combinedActive.length);
-          setActiveAssignments(combinedActive);
-          
-          // 3. Fetch completed assignments for this writer
-          const { data: completed, error: completedError } = await supabase
-            .from('assignments')
-            .select('*')
-            .eq('writer_id', userId)
-            .eq('status', 'completed')
-            .order('completed_date', { ascending: false });
-
-          if (completedError) throw completedError;
-          setCompletedAssignments(completed || []);
-        }
-
-      } catch (err: any) {
-        console.error('Error fetching assignments:', err);
-        setError(err.message || 'Failed to fetch assignments');
-      } finally {
-        setIsLoading(false);
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        throw new Error('Unable to fetch your profile information.');
       }
-    };
 
+      if (!profileData?.id) {
+        throw new Error('User profile not found.');
+      }
+
+      const userId = profileData.id;
+      console.log('User ID:', userId);
+      console.log('User role:', userRole);
+
+      // For students - only show their own assignments
+      if (userRole === 'student') {
+        // Fetch active assignments
+        const { data: active, error: activeError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('user_id', userId)
+          .neq('status', 'completed')
+          .order('due_date', { ascending: true });
+
+        if (activeError) throw activeError;
+        setActiveAssignments(active || []);
+
+        // Fetch completed assignments
+        const { data: completed, error: completedError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('status', 'completed')
+          .order('completed_date', { ascending: false });
+
+        if (completedError) throw completedError;
+        setCompletedAssignments(completed || []);
+      }
+      // For writers - show all available assignments and their own assigned ones
+      else if (userRole === 'writer') {
+        console.log('Fetching assignments for writer');
+        
+        // Get available assignments (status='submitted' AND writer_id IS NULL)
+        const { data: availableAssignments, error: availableError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('status', 'submitted')
+          .is('writer_id', null);
+          
+        if (availableError) {
+          console.error('Error fetching available assignments:', availableError);
+          throw availableError;
+        }
+        
+        console.log('Available assignments found:', availableAssignments?.length || 0);
+        
+        // Get assignments assigned to this specific writer
+        const { data: assignedToWriter, error: assignedError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('writer_id', userId)
+          .neq('status', 'completed');
+          
+        if (assignedError) {
+          console.error('Error fetching writer\'s assignments:', assignedError);
+          throw assignedError;
+        }
+        
+        console.log('Writer\'s assignments found:', assignedToWriter?.length || 0);
+        
+        // Combine the results
+        const combinedActive = [
+          ...(availableAssignments || []), 
+          ...(assignedToWriter || [])
+        ];
+        
+        console.log('Combined active assignments for writer:', combinedActive.length);
+        setActiveAssignments(combinedActive);
+        
+        // Get completed assignments for this writer
+        const { data: completed, error: completedError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('writer_id', userId)
+          .eq('status', 'completed')
+          .order('completed_date', { ascending: false });
+
+        if (completedError) throw completedError;
+        setCompletedAssignments(completed || []);
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching assignments:', err);
+      setError(err.message || 'Failed to fetch assignments');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAssignments();
     
     // Set up real-time subscription for assignments
@@ -228,17 +215,6 @@ export const useAssignments = () => {
     }
   };
 
-  const deleteProfile = async () => {
-    try {
-      const { error } = await supabase.auth.admin.deleteUser(userEmail!);
-      if (error) throw error;
-      return true;
-    } catch (err: any) {
-      console.error('Error deleting profile:', err);
-      throw err;
-    }
-  };
-
   return {
     activeAssignments,
     completedAssignments,
@@ -247,6 +223,6 @@ export const useAssignments = () => {
     createAssignment,
     updateAssignment,
     deleteAssignment,
-    deleteProfile
+    fetchAssignments // Export this to allow manual refresh
   };
 };

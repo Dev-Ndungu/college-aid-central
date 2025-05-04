@@ -1,2 +1,37 @@
 
+# This is the Supabase config file.
+
+# Note: The project_id is randomly generated and unique to your project.
+# Changing this value might result in data loss.
 project_id = "ihvgtaxvrqdnrgdddhdx"
+
+# You can update the name to your project/product name.
+name = "College-Aid-Central"
+
+[api]
+port = 9000
+schemas = ["public", "storage"]
+extra_search_path = ["extensions"]
+max_rows = 1000
+
+[db]
+port = 5432
+major_version = 15
+
+[studio]
+port = 9100
+
+[inbucket]
+port = 9200
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000", "https://preview--college-aid-central.lovable.app"]
+jwt_expiry = 3600
+enable_signup = true
+
+[storage]
+file_size_limit = "50MiB"
+
+[storage.buckets]
+avatars = { public = true }

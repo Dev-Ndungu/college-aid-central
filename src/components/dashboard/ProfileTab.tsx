@@ -16,6 +16,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import UserAvatar from '@/components/profile/UserAvatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,6 +69,7 @@ type ProfileData = {
   institution_type: string | null;
   gender: string | null;
   phone_number: string | null;
+  avatar_url: string | null;
 };
 
 const ProfileTab = () => {
@@ -106,7 +108,7 @@ const ProfileTab = () => {
         
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, institution, institution_type, gender, phone_number')
+          .select('full_name, institution, institution_type, gender, phone_number, avatar_url')
           .eq('email', userEmail)
           .single();
           
@@ -326,6 +328,13 @@ const ProfileTab = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="flex flex-col items-center mb-8">
+          <UserAvatar size="lg" showUploadButton={true} />
+          <p className="text-sm text-muted-foreground mt-2">
+            Click to upload or change your profile picture
+          </p>
+        </div>
+      
         {userRole === 'student' ? (
           <Form {...studentForm}>
             <form onSubmit={studentForm.handleSubmit(onSubmitStudent)} className="space-y-6">

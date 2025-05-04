@@ -7,6 +7,7 @@ type UserProfile = {
   full_name?: string | null;
   institution?: string | null;
   gender?: string | null;
+  avatar_url?: string | null;
 };
 
 type AuthContextType = {
@@ -14,11 +15,13 @@ type AuthContextType = {
   isAuthenticated: boolean;
   userEmail: string | null;
   userRole: 'student' | 'writer' | null;
+  userAvatar: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
   updateUserProfile: (profile: UserProfile) => Promise<void>;
+  updateUserAvatar: (avatarUrl: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<'student' | 'writer' | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -44,10 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Defer Supabase profile fetch with setTimeout to avoid deadlocks
         setTimeout(async () => {
           try {
-            // Get user role from profiles table
+            // Get user role and avatar from profiles table
             const { data: profile, error } = await supabase
               .from('profiles')
-              .select('role')
+              .select('role, avatar_url')
               .eq('id', session.user.id)
               .single();
               
@@ -55,6 +59,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.error("Error fetching user profile:", error);
             } else {
               setUserRole(profile?.role as 'student' | 'writer' | null);
+              setUserAvatar(profile?.avatar_url);
+              
+              // If user signed in with Google and has no avatar yet, get it from Google
+              if (!profile?.avatar_url && session.user.app_metadata?.provider === 'google') {
+                const avatarUrl = session.user.user_metadata?.avatar_url;
+                if (avatarUrl) {
+                  // Update the profile with the Google avatar
+                  await supabase
+                    .from('profiles')
+                    .update({ avatar_url: avatarUrl })
+                    .eq('id', session.user.id);
+                  
+                  setUserAvatar(avatarUrl);
+                }
+              }
             }
           } catch (error) {
             console.error("Error fetching user profile:", error);
@@ -64,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(false);
         setUserEmail(null);
         setUserRole(null);
+        setUserAvatar(null);
       }
     });
 
@@ -76,10 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAuthenticated(true);
           setUserEmail(session.user.email);
           
-          // Get user role from profiles table
+          // Get user role and avatar from profiles table
           const { data: profile, error } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, avatar_url')
             .eq('id', session.user.id)
             .single();
             
@@ -87,11 +107,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error("Error fetching user profile:", error);
           } else {
             setUserRole(profile?.role as 'student' | 'writer' | null);
+            setUserAvatar(profile?.avatar_url);
+            
+            // If user signed in with Google and has no avatar yet, get it from Google
+            if (!profile?.avatar_url && session.user.app_metadata?.provider === 'google') {
+              const avatarUrl = session.user.user_metadata?.avatar_url;
+              if (avatarUrl) {
+                // Update the profile with the Google avatar
+                await supabase
+                  .from('profiles')
+                  .update({ avatar_url: avatarUrl })
+                  .eq('id', session.user.id);
+                
+                setUserAvatar(avatarUrl);
+              }
+            }
           }
         } else {
           setIsAuthenticated(false);
           setUserEmail(null);
           setUserRole(null);
+          setUserAvatar(null);
         }
       } catch (error) {
         console.error('Error checking authentication status:', error);
@@ -265,12 +301,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .update({
           full_name: profile.full_name,
           institution: profile.institution,
-          gender: profile.gender
+          gender: profile.gender,
+          // Only update avatar_url if provided
+          ...(profile.avatar_url && { avatar_url: profile.avatar_url })
         })
         .eq('id', user.id);
         
       if (error) {
         throw error;
+      }
+      
+      // Update local state if avatar was updated
+      if (profile.avatar_url) {
+        setUserAvatar(profile.avatar_url);
       }
       
       toast({
@@ -291,6 +334,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUserAvatar = async (avatarUrl: string) => {
+    try {
+      setIsLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error("Not authenticated");
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
+      setUserAvatar(avatarUrl);
+      
+      toast({
+        title: "Success",
+        description: "Your avatar has been updated.",
+      });
+      
+    } catch (error: any) {
+      console.error('Error updating avatar:', error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "An error occurred during avatar update.",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       setIsLoading(true);
@@ -303,6 +384,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAuthenticated(false);
       setUserEmail(null);
       setUserRole(null);
+      setUserAvatar(null);
       
       toast({
         title: "Success",
@@ -328,11 +410,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated,
     userEmail,
     userRole,
+    userAvatar,
     signIn,
     signInWithGoogle,
     signUp,
     signOut,
-    updateUserProfile
+    updateUserProfile,
+    updateUserAvatar
   };
 
   return (
