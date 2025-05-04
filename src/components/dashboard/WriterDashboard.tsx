@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -23,9 +23,12 @@ import {
   Calendar,
   Briefcase,
   Loader,
-  X
+  X,
+  AlertTriangle,
+  RefreshCcw
 } from 'lucide-react';
 import { useAssignments } from '@/hooks/useAssignments';
+import { useWriters } from '@/hooks/useWriters';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -92,11 +95,85 @@ const renderStars = (rating: number) => {
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, error } = useAssignments();
+  const { checkAssignments } = useWriters();
   const { toast } = useToast();
   const { userEmail } = useAuth();
   const [processing, setProcessing] = React.useState<string | null>(null);
   const [viewingAssignment, setViewingAssignment] = useState<string | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  
+  // Debug function
+  const runDebugCheck = async () => {
+    try {
+      setDebugInfo("Running debug check...");
+      
+      // Check if there are assignments in the database
+      const { data: allAssignments, error: assignmentsError } = await supabase
+        .from('assignments')
+        .select('*');
+      
+      if (assignmentsError) {
+        setDebugInfo("Error fetching assignments: " + assignmentsError.message);
+        return;
+      }
+      
+      if (!allAssignments || allAssignments.length === 0) {
+        setDebugInfo("No assignments found in database");
+        return;
+      }
+      
+      // Check specifically for submitted assignments
+      const { data: submitted, error: submittedError } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('status', 'submitted')
+        .is('writer_id', null);
+      
+      if (submittedError) {
+        setDebugInfo("Error fetching submitted assignments: " + submittedError.message);
+        return;
+      }
+      
+      setDebugInfo(`Found ${allAssignments.length} assignments in database. ${submitted ? submitted.length : 0} are available for writers.`);
+      
+      // Check if any assignments have status 'submitted'
+      const submittedCount = allAssignments.filter(a => a.status === 'submitted').length;
+      if (submittedCount === 0) {
+        toast({
+          title: "Debug Information",
+          description: "No assignments with 'submitted' status found. Students may need to mark assignments as 'submitted'.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Debug Information",
+          description: `Found ${submittedCount} assignments with 'submitted' status.`,
+        });
+      }
+    } catch (err: any) {
+      setDebugInfo(`Error during debug: ${err.message}`);
+    }
+  };
+  
+  // Manually refresh assignments
+  const refreshAssignments = async () => {
+    // We re-run the hook by forcing a re-render
+    toast({
+      title: "Refreshing",
+      description: "Fetching the latest assignments...",
+    });
+    await checkAssignments();
+    // Force component re-render
+    setProcessing("refreshing");
+    setTimeout(() => setProcessing(null), 100);
+  };
+  
+  useEffect(() => {
+    // Check on mount
+    console.log("Writer dashboard mounted, active assignments:", activeAssignments);
+    checkAssignments();
+  }, []);
   
   // Filter assignments by status
   const availableAssignments = activeAssignments.filter(a => a.status === 'submitted' && !a.writer_id);
@@ -192,6 +269,39 @@ const WriterDashboard = () => {
 
   return (
     <>
+      <div className="mb-4 flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Writer Dashboard</h2>
+        <Button 
+          onClick={refreshAssignments}
+          variant="outline" 
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          <RefreshCcw className="h-4 w-4 mr-1" />
+          Refresh
+        </Button>
+      </div>
+
+      {debugInfo && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6 flex justify-between items-start">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              Debug Information
+            </h3>
+            <p>{debugInfo}</p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setDebugInfo(null)}
+            className="text-blue-800"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-2">
@@ -242,6 +352,14 @@ const WriterDashboard = () => {
             <Card>
               <CardContent className="text-center py-10">
                 <p className="text-gray-500">No available jobs found</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={runDebugCheck}
+                >
+                  Check for Assignments
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -465,8 +583,6 @@ const WriterDashboard = () => {
                 </div>
               </div>
             )}
-            
-            {/* Add more details as needed */}
           </div>
           
           <div className="flex justify-end mt-6 space-x-2">

@@ -39,9 +39,41 @@ export const useWriters = () => {
     fetchWriters();
   }, []);
 
+  // Add debug function to check assignments
+  const checkAssignments = async () => {
+    try {
+      // Check all assignments in the system
+      const { data: allAssignments, error: assignmentsError } = await supabase
+        .from('assignments')
+        .select('*');
+      
+      console.log('All assignments in system:', allAssignments);
+      
+      // Check available assignments
+      const { data: availableAssignments, error: availableError } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('status', 'submitted')
+        .is('writer_id', null);
+      
+      console.log('Available assignments:', availableAssignments);
+      
+      if (assignmentsError || availableError) {
+        console.error('Error checking assignments:', assignmentsError || availableError);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error during assignment check:', err);
+      return false;
+    }
+  };
+
   return {
     writers,
     isLoading,
-    error
+    error,
+    checkAssignments
   };
 };

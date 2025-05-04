@@ -50,6 +50,8 @@ export const useAssignments = () => {
         }
 
         const userId = profileData.id;
+        console.log('User ID:', userId);
+        console.log('User role:', userRole);
 
         // For students
         if (userRole === 'student') {
@@ -140,6 +142,7 @@ export const useAssignments = () => {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'assignments' }, 
         () => {
+          console.log('Assignments change detected - fetching updated assignments');
           fetchAssignments();
         }
       )
@@ -207,7 +210,6 @@ export const useAssignments = () => {
     }
   };
 
-  // Add function to delete profile
   const deleteProfile = async () => {
     try {
       const { error } = await supabase.auth.admin.deleteUser(userEmail!);
