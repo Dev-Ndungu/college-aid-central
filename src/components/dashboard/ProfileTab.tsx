@@ -78,8 +78,9 @@ const ProfileTab = () => {
           return;
         }
         
-        if (data) {
-          // Convert null values to defaults
+        // Only proceed with setting form values if we have valid data
+        // Type check to ensure data is not an error object
+        if (data && typeof data === 'object' && !('error' in data)) {
           form.reset({
             fullName: data.full_name || "",
             institutionType: (data.institution_type as "university" | "college") || "university",
@@ -104,7 +105,8 @@ const ProfileTab = () => {
         (payload) => {
           const newData = payload.new as any;
           
-          if (newData) {
+          // Check if we have valid data before updating the form
+          if (newData && typeof newData === 'object' && 'full_name' in newData) {
             form.reset({
               fullName: newData.full_name || "",
               institutionType: (newData.institution_type as "university" | "college") || "university",
