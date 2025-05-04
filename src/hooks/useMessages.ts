@@ -90,15 +90,17 @@ export const useMessages = (assignmentId?: string) => {
 
   const sendMessage = async (content: string, recipientId: string, assignmentId?: string) => {
     try {
+      // Note: We're not including sender_id because it will be automatically
+      // added by Row Level Security in Supabase based on the authenticated user
       const newMessage = {
         content,
         recipient_id: recipientId,
-        assignment_id: assignmentId
+        assignment_id: assignmentId || null
       };
 
       const { data, error } = await supabase
         .from('messages')
-        .insert([newMessage]) // sender_id is automatically added by RLS
+        .insert(newMessage) // sender_id is automatically added by RLS
         .select(`
           *,
           sender:profiles!messages_sender_id_fkey(id, full_name, email, role),
