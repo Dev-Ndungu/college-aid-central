@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -77,42 +78,57 @@ export const useAssignments = () => {
           if (completedError) throw completedError;
           setCompletedAssignments(completed || []);
         }
-        // For writers - show all available assignments that are submitted and not assigned to any writer
+        // For writers - show all available assignments and their own assigned ones
         else if (userRole === 'writer') {
           console.log('Fetching assignments for writer');
           
-          // 1. Fetch all available assignments (status='submitted' and writer_id is null)
+          // First, get ALL assignments from the database to check what's there
+          const { data: allAssignments, error: allError } = await supabase
+            .from('assignments')
+            .select('*');
+            
+          if (allError) {
+            console.error('Error checking all assignments:', allError);
+            throw allError;
+          }
+          
+          console.log('All assignments in system:', allAssignments);
+          
+          // 1. Explicitly fetch only assignments with status 'submitted' AND writer_id is NULL
           const { data: availableAssignments, error: availableError } = await supabase
             .from('assignments')
             .select('*')
             .eq('status', 'submitted')
-            .is('writer_id', null)
-            .order('due_date', { ascending: true });
-
+            .is('writer_id', null);
+            
           if (availableError) {
             console.error('Error fetching available assignments:', availableError);
             throw availableError;
           }
           
           console.log('Available assignments found:', availableAssignments?.length || 0);
+          console.log('Available assignments:', availableAssignments);
           
-          // 2. Fetch assignments assigned to this writer
-          const { data: assigned, error: assignedError } = await supabase
+          // 2. Fetch assignments assigned to this specific writer
+          const { data: assignedToWriter, error: assignedError } = await supabase
             .from('assignments')
             .select('*')
             .eq('writer_id', userId)
-            .neq('status', 'completed')
-            .order('due_date', { ascending: true });
-
+            .neq('status', 'completed');
+            
           if (assignedError) {
-            console.error('Error fetching assigned assignments:', assignedError);
+            console.error('Error fetching writer\'s assignments:', assignedError);
             throw assignedError;
           }
           
-          console.log('Writer\'s assignments found:', assigned?.length || 0);
-
-          // Combine the results 
-          const combinedActive = [...(availableAssignments || []), ...(assigned || [])];
+          console.log('Writer\'s assignments found:', assignedToWriter?.length || 0);
+          
+          // Combine the results to get all active assignments for this writer
+          const combinedActive = [
+            ...(availableAssignments || []), 
+            ...(assignedToWriter || [])
+          ];
+          
           console.log('Combined active assignments:', combinedActive.length);
           setActiveAssignments(combinedActive);
           

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -25,7 +26,7 @@ import {
   Loader,
   X,
   AlertTriangle,
-  RefreshCcw
+  RefreshCw
 } from 'lucide-react';
 import { useAssignments } from '@/hooks/useAssignments';
 import { useWriters } from '@/hooks/useWriters';
@@ -112,10 +113,40 @@ const WriterDashboard = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
   
+  // Filter assignments by status
+  // Available assignments = status 'submitted' AND no writer_id
+  const availableAssignments = activeAssignments.filter(a => 
+    a.status === 'submitted' && !a.writer_id
+  );
+  
+  // Current assignments = has writer_id AND status is either 'in-progress' or 'review'
+  const currentAssignments = activeAssignments.filter(a => 
+    a.writer_id && (a.status === 'in-progress' || a.status === 'review')
+  );
+
   // Debug function to check database status
   const runDebugCheck = async () => {
     try {
       setDebugInfo("Running debug check...");
+      
+      // Check if the user is authenticated and get their profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setDebugInfo("Error: No authenticated user found");
+        return;
+      }
+      
+      // Get user profile from database
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError) {
+        setDebugInfo("Error fetching profile: " + profileError.message);
+        return;
+      }
       
       // Check if there are assignments in the database
       const { data: allAssignments, error: assignmentsError } = await supabase
@@ -132,7 +163,7 @@ const WriterDashboard = () => {
         return;
       }
       
-      // Check specifically for submitted assignments
+      // Check specifically for submitted assignments with no writer
       const { data: submitted, error: submittedError } = await supabase
         .from('assignments')
         .select('*')
@@ -152,11 +183,12 @@ const WriterDashboard = () => {
       
       setDebugInfo(`Found ${allAssignments.length} assignments in database. 
         Statuses: ${JSON.stringify(statuses)}. 
-        ${submitted ? submitted.length : 0} are available for writers (status='submitted' and writer_id=null).`);
+        ${submitted ? submitted.length : 0} are available for writers (status='submitted' and writer_id=null).
+        User role: ${profile.role}, User ID: ${user.id}`);
       
       toast({
         title: "Debug Information",
-        description: `Found ${allAssignments.length} assignments. ${submitted ? submitted.length : 0} available with 'submitted' status.`,
+        description: `Found ${allAssignments.length} total assignments. ${submitted ? submitted.length : 0} available for writers.`,
       });
     } catch (err: any) {
       setDebugInfo(`Error during debug: ${err.message}`);
@@ -178,12 +210,10 @@ const WriterDashboard = () => {
   useEffect(() => {
     // Check on mount
     console.log("Writer dashboard mounted, active assignments:", activeAssignments);
-    checkAssignments();
+    console.log("Available assignments:", availableAssignments.length);
+    console.log("Current assignments:", currentAssignments.length);
+    runDebugCheck(); // Run debug check on mount to help diagnose issues
   }, []);
-  
-  // Filter assignments by status
-  const availableAssignments = activeAssignments.filter(a => a.status === 'submitted' && !a.writer_id);
-  const currentAssignments = activeAssignments.filter(a => a.writer_id && (a.status === 'in-progress' || a.status === 'review'));
 
   const takeAssignment = async (assignmentId: string) => {
     setProcessing(assignmentId);
@@ -236,6 +266,7 @@ const WriterDashboard = () => {
         });
         // Force refresh of assignments
         await checkAssignments();
+        refreshAssignments();
       }
     } catch (err: any) {
       toast({
@@ -266,15 +297,6 @@ const WriterDashboard = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 my-4">
-        <h3 className="text-lg font-semibold">Error loading assignments</h3>
-        <p>{error}</p>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="mb-4 flex justify-between items-center">
@@ -294,7 +316,7 @@ const WriterDashboard = () => {
             size="sm"
             className="flex items-center gap-1"
           >
-            <RefreshCcw className="h-4 w-4 mr-1" />
+            <RefreshCw className="h-4 w-4 mr-1" />
             Refresh
           </Button>
         </div>
@@ -374,9 +396,9 @@ const WriterDashboard = () => {
                   variant="outline" 
                   size="sm" 
                   className="mt-4"
-                  onClick={runDebugCheck}
+                  onClick={refreshAssignments}
                 >
-                  Check for Assignments
+                  Refresh Assignments
                 </Button>
               </CardContent>
             </Card>
