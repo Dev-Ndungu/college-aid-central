@@ -19,11 +19,13 @@ export type MessageWithProfile = Message & {
     full_name: string | null;
     email: string;
     role: string;
+    avatar_url: string | null;
   };
   recipient: {
     full_name: string | null;
     email: string;
     role: string;
+    avatar_url: string | null;
   };
 };
 
@@ -45,8 +47,8 @@ export const useMessages = (assignmentId?: string) => {
           .from('messages')
           .select(`
             *,
-            sender:profiles!messages_sender_id_fkey(id, full_name, email, role),
-            recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role)
+            sender:profiles!messages_sender_id_fkey(id, full_name, email, role, avatar_url),
+            recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role, avatar_url)
           `)
           .order('created_at', { ascending: false });
 
@@ -105,8 +107,8 @@ export const useMessages = (assignmentId?: string) => {
         .insert(newMessage as any)
         .select(`
           *,
-          sender:profiles!messages_sender_id_fkey(id, full_name, email, role),
-          recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role)
+          sender:profiles!messages_sender_id_fkey(id, full_name, email, role, avatar_url),
+          recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role, avatar_url)
         `);
 
       if (error) throw error;
