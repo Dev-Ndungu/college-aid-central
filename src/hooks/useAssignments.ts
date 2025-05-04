@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -78,15 +77,22 @@ export const useAssignments = () => {
         }
         // For writers
         else if (userRole === 'writer') {
-          // 1. Fetch submitted assignments (available to take)
+          console.log('Fetching assignments for writer');
+          
+          // 1. Fetch all submitted assignments (available to take)
           const { data: submitted, error: submittedError } = await supabase
             .from('assignments')
             .select('*')
             .eq('status', 'submitted')
-            .is('writer_id', null)
+            .is('writer_id', null) // This ensures we only get assignments not assigned to any writer
             .order('due_date', { ascending: true });
 
-          if (submittedError) throw submittedError;
+          if (submittedError) {
+            console.error('Error fetching submitted assignments:', submittedError);
+            throw submittedError;
+          }
+          
+          console.log('Available assignments:', submitted);
 
           // 2. Fetch assignments assigned to this writer
           const { data: assigned, error: assignedError } = await supabase
@@ -96,7 +102,12 @@ export const useAssignments = () => {
             .neq('status', 'completed')
             .order('due_date', { ascending: true });
 
-          if (assignedError) throw assignedError;
+          if (assignedError) {
+            console.error('Error fetching assigned assignments:', assignedError);
+            throw assignedError;
+          }
+          
+          console.log('Assigned assignments:', assigned);
 
           // Combine the results
           setActiveAssignments([...(submitted || []), ...(assigned || [])]);
@@ -196,6 +207,18 @@ export const useAssignments = () => {
     }
   };
 
+  // Add function to delete profile
+  const deleteProfile = async () => {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(userEmail!);
+      if (error) throw error;
+      return true;
+    } catch (err: any) {
+      console.error('Error deleting profile:', err);
+      throw err;
+    }
+  };
+
   return {
     activeAssignments,
     completedAssignments,
@@ -203,6 +226,7 @@ export const useAssignments = () => {
     error,
     createAssignment,
     updateAssignment,
-    deleteAssignment
+    deleteAssignment,
+    deleteProfile
   };
 };

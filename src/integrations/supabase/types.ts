@@ -127,6 +127,7 @@ export type Database = {
           id: string
           institution: string | null
           institution_type: string | null
+          phone_number: string | null
           role: string
           updated_at: string | null
         }
@@ -139,6 +140,7 @@ export type Database = {
           id: string
           institution?: string | null
           institution_type?: string | null
+          phone_number?: string | null
           role?: string
           updated_at?: string | null
         }
@@ -151,6 +153,7 @@ export type Database = {
           id?: string
           institution?: string | null
           institution_type?: string | null
+          phone_number?: string | null
           role?: string
           updated_at?: string | null
         }

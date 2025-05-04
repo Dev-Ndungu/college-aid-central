@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -7,20 +7,29 @@ import {
   CardHeader, 
   CardTitle,
   CardDescription,
-  CardFooter
+  CardFooter,
+  CardDialog,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { 
   Clock, 
   CheckCircle, 
   FileText, 
   Calendar,
   Briefcase,
-  Loader
+  Loader,
+  X
 } from 'lucide-react';
 import { useAssignments } from '@/hooks/useAssignments';
 import { format } from 'date-fns';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -88,6 +97,8 @@ const WriterDashboard = () => {
   const { toast } = useToast();
   const { userEmail } = useAuth();
   const [processing, setProcessing] = React.useState<string | null>(null);
+  const [viewingAssignment, setViewingAssignment] = useState<string | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   
   // Filter assignments by status
   const availableAssignments = activeAssignments.filter(a => a.status === 'submitted' && !a.writer_id);
@@ -152,6 +163,16 @@ const WriterDashboard = () => {
     } finally {
       setProcessing(null);
     }
+  };
+
+  const handleViewDetails = (assignment: any) => {
+    setSelectedAssignment(assignment);
+    setViewingAssignment(assignment.id);
+  };
+
+  const closeDialog = () => {
+    setViewingAssignment(null);
+    setSelectedAssignment(null);
   };
 
   if (isLoading) {
@@ -263,7 +284,14 @@ const WriterDashboard = () => {
                       </div>
                     )}
                   </CardContent>
-                  <CardFooter className="border-t pt-4">
+                  <CardFooter className="border-t pt-4 flex justify-between">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleViewDetails(assignment)}
+                    >
+                      View Details
+                    </Button>
                     <Button 
                       size="sm" 
                       disabled={processing === assignment.id}
@@ -326,7 +354,7 @@ const WriterDashboard = () => {
                     </div>
                   </CardContent>
                   <CardFooter className="border-t pt-4">
-                    <Button variant="outline" size="sm" className="mr-2">
+                    <Button variant="outline" size="sm" className="mr-2" onClick={() => handleViewDetails(assignment)}>
                       View Details
                     </Button>
                     <Button size="sm">
@@ -376,7 +404,7 @@ const WriterDashboard = () => {
                     </div>
                   </CardContent>
                   <CardFooter className="border-t pt-4">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => handleViewDetails(assignment)}>
                       View Assignment
                     </Button>
                   </CardFooter>
@@ -386,6 +414,79 @@ const WriterDashboard = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Assignment Details Dialog */}
+      <Dialog open={!!viewingAssignment} onOpenChange={(open) => !open && closeDialog()}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex justify-between items-center">
+              <span>{selectedAssignment?.title}</span>
+              <Button variant="ghost" size="icon" onClick={closeDialog}>
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              {selectedAssignment?.subject}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Status</p>
+                <p className="mt-1">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedAssignment?.status || '')}`}>
+                    {getStatusLabel(selectedAssignment?.status || '')}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Due Date</p>
+                <p className="mt-1">{formatDate(selectedAssignment?.due_date)}</p>
+              </div>
+            </div>
+            
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Description</p>
+              <div className="bg-gray-50 rounded-md p-4 text-sm">
+                {selectedAssignment?.description || 'No description provided.'}
+              </div>
+            </div>
+            
+            {selectedAssignment?.progress !== null && (
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <p className="text-sm font-medium text-gray-500">Progress</p>
+                  <span>{selectedAssignment?.progress || 0}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    className="bg-brand-500 h-2.5 rounded-full" 
+                    style={{ width: `${selectedAssignment?.progress || 0}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+            
+            {/* Add more details as needed */}
+          </div>
+          
+          <div className="flex justify-end mt-6 space-x-2">
+            <Button variant="outline" onClick={closeDialog}>Close</Button>
+            {selectedAssignment && !selectedAssignment.writer_id && selectedAssignment.status === 'submitted' && (
+              <Button 
+                disabled={processing === selectedAssignment?.id}
+                onClick={() => {
+                  takeAssignment(selectedAssignment.id);
+                  closeDialog();
+                }}
+              >
+                Take Assignment
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

@@ -27,31 +27,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building, GraduationCap, Loader, User } from 'lucide-react';
+import { Building, GraduationCap, Loader, Phone, User } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-const formSchema = z.object({
+const studentFormSchema = z.object({
   fullName: z.string().min(2, "Please enter your name"),
   institutionType: z.enum(["university", "college"]),
   institution: z.string().min(2, "Please enter your institution name"),
   gender: z.enum(["male", "female", "other"]),
+  phoneNumber: z.string().optional(),
 });
 
-type FormData = z.infer<typeof formSchema>;
+const writerFormSchema = z.object({
+  fullName: z.string().min(2, "Please enter your name"),
+  gender: z.enum(["male", "female", "other"]),
+  phoneNumber: z.string().optional(),
+});
+
+type StudentFormData = z.infer<typeof studentFormSchema>;
+type WriterFormData = z.infer<typeof writerFormSchema>;
 
 const ProfileCompletion = () => {
-  const { isAuthenticated, isLoading: authLoading, userEmail } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, userEmail, userRole } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const studentForm = useForm<StudentFormData>({
+    resolver: zodResolver(studentFormSchema),
     defaultValues: {
       fullName: "",
       institutionType: "university",
       institution: "",
       gender: "male",
+      phoneNumber: "",
+    },
+  });
+
+  const writerForm = useForm<WriterFormData>({
+    resolver: zodResolver(writerFormSchema),
+    defaultValues: {
+      fullName: "",
+      gender: "male",
+      phoneNumber: "",
     },
   });
 
@@ -62,7 +80,7 @@ const ProfileCompletion = () => {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmitStudent = async (data: StudentFormData) => {
     if (!isAuthenticated) return;
     
     try {
@@ -76,6 +94,46 @@ const ProfileCompletion = () => {
           institution: data.institution,
           institution_type: data.institutionType,
           gender: data.gender,
+          phone_number: data.phoneNumber || null,
+        })
+        .eq('email', userEmail);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully completed.",
+      });
+
+      // Redirect to dashboard after successful completion
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: error.message || "An error occurred while updating your profile.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onSubmitWriter = async (data: WriterFormData) => {
+    if (!isAuthenticated) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Update the user's profile in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: data.fullName,
+          gender: data.gender,
+          phone_number: data.phoneNumber || null,
         })
         .eq('email', userEmail);
 
@@ -122,112 +180,211 @@ const ProfileCompletion = () => {
             </p>
           </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="fullName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          {...field} 
-                          placeholder="Enter your full name"
-                          className="pl-10"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="institutionType"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel>Institution Type</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="flex space-x-4"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="university" id="university" />
-                          <FormLabel htmlFor="university" className="cursor-pointer">
-                            University
-                          </FormLabel>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="college" id="college" />
-                          <FormLabel htmlFor="college" className="cursor-pointer">
-                            College
-                          </FormLabel>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="institution"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Institution Name</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          {...field} 
-                          placeholder="College/University name"
-                          className="pl-10"
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
+          {userRole === 'student' ? (
+            <Form {...studentForm}>
+              <form onSubmit={studentForm.handleSubmit(onSubmitStudent)} className="space-y-6">
+                <FormField
+                  control={studentForm.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            {...field} 
+                            placeholder="Enter your full name"
+                            className="pl-10"
+                          />
+                        </div>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={studentForm.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (Optional)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            {...field} 
+                            placeholder="Your phone number"
+                            className="pl-10"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={studentForm.control}
+                  name="institutionType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Institution Type</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          className="flex space-x-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="university" id="university" />
+                            <FormLabel htmlFor="university" className="cursor-pointer">
+                              University
+                            </FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="college" id="college" />
+                            <FormLabel htmlFor="college" className="cursor-pointer">
+                              College
+                            </FormLabel>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={studentForm.control}
+                  name="institution"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Institution Name</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            {...field} 
+                            placeholder="College/University name"
+                            className="pl-10"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={studentForm.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Updating Profile..." : "Complete Profile"}
-              </Button>
-            </form>
-          </Form>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Updating Profile..." : "Complete Profile"}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <Form {...writerForm}>
+              <form onSubmit={writerForm.handleSubmit(onSubmitWriter)} className="space-y-6">
+                <FormField
+                  control={writerForm.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            {...field} 
+                            placeholder="Enter your full name"
+                            className="pl-10"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={writerForm.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (Optional)</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            {...field} 
+                            placeholder="Your phone number"
+                            className="pl-10"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={writerForm.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? "Updating Profile..." : "Complete Profile"}
+                </Button>
+              </form>
+            </Form>
+          )}
         </Card>
       </main>
       <Footer />
