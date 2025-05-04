@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,13 +78,14 @@ const ProfileTab = () => {
         }
         
         // Only proceed with setting form values if we have valid data
-        // Type check to ensure data is not an error object
+        // Type check to ensure data is not an error object and not null
         if (data && typeof data === 'object' && !('error' in data)) {
+          // Use optional chaining and nullish coalescing for safe property access
           form.reset({
-            fullName: data.full_name || "",
-            institutionType: (data.institution_type as "university" | "college") || "university",
-            institution: data.institution || "",
-            gender: (data.gender as "male" | "female" | "other") || "male",
+            fullName: data.full_name ?? "",
+            institutionType: ((data.institution_type as "university" | "college") ?? "university"),
+            institution: data.institution ?? "",
+            gender: ((data.gender as "male" | "female" | "other") ?? "male"),
           });
         }
       } catch (error) {
@@ -108,10 +108,10 @@ const ProfileTab = () => {
           // Check if we have valid data before updating the form
           if (newData && typeof newData === 'object' && 'full_name' in newData) {
             form.reset({
-              fullName: newData.full_name || "",
-              institutionType: (newData.institution_type as "university" | "college") || "university",
-              institution: newData.institution || "",
-              gender: (newData.gender as "male" | "female" | "other") || "male",
+              fullName: newData.full_name ?? "",
+              institutionType: ((newData.institution_type as "university" | "college") ?? "university"),
+              institution: newData.institution ?? "",
+              gender: ((newData.gender as "male" | "female" | "other") ?? "male"),
             });
           }
         }
