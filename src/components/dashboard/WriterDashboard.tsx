@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -89,8 +90,8 @@ const WriterDashboard = () => {
   const [processing, setProcessing] = React.useState<string | null>(null);
   
   // Filter assignments by status
-  const availableAssignments = activeAssignments.filter(a => a.status === 'submitted');
-  const currentAssignments = activeAssignments.filter(a => a.status === 'in-progress' || a.status === 'review');
+  const availableAssignments = activeAssignments.filter(a => a.status === 'submitted' && !a.writer_id);
+  const currentAssignments = activeAssignments.filter(a => a.writer_id && (a.status === 'in-progress' || a.status === 'review'));
 
   const takeAssignment = async (assignmentId: string) => {
     setProcessing(assignmentId);

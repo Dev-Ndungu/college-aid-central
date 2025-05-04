@@ -52,78 +52,66 @@ export const useAssignments = () => {
 
         const userId = profileData.id;
 
-        let activeQuery = supabase
-          .from('assignments')
-          .select('*')
-          .neq('status', 'completed')
-          .order('due_date', { ascending: true });
-          
-        let completedQuery = supabase
-          .from('assignments')
-          .select('*')
-          .eq('status', 'completed')
-          .order('completed_date', { ascending: false });
-        
-        // Filter assignments based on user role
+        // For students
         if (userRole === 'student') {
-          // Students see their own assignments
-          activeQuery = activeQuery.eq('user_id', userId);
-          completedQuery = completedQuery.eq('user_id', userId);
-        } else if (userRole === 'writer') {
-          // Writers see:
-          // 1. Assignments marked as 'submitted' (available to take)
-          // 2. Assignments they are currently working on (assigned to them)
-          const submittedQuery = supabase
+          // Fetch active assignments
+          const { data: active, error: activeError } = await supabase
+            .from('assignments')
+            .select('*')
+            .eq('user_id', userId)
+            .neq('status', 'completed')
+            .order('due_date', { ascending: true });
+
+          if (activeError) throw activeError;
+          setActiveAssignments(active || []);
+
+          // Fetch completed assignments
+          const { data: completed, error: completedError } = await supabase
+            .from('assignments')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('status', 'completed')
+            .order('completed_date', { ascending: false });
+
+          if (completedError) throw completedError;
+          setCompletedAssignments(completed || []);
+        }
+        // For writers
+        else if (userRole === 'writer') {
+          // 1. Fetch submitted assignments (available to take)
+          const { data: submitted, error: submittedError } = await supabase
             .from('assignments')
             .select('*')
             .eq('status', 'submitted')
             .is('writer_id', null)
             .order('due_date', { ascending: true });
-          
-          const assignedToMeQuery = supabase
+
+          if (submittedError) throw submittedError;
+
+          // 2. Fetch assignments assigned to this writer
+          const { data: assigned, error: assignedError } = await supabase
             .from('assignments')
             .select('*')
-            .neq('status', 'completed')
             .eq('writer_id', userId)
+            .neq('status', 'completed')
             .order('due_date', { ascending: true });
-          
-          completedQuery = completedQuery.eq('writer_id', userId);
-          
-          // Fetch both submitted and assigned assignments
-          const { data: submitted, error: submittedError } = await submittedQuery;
-          
-          if (submittedError) throw submittedError;
-          
-          const { data: assigned, error: assignedError } = await assignedToMeQuery;
-          
+
           if (assignedError) throw assignedError;
-          
+
           // Combine the results
-          const active = [...(submitted || []), ...(assigned || [])];
-          setActiveAssignments(active);
+          setActiveAssignments([...(submitted || []), ...(assigned || [])]);
           
-          // Get completed assignments
-          const { data: completed, error: completedError } = await completedQuery;
-          
+          // 3. Fetch completed assignments for this writer
+          const { data: completed, error: completedError } = await supabase
+            .from('assignments')
+            .select('*')
+            .eq('writer_id', userId)
+            .eq('status', 'completed')
+            .order('completed_date', { ascending: false });
+
           if (completedError) throw completedError;
           setCompletedAssignments(completed || []);
-          
-          setIsLoading(false);
-          return; // Exit early as we've already set the assignments
         }
-
-        // For students or other roles, continue with the original queries
-        // Fetch active assignments
-        const { data: active, error: activeError } = await activeQuery;
-
-        if (activeError) throw activeError;
-        setActiveAssignments(active || []);
-
-        // Fetch completed assignments
-        const { data: completed, error: completedError } = await completedQuery;
-
-        if (completedError) throw completedError;
-        setCompletedAssignments(completed || []);
 
       } catch (err: any) {
         console.error('Error fetching assignments:', err);
@@ -151,7 +139,6 @@ export const useAssignments = () => {
     };
   }, [isAuthenticated, userEmail, userRole]);
 
-  // Fixed TypeScript error: Changed the parameter type to match what Supabase expects
   const createAssignment = async (assignmentData: {
     title: string;
     subject: string;
@@ -159,7 +146,7 @@ export const useAssignments = () => {
     status?: string;
     progress?: number | null;
     due_date?: string | null;
-    user_id: string; // This was missing in the original type
+    user_id: string;
   }) => {
     try {
       const { data, error } = await supabase
