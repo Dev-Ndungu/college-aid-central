@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -82,22 +81,21 @@ export const useAssignments = () => {
         else if (userRole === 'writer') {
           console.log('Fetching assignments for writer');
           
-          // 1. Fetch all submitted assignments (available to take)
-          const { data: availableAssignments, error: submittedError } = await supabase
+          // 1. Fetch all available assignments (status='submitted' and writer_id is null)
+          const { data: availableAssignments, error: availableError } = await supabase
             .from('assignments')
             .select('*')
             .eq('status', 'submitted')
-            .is('writer_id', null) // This ensures we only get assignments not assigned to any writer
+            .is('writer_id', null)
             .order('due_date', { ascending: true });
 
-          if (submittedError) {
-            console.error('Error fetching submitted assignments:', submittedError);
-            throw submittedError;
+          if (availableError) {
+            console.error('Error fetching available assignments:', availableError);
+            throw availableError;
           }
           
           console.log('Available assignments found:', availableAssignments?.length || 0);
-          console.log('Available assignments:', availableAssignments);
-
+          
           // 2. Fetch assignments assigned to this writer
           const { data: assigned, error: assignedError } = await supabase
             .from('assignments')
