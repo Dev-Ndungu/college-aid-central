@@ -1,8 +1,13 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
+
+type UserProfile = {
+  full_name?: string | null;
+  institution?: string | null;
+  gender?: string | null;
+};
 
 type AuthContextType = {
   isLoading: boolean;
@@ -12,7 +17,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithMicrosoft: () => Promise<void>;
-  signUp: (email: string, password: string, role: 'student' | 'writer') => Promise<void>;
+  signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -178,16 +183,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, role: 'student' | 'writer') => {
+  const signUp = async (
+    email: string, 
+    password: string, 
+    role: 'student' | 'writer', 
+    profile?: UserProfile
+  ) => {
     try {
       setIsLoading(true);
+      
+      // Create the metadata object with role and any provided profile data
+      const metadata = { 
+        role,
+        ...profile
+      };
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            role: role
-          }
+          data: metadata
         }
       });
 
@@ -196,6 +211,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
+        // Update profile data if provided
+        if (profile) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              full_name: profile.full_name,
+              institution: profile.institution,
+              gender: profile.gender
+            })
+            .eq('id', data.user.id);
+            
+          if (profileError) {
+            console.error('Error updating profile:', profileError);
+          }
+        }
+        
         toast({
           title: "Success",
           description: "Your account has been created. Please check your email for verification.",
