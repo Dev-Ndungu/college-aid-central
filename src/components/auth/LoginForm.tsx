@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Globe, LucideIcon } from "lucide-react";
+import { Mail, Globe } from "lucide-react";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { signIn, signInWithGoogle, signInWithMicrosoft, isLoading } = useAuth();
+  const { signIn, signInWithGoogle, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +20,6 @@ const LoginForm = () => {
 
   const handleGoogleSignIn = async () => {
     await signInWithGoogle();
-  };
-
-  const handleMicrosoftSignIn = async () => {
-    await signInWithMicrosoft();
   };
 
   return (
@@ -85,17 +81,6 @@ const LoginForm = () => {
         >
           <Globe className="mr-2 h-4 w-4" />
           Google
-        </Button>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={handleMicrosoftSignIn}
-          disabled={isLoading}
-        >
-          <Mail className="mr-2 h-4 w-4" />
-          Microsoft
         </Button>
       </div>
 
