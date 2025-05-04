@@ -45,8 +45,8 @@ export const useMessages = (assignmentId?: string) => {
           .from('messages')
           .select(`
             *,
-            sender:sender_id(id, full_name, email, role),
-            recipient:recipient_id(id, full_name, email, role)
+            sender:profiles!messages_sender_id_fkey(id, full_name, email, role),
+            recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role)
           `)
           .order('created_at', { ascending: false });
 
@@ -57,7 +57,10 @@ export const useMessages = (assignmentId?: string) => {
         const { data, error: messagesError } = await query;
 
         if (messagesError) throw messagesError;
-        setMessages(data || []);
+        
+        // Properly cast the data to MessageWithProfile[] type
+        const typedMessages = data as unknown as MessageWithProfile[];
+        setMessages(typedMessages || []);
 
       } catch (err: any) {
         console.error('Error fetching messages:', err);
@@ -95,11 +98,11 @@ export const useMessages = (assignmentId?: string) => {
 
       const { data, error } = await supabase
         .from('messages')
-        .insert([newMessage])
+        .insert([newMessage]) // sender_id is automatically added by RLS
         .select(`
           *,
-          sender:sender_id(id, full_name, email, role),
-          recipient:recipient_id(id, full_name, email, role)
+          sender:profiles!messages_sender_id_fkey(id, full_name, email, role),
+          recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role)
         `);
 
       if (error) throw error;
@@ -109,7 +112,7 @@ export const useMessages = (assignmentId?: string) => {
         description: "Your message has been sent successfully.",
       });
 
-      return data[0];
+      return data[0] as unknown as MessageWithProfile;
     } catch (err: any) {
       console.error('Error sending message:', err);
       toast({
