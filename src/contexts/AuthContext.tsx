@@ -17,7 +17,6 @@ type AuthContextType = {
   userRole: 'student' | 'writer' | null;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithMicrosoft: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
   updateUserProfile: (profile: UserProfile) => Promise<void>;
@@ -126,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Sign In Failed",
         description: error.message || "An error occurred during sign in.",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/profile-completion`
         }
       });
 
@@ -154,33 +154,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Google Sign In Failed",
         description: error.message || "An error occurred during Google sign in.",
       });
-      setIsLoading(false);
-    }
-  };
-
-  const signInWithMicrosoft = async () => {
-    try {
-      setIsLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-      
-      // No need to navigate or show success message here
-      // The OAuth flow will handle the redirect
-    } catch (error: any) {
-      console.error('Error signing in with Microsoft:', error);
-      toast({
-        variant: "destructive",
-        title: "Microsoft Sign In Failed",
-        description: error.message || "An error occurred during Microsoft sign in.",
-      });
+      throw error;
+    } finally {
       setIsLoading(false);
     }
   };
@@ -214,12 +189,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
+        // Make sure to manually insert into profiles table for better reliability
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: email,
+            role: role,
+          })
+          .select();
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          // Don't throw here as the auth account was created successfully
+        }
+        
         toast({
           title: "Success",
           description: "Your account has been created. Please check your email for verification.",
         });
-        
-        // Stay on signup page with a success message, email verification required
       }
     } catch (error: any) {
       console.error('Error signing up:', error);
@@ -228,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Sign Up Failed",
         description: error.message || "An error occurred during sign up.",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -266,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Update Failed",
         description: error.message || "An error occurred during profile update.",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -297,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Sign Out Failed",
         description: error.message || "An error occurred during sign out.",
       });
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -309,7 +300,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRole,
     signIn,
     signInWithGoogle,
-    signInWithMicrosoft,
     signUp,
     signOut,
     updateUserProfile

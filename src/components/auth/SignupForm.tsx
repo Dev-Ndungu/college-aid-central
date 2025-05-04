@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Globe, CheckCircle } from "lucide-react";
+import { Mail, Globe, CheckCircle, X } from "lucide-react";
 import { 
   Form,
   FormControl,
@@ -23,7 +23,23 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters").refine(
+    (password) => {
+      // Check for at least one uppercase letter
+      const hasUppercase = /[A-Z]/.test(password);
+      // Check for at least one lowercase letter
+      const hasLowercase = /[a-z]/.test(password);
+      // Check for at least one number
+      const hasNumber = /[0-9]/.test(password);
+      // Check for at least one special character
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      
+      return hasUppercase && hasLowercase && hasNumber && hasSpecial;
+    },
+    {
+      message: "Password should contain at least one character of each: uppercase, lowercase, number, and special character"
+    }
+  ),
   confirmPassword: z.string(),
   role: z.enum(["student", "writer"]),
 }).refine(data => data.password === data.confirmPassword, {
@@ -34,9 +50,10 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const SignupForm = () => {
-  const { signUp, signInWithGoogle, signInWithMicrosoft, isLoading } = useAuth();
+  const { signUp, signInWithGoogle, isLoading } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -50,6 +67,7 @@ const SignupForm = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
+      setErrorMessage(null);
       await signUp(
         data.email, 
         data.password, 
@@ -57,17 +75,26 @@ const SignupForm = () => {
       );
       // Show success message
       setRegistrationComplete(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Signup error:", error);
+      setErrorMessage(error.message || "Failed to create account. Please try again.");
+      // Ensure registration complete is false to stay on the form
+      setRegistrationComplete(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    await signInWithGoogle();
+    try {
+      setErrorMessage(null);
+      await signInWithGoogle();
+    } catch (error: any) {
+      console.error("Google sign in error:", error);
+      setErrorMessage(error.message || "Failed to sign in with Google. Please try again.");
+    }
   };
 
-  const handleMicrosoftSignIn = async () => {
-    await signInWithMicrosoft();
+  const dismissError = () => {
+    setErrorMessage(null);
   };
 
   if (registrationComplete) {
@@ -91,6 +118,17 @@ const SignupForm = () => {
 
   return (
     <div className="space-y-6">
+      {errorMessage && (
+        <Alert variant="destructive" className="relative">
+          <X 
+            className="h-4 w-4 cursor-pointer absolute right-2 top-2" 
+            onClick={dismissError}
+          />
+          <AlertTitle>Sign Up Failed</AlertTitle>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -209,17 +247,6 @@ const SignupForm = () => {
         >
           <Globe className="mr-2 h-4 w-4" />
           Google
-        </Button>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={handleMicrosoftSignIn}
-          disabled={isLoading}
-        >
-          <Mail className="mr-2 h-4 w-4" />
-          Microsoft
         </Button>
       </div>
 
