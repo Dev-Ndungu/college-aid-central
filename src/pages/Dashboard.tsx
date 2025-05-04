@@ -21,17 +21,65 @@ import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import WriterDashboard from '@/components/dashboard/WriterDashboard';
 import ProfileTab from '@/components/dashboard/ProfileTab';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { isAuthenticated, userEmail, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/login');
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  // Fetch user name from profile
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (!isAuthenticated || !userEmail) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('email', userEmail)
+          .single();
+
+        if (error) {
+          console.error("Error fetching user name:", error);
+          return;
+        }
+
+        if (data && typeof data === 'object' && 'full_name' in data) {
+          setUserName(data.full_name);
+        }
+      } catch (error) {
+        console.error("Error fetching user name:", error);
+      }
+    };
+
+    fetchUserName();
+
+    // Set up real-time listener for profile updates
+    const profileSubscription = supabase
+      .channel('profile-name-updates')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles', filter: `email=eq.${userEmail}` },
+        (payload) => {
+          const newData = payload.new as any;
+          if (newData && typeof newData === 'object' && 'full_name' in newData) {
+            setUserName(newData.full_name);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profileSubscription);
+    };
+  }, [isAuthenticated, userEmail]);
 
   if (isLoading) {
     return (
@@ -44,6 +92,9 @@ const Dashboard = () => {
   if (!isAuthenticated || !userRole) {
     return null; // Will redirect to login in useEffect
   }
+
+  // Display either user name if available, or fall back to email
+  const displayName = userName || userEmail?.split('@')[0] || "User";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -60,7 +111,7 @@ const Dashboard = () => {
                     {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                   </span>
                 </div>
-                <p className="text-gray-600">Welcome back, {userEmail}</p>
+                <p className="text-gray-600">Welcome back, {displayName}</p>
               </div>
               
               {userRole === 'student' && (

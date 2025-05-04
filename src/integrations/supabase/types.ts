@@ -122,6 +122,7 @@ export type Database = {
           full_name: string | null
           gender: string | null
           id: string
+          institution: string | null
           institution_type: string | null
           role: string
           updated_at: string | null
@@ -133,6 +134,7 @@ export type Database = {
           full_name?: string | null
           gender?: string | null
           id: string
+          institution?: string | null
           institution_type?: string | null
           role?: string
           updated_at?: string | null
@@ -144,6 +146,7 @@ export type Database = {
           full_name?: string | null
           gender?: string | null
           id?: string
+          institution?: string | null
           institution_type?: string | null
           role?: string
           updated_at?: string | null
