@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,7 +54,7 @@ export const useAssignments = () => {
         console.log('User ID:', userId);
         console.log('User role:', userRole);
 
-        // For students
+        // For students - only show their own assignments
         if (userRole === 'student') {
           // Fetch active assignments
           const { data: active, error: activeError } = await supabase
@@ -77,12 +78,12 @@ export const useAssignments = () => {
           if (completedError) throw completedError;
           setCompletedAssignments(completed || []);
         }
-        // For writers
+        // For writers - show all available assignments that are submitted and not assigned to any writer
         else if (userRole === 'writer') {
           console.log('Fetching assignments for writer');
           
           // 1. Fetch all submitted assignments (available to take)
-          const { data: submitted, error: submittedError } = await supabase
+          const { data: availableAssignments, error: submittedError } = await supabase
             .from('assignments')
             .select('*')
             .eq('status', 'submitted')
@@ -94,7 +95,8 @@ export const useAssignments = () => {
             throw submittedError;
           }
           
-          console.log('Available assignments:', submitted);
+          console.log('Available assignments found:', availableAssignments?.length || 0);
+          console.log('Available assignments:', availableAssignments);
 
           // 2. Fetch assignments assigned to this writer
           const { data: assigned, error: assignedError } = await supabase
@@ -109,10 +111,12 @@ export const useAssignments = () => {
             throw assignedError;
           }
           
-          console.log('Assigned assignments:', assigned);
+          console.log('Writer\'s assignments found:', assigned?.length || 0);
 
-          // Combine the results
-          setActiveAssignments([...(submitted || []), ...(assigned || [])]);
+          // Combine the results 
+          const combinedActive = [...(availableAssignments || []), ...(assigned || [])];
+          console.log('Combined active assignments:', combinedActive.length);
+          setActiveAssignments(combinedActive);
           
           // 3. Fetch completed assignments for this writer
           const { data: completed, error: completedError } = await supabase

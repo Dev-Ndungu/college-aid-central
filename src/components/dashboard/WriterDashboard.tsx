@@ -33,6 +33,14 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Get status color
 const getStatusColor = (status: string) => {
@@ -76,6 +84,7 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
+// Render stars
 const renderStars = (rating: number) => {
   return Array(5)
     .fill(0)
@@ -103,7 +112,7 @@ const WriterDashboard = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
   
-  // Debug function
+  // Debug function to check database status
   const runDebugCheck = async () => {
     try {
       setDebugInfo("Running debug check...");
@@ -134,23 +143,21 @@ const WriterDashboard = () => {
         setDebugInfo("Error fetching submitted assignments: " + submittedError.message);
         return;
       }
+
+      // Detailed check of all assignments
+      let statuses = allAssignments.reduce((acc: any, curr: any) => {
+        acc[curr.status] = (acc[curr.status] || 0) + 1;
+        return acc;
+      }, {});
       
-      setDebugInfo(`Found ${allAssignments.length} assignments in database. ${submitted ? submitted.length : 0} are available for writers.`);
+      setDebugInfo(`Found ${allAssignments.length} assignments in database. 
+        Statuses: ${JSON.stringify(statuses)}. 
+        ${submitted ? submitted.length : 0} are available for writers (status='submitted' and writer_id=null).`);
       
-      // Check if any assignments have status 'submitted'
-      const submittedCount = allAssignments.filter(a => a.status === 'submitted').length;
-      if (submittedCount === 0) {
-        toast({
-          title: "Debug Information",
-          description: "No assignments with 'submitted' status found. Students may need to mark assignments as 'submitted'.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Debug Information",
-          description: `Found ${submittedCount} assignments with 'submitted' status.`,
-        });
-      }
+      toast({
+        title: "Debug Information",
+        description: `Found ${allAssignments.length} assignments. ${submitted ? submitted.length : 0} available with 'submitted' status.`,
+      });
     } catch (err: any) {
       setDebugInfo(`Error during debug: ${err.message}`);
     }
@@ -158,7 +165,6 @@ const WriterDashboard = () => {
   
   // Manually refresh assignments
   const refreshAssignments = async () => {
-    // We re-run the hook by forcing a re-render
     toast({
       title: "Refreshing",
       description: "Fetching the latest assignments...",
@@ -228,6 +234,8 @@ const WriterDashboard = () => {
           title: "Assignment Taken",
           description: "You have successfully taken this assignment."
         });
+        // Force refresh of assignments
+        await checkAssignments();
       }
     } catch (err: any) {
       toast({
@@ -271,15 +279,25 @@ const WriterDashboard = () => {
     <>
       <div className="mb-4 flex justify-between items-center">
         <h2 className="text-2xl font-bold">Writer Dashboard</h2>
-        <Button 
-          onClick={refreshAssignments}
-          variant="outline" 
-          size="sm"
-          className="flex items-center gap-1"
-        >
-          <RefreshCcw className="h-4 w-4 mr-1" />
-          Refresh
-        </Button>
+        <div className="space-x-2">
+          <Button 
+            onClick={runDebugCheck}
+            variant="outline" 
+            size="sm"
+          >
+            <AlertTriangle className="h-4 w-4 mr-1" />
+            Debug
+          </Button>
+          <Button 
+            onClick={refreshAssignments}
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <RefreshCcw className="h-4 w-4 mr-1" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {debugInfo && (
@@ -289,7 +307,7 @@ const WriterDashboard = () => {
               <AlertTriangle className="h-5 w-5 mr-2" />
               Debug Information
             </h3>
-            <p>{debugInfo}</p>
+            <p className="whitespace-pre-wrap">{debugInfo}</p>
           </div>
           <Button 
             variant="ghost" 
