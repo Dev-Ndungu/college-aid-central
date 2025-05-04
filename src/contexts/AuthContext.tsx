@@ -43,13 +43,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTimeout(async () => {
           try {
             // Get user role from profiles table
-            const { data: profile } = await supabase
+            const { data: profile, error } = await supabase
               .from('profiles')
               .select('role')
               .eq('id', session.user.id)
               .single();
               
-            setUserRole(profile?.role as 'student' | 'writer' | null);
+            if (error) {
+              console.error("Error fetching user profile:", error);
+            } else {
+              setUserRole(profile?.role as 'student' | 'writer' | null);
+            }
           } catch (error) {
             console.error("Error fetching user profile:", error);
           }
@@ -71,13 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserEmail(session.user.email);
           
           // Get user role from profiles table
-          const { data: profile } = await supabase
+          const { data: profile, error } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', session.user.id)
             .single();
             
-          setUserRole(profile?.role as 'student' | 'writer' | null);
+          if (error) {
+            console.error("Error fetching user profile:", error);
+          } else {
+            setUserRole(profile?.role as 'student' | 'writer' | null);
+          }
         } else {
           setIsAuthenticated(false);
           setUserEmail(null);
@@ -112,13 +120,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.user) {
         // Get user role
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single();
           
-        setUserRole(profile?.role as 'student' | 'writer' | null);
+        if (!profileError) {
+          setUserRole(profile?.role as 'student' | 'writer' | null);
+        }
         
         toast({
           title: "Success",
@@ -143,10 +153,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       setIsLoading(true);
+      
+      // Use the current full origin
+      const redirectTo = `${window.location.origin}/profile-completion`;
+      console.log("Redirect URL for Google auth:", redirectTo);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/profile-completion`
+          redirectTo: redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
@@ -163,9 +182,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Google Sign In Failed",
         description: error.message || "An error occurred during Google sign in.",
       });
-      throw error;
-    } finally {
       setIsLoading(false);
+      throw error;
     }
   };
 
@@ -178,11 +196,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
+      console.log("Starting signup process with role:", role);
       // Create the metadata object with role and any provided profile data
       const metadata = { 
         role,
         ...profile
       };
+      
+      console.log("Signup metadata:", metadata);
+      console.log("Redirect URL:", `${window.location.origin}/profile-completion`);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -198,10 +220,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
+        console.log("User created successfully:", data.user.id);
         toast({
           title: "Success",
           description: "Your account has been created. Please check your email for verification.",
         });
+        return;
       }
     } catch (error: any) {
       console.error('Error signing up:', error);
