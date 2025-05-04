@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Globe, User, Building, GraduationCap, Calendar } from "lucide-react";
+import { Mail, Globe, CheckCircle } from "lucide-react";
 import { 
   Form,
   FormControl,
@@ -16,24 +16,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
-  fullName: z.string().min(2, "Please enter your name"),
-  institution: z.string().optional(),
-  gender: z.enum(["male", "female", "other", ""]).optional(),
   role: z.enum(["student", "writer"]),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -45,6 +36,7 @@ type FormData = z.infer<typeof formSchema>;
 const SignupForm = () => {
   const { signUp, signInWithGoogle, signInWithMicrosoft, isLoading } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -52,9 +44,6 @@ const SignupForm = () => {
       email: "",
       password: "",
       confirmPassword: "",
-      fullName: "",
-      institution: "",
-      gender: "",
       role: "student",
     },
   });
@@ -64,13 +53,10 @@ const SignupForm = () => {
       await signUp(
         data.email, 
         data.password, 
-        data.role, 
-        {
-          full_name: data.fullName,
-          institution: data.institution || null,
-          gender: data.gender || null,
-        }
+        data.role
       );
+      // Show success message
+      setRegistrationComplete(true);
     } catch (error) {
       console.error("Signup error:", error);
     }
@@ -83,6 +69,25 @@ const SignupForm = () => {
   const handleMicrosoftSignIn = async () => {
     await signInWithMicrosoft();
   };
+
+  if (registrationComplete) {
+    return (
+      <div className="space-y-6">
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <AlertTitle className="text-green-800">Registration successful!</AlertTitle>
+          <AlertDescription className="text-green-700">
+            Please check your email for a verification link. After verification, you'll be able to complete your profile.
+          </AlertDescription>
+        </Alert>
+        <div className="text-center">
+          <Link to="/login" className="text-brand-600 hover:text-brand-800 font-medium">
+            Return to login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -109,76 +114,6 @@ const SignupForm = () => {
               </FormItem>
             )}
           />
-          
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      {...field} 
-                      placeholder="Enter your full name"
-                      className="pl-10"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="institution"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Institution</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        {...field} 
-                        placeholder="College/University name"
-                        className="pl-10"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="gender"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gender</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
           
           <FormField
             control={form.control}

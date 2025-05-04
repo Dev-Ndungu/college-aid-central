@@ -15,6 +15,7 @@ import HowItWorks from "./pages/HowItWorks";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import Messages from "./pages/Messages";
+import ProfileCompletion from "./pages/ProfileCompletion";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/submit-assignment" element={<AssignmentSubmission />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/profile-completion" element={<ProfileCompletion />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/how-it-works" element={<HowItWorks />} />

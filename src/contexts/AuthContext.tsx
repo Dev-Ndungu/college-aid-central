@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +20,7 @@ type AuthContextType = {
   signInWithMicrosoft: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUserProfile: (profile: UserProfile) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -202,7 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          data: metadata
+          data: metadata,
+          emailRedirectTo: `${window.location.origin}/profile-completion`
         }
       });
 
@@ -211,28 +214,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
-        // Update profile data if provided
-        if (profile) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-              full_name: profile.full_name,
-              institution: profile.institution,
-              gender: profile.gender
-            })
-            .eq('id', data.user.id);
-            
-          if (profileError) {
-            console.error('Error updating profile:', profileError);
-          }
-        }
-        
         toast({
           title: "Success",
           description: "Your account has been created. Please check your email for verification.",
         });
         
-        navigate('/login');
+        // Stay on signup page with a success message, email verification required
       }
     } catch (error: any) {
       console.error('Error signing up:', error);
@@ -240,6 +227,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
         title: "Sign Up Failed",
         description: error.message || "An error occurred during sign up.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateUserProfile = async (profile: UserProfile) => {
+    try {
+      setIsLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error("Not authenticated");
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profile.full_name,
+          institution: profile.institution,
+          gender: profile.gender
+        })
+        .eq('id', user.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Your profile has been updated.",
+      });
+      
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "An error occurred during profile update.",
       });
     } finally {
       setIsLoading(false);
@@ -286,7 +311,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGoogle,
     signInWithMicrosoft,
     signUp,
-    signOut
+    signOut,
+    updateUserProfile
   };
 
   return (
