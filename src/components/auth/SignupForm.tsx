@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Globe, CheckCircle, X } from "lucide-react";
+import { Mail, Globe, CheckCircle, X, Eye, EyeOff } from "lucide-react";
 import { 
   Form,
   FormControl,
@@ -52,6 +52,7 @@ type FormData = z.infer<typeof formSchema>;
 const SignupForm = () => {
   const { signUp, signInWithGoogle, isLoading } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
@@ -160,11 +161,26 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    type={passwordVisible ? "text" : "password"}
-                    placeholder="Create a password"
-                  />
+                  <div className="relative">
+                    <Input
+                      {...field}
+                      type={passwordVisible ? "text" : "password"}
+                      placeholder="Create a password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setPasswordVisible(!passwordVisible)}
+                      tabIndex={-1}
+                    >
+                      {passwordVisible ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -178,11 +194,26 @@ const SignupForm = () => {
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    type={passwordVisible ? "text" : "password"}
-                    placeholder="Confirm your password"
-                  />
+                  <div className="relative">
+                    <Input
+                      {...field}
+                      type={confirmPasswordVisible ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+                      tabIndex={-1}
+                    >
+                      {confirmPasswordVisible ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

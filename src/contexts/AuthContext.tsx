@@ -33,6 +33,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        setIsAuthenticated(true);
+        setUserEmail(session.user.email);
+        
+        // Defer Supabase profile fetch with setTimeout to avoid deadlocks
+        setTimeout(async () => {
+          try {
+            // Get user role from profiles table
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+              
+            setUserRole(profile?.role as 'student' | 'writer' | null);
+          } catch (error) {
+            console.error("Error fetching user profile:", error);
+          }
+        }, 0);
+      } else {
+        setIsAuthenticated(false);
+        setUserEmail(null);
+        setUserRole(null);
+      }
+    });
+
+    // THEN check for existing session
     const checkUser = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -64,28 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setIsAuthenticated(true);
-        setUserEmail(session.user.email);
-        
-        // Get user role from profiles table
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-          
-        setUserRole(profile?.role as 'student' | 'writer' | null);
-      } else {
-        setIsAuthenticated(false);
-        setUserEmail(null);
-        setUserRole(null);
-      }
-    });
-
     return () => {
-      authListener?.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -189,21 +198,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
-        // Make sure to manually insert into profiles table for better reliability
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            role: role,
-          })
-          .select();
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          // Don't throw here as the auth account was created successfully
-        }
-        
         toast({
           title: "Success",
           description: "Your account has been created. Please check your email for verification.",
