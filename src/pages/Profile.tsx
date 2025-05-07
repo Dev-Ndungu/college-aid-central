@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -58,9 +59,12 @@ const Profile = () => {
     if (!userId) return;
     
     try {
-      // Fix: Use proper type assertion for RPC parameters
-      type EmptyParams = Record<string, never>;
-      const { error } = await supabase.rpc<any, EmptyParams>('add_writer_fields', {});
+      // Fix: Define proper type for RPC response
+      interface AddWriterFieldsResponse {
+        success: boolean;
+      }
+      
+      const { error } = await supabase.rpc<AddWriterFieldsResponse>('add_writer_fields', {});
       
       if (error) {
         console.error("Error checking writer fields:", error);

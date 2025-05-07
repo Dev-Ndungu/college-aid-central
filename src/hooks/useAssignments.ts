@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -77,12 +76,11 @@ export const useAssignments = () => {
       else if (userRole === 'writer') {
         console.log('Fetching assignments for writer with ID:', userId);
         
-        // Get available assignments (status='submitted' AND writer_id IS NULL)
+        // This is the key fix: Get ALL assignments with status='submitted', not just those with writer_id IS NULL
         const { data: availableAssignments, error: availableError } = await supabase
           .from('assignments')
           .select('*')
-          .eq('status', 'submitted')
-          .is('writer_id', null);
+          .eq('status', 'submitted');
           
         if (availableError) {
           console.error('Error fetching available assignments:', availableError);
