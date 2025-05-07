@@ -130,6 +130,8 @@ export type Database = {
           phone_number: string | null
           role: string
           updated_at: string | null
+          writer_bio: string | null
+          writer_skills: string[] | null
         }
         Insert: {
           avatar_url?: string | null
@@ -143,6 +145,8 @@ export type Database = {
           phone_number?: string | null
           role?: string
           updated_at?: string | null
+          writer_bio?: string | null
+          writer_skills?: string[] | null
         }
         Update: {
           avatar_url?: string | null
@@ -156,6 +160,8 @@ export type Database = {
           phone_number?: string | null
           role?: string
           updated_at?: string | null
+          writer_bio?: string | null
+          writer_skills?: string[] | null
         }
         Relationships: []
       }
@@ -164,7 +170,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_writer_fields: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

@@ -59,14 +59,16 @@ const Profile = () => {
     if (!userId) return;
     
     try {
-      // Instead of using a generic type, use 'any' for now since we don't know the exact structure
-      const { error } = await supabase.rpc('add_writer_fields', {});
+      // Use generic type for the RPC call - the function now returns jsonb
+      const { data, error } = await supabase
+        .rpc('add_writer_fields');
       
       if (error) {
         console.error("Error checking writer fields:", error);
         toast.error("Failed to check writer fields: " + error.message);
       } else {
         toast.success("Writer profile fields are ready to use");
+        console.log("Writer fields check result:", data);
       }
     } catch (err: any) {
       console.error("Error:", err);

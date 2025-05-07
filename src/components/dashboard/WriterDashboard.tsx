@@ -176,15 +176,17 @@ const WriterDashboard = () => {
       // Safely handle the RPC call and response
       let rlsPoliciesInfo = "Could not verify RLS policies";
       try {
-        // Fix: Using any for rpc response until we can define the type properly
+        // Use a type assertion since we know what we expect to get back
+        type PolicyResponse = { policies?: any[] };
+        
         const { data: rlsPolicies, error: rlsError } = await supabase
-          .rpc('get_policies_for_table', { table_name: 'assignments' });
+          .rpc('get_policies_for_table', { table_name: 'assignments' }) as { 
+            data: PolicyResponse | null, 
+            error: any 
+          };
         
         if (!rlsError && rlsPolicies) {
-          // Safely access the policies property if it exists
-          const policiesArray = rlsPolicies && typeof rlsPolicies === 'object' && 'policies' in rlsPolicies 
-            ? rlsPolicies.policies as any[] 
-            : [];
+          const policiesArray = rlsPolicies.policies || [];
           const policiesCount = Array.isArray(policiesArray) ? policiesArray.length : 0;
           rlsPoliciesInfo = `Found ${policiesCount} RLS policies for assignments table`;
         }
