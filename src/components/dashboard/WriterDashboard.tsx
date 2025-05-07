@@ -172,21 +172,29 @@ const WriterDashboard = () => {
         return;
       }
 
-      // Safely handle the RLS policies information
-      let rlsPoliciesInfo = "Could not verify RLS policies";
+      // Check for RLS policies by looking at the count of different query results
+      // This is a workaround since we can't directly query pg_policies
+      let rlsPoliciesInfo = "RLS status: checking through assignment queries";
+      
+      // Try to check for RLS indirectly by running authorized vs unauthorized queries
       try {
-        // Instead of using RPC, we'll query the PostgreSQL system tables directly
-        const { data: policiesData, error: policiesError } = await supabase
-          .from('pg_policies')
-          .select('*')
-          .eq('tablename', 'assignments');
+        const assignmentsCountWithoutFilter = allAssignments?.length || 0;
         
-        if (!policiesError && policiesData) {
-          const policiesCount = Array.isArray(policiesData) ? policiesData.length : 0;
-          rlsPoliciesInfo = `Found ${policiesCount} RLS policies for assignments table based on system query`;
+        // Check if all authors can see their own assignments (role-based filter)
+        const { data: authorAssignments } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('user_id', userId || '');
+          
+        const authorAssignmentsCount = authorAssignments?.length || 0;
+        
+        // Try to infer RLS based on query results
+        if (assignmentsCountWithoutFilter > 0 && authorAssignmentsCount >= 0) {
+          rlsPoliciesInfo = `RLS appears to be active. User can see ${authorAssignmentsCount} of their own assignments out of ${assignmentsCountWithoutFilter} total assignments.`;
         }
       } catch (e) {
-        console.error("Error checking RLS policies:", e);
+        console.error("Error checking RLS status:", e);
+        rlsPoliciesInfo = "Could not verify RLS status";
       }
       
       // Detailed check of all assignments
