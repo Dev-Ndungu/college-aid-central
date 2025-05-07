@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -182,11 +181,11 @@ const WriterDashboard = () => {
         }
         
         const { data: rlsPolicies, error: rlsError } = await supabase
-          .rpc<GetPoliciesResponse>('get_policies_for_table', { table_name: 'assignments' });
+          .rpc<GetPoliciesResponse, { table_name: string }>('get_policies_for_table', { table_name: 'assignments' });
         
         if (!rlsError) {
           const policiesCount = rlsPolicies ? 
-            (Array.isArray(rlsPolicies) ? rlsPolicies.length : 0) : 0;
+            (Array.isArray(rlsPolicies.policies) ? rlsPolicies.policies.length : 0) : 0;
           rlsPoliciesInfo = `Found ${policiesCount} RLS policies for assignments table`;
         }
       } catch (e) {

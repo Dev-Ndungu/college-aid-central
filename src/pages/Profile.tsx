@@ -64,7 +64,7 @@ const Profile = () => {
         success: boolean;
       }
       
-      const { error } = await supabase.rpc<AddWriterFieldsResponse>('add_writer_fields', {});
+      const { error } = await supabase.rpc<AddWriterFieldsResponse, Record<string, never>>('add_writer_fields', {});
       
       if (error) {
         console.error("Error checking writer fields:", error);
