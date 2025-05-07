@@ -49,7 +49,7 @@ export const useWriters = () => {
         
         // Make sure we cast the data to the Writer type and handle any missing fields
         if (data && Array.isArray(data)) {
-          const formattedWriters: Writer[] = data.map(writer => ({
+          const formattedWriters: Writer[] = data.map((writer: any) => ({
             id: writer.id || '',
             email: writer.email || '',
             full_name: writer.full_name,

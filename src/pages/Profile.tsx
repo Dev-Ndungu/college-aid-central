@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -58,8 +59,8 @@ const Profile = () => {
     if (!userId) return;
     
     try {
-      // FIX: Handle the return type properly for the RPC call
-      const { error } = await supabase.rpc('add_writer_fields');
+      // Type-safe RPC call
+      const { error } = await supabase.rpc('add_writer_fields', {});
       
       if (error) {
         console.error("Error checking writer fields:", error);
