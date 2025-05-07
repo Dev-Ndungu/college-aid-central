@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -16,7 +17,7 @@ import { Writer } from '@/hooks/useWriters';
 type Message = {
   id: string;
   sender_id: string;
-  receiver_id: string;
+  recipient_id: string; // Changed from receiver_id to recipient_id
   content: string;
   created_at: string;
   read: boolean;
@@ -24,7 +25,7 @@ type Message = {
     full_name: string | null;
     email: string;
   };
-  receiver?: {
+  recipient?: { // Changed from receiver to recipient
     full_name: string | null;
     email: string;
   };
@@ -79,11 +80,11 @@ const Messages = () => {
             created_at, 
             read,
             sender_id, 
-            receiver_id,
-            sender:profiles!sender_id(full_name, email),
-            receiver:profiles!receiver_id(full_name, email)
+            recipient_id,
+            sender:profiles!messages_sender_id_fkey(full_name, email),
+            recipient:profiles!messages_recipient_id_fkey(full_name, email)
           `)
-          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+          .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
           .order('created_at', { ascending: false });
 
         if (messagesError) throw messagesError;
@@ -91,30 +92,32 @@ const Messages = () => {
         // Process messages into conversations
         const conversationsMap = new Map<string, Conversation>();
         
-        messagesData?.forEach(message => {
-          // Determine if the other user is the sender or receiver
-          const isUserSender = message.sender_id === userId;
-          const otherUserId = isUserSender ? message.receiver_id : message.sender_id;
-          const otherUserData = isUserSender ? message.receiver : message.sender;
-          
-          if (!otherUserId || !otherUserData) return;
-          
-          // Get or create conversation
-          if (!conversationsMap.has(otherUserId)) {
-            conversationsMap.set(otherUserId, {
-              userId: otherUserId,
-              userName: otherUserData.full_name,
-              userEmail: otherUserData.email,
-              lastMessage: message.content,
-              lastMessageDate: message.created_at,
-              unreadCount: (!isUserSender && !message.read) ? 1 : 0
-            });
-          } else if (!isUserSender && !message.read) {
-            // Increment unread count if this is an unread message to the user
-            const conversation = conversationsMap.get(otherUserId)!;
-            conversation.unreadCount += 1;
-          }
-        });
+        if (messagesData && Array.isArray(messagesData)) {
+          messagesData.forEach(message => {
+            // Determine if the other user is the sender or receiver
+            const isUserSender = message.sender_id === userId;
+            const otherUserId = isUserSender ? message.recipient_id : message.sender_id;
+            const otherUserData = isUserSender ? message.recipient : message.sender;
+            
+            if (!otherUserId || !otherUserData) return;
+            
+            // Get or create conversation
+            if (!conversationsMap.has(otherUserId)) {
+              conversationsMap.set(otherUserId, {
+                userId: otherUserId,
+                userName: otherUserData.full_name,
+                userEmail: otherUserData.email,
+                lastMessage: message.content,
+                lastMessageDate: message.created_at,
+                unreadCount: (!isUserSender && !message.read) ? 1 : 0
+              });
+            } else if (!isUserSender && !message.read) {
+              // Increment unread count if this is an unread message to the user
+              const conversation = conversationsMap.get(otherUserId)!;
+              conversation.unreadCount += 1;
+            }
+          });
+        }
         
         // Convert map to array and sort by last message date
         const conversationsArray = Array.from(conversationsMap.values())
@@ -139,7 +142,7 @@ const Messages = () => {
         () => fetchConversations()
       )
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, 
+        { event: '*', schema: 'public', table: 'messages', filter: `recipient_id=eq.${userId}` }, 
         () => fetchConversations()
       )
       .subscribe();
@@ -165,36 +168,40 @@ const Messages = () => {
             created_at, 
             read,
             sender_id, 
-            receiver_id,
-            sender:profiles!sender_id(full_name, email),
-            receiver:profiles!receiver_id(full_name, email)
+            recipient_id,
+            sender:profiles!messages_sender_id_fkey(full_name, email),
+            recipient:profiles!messages_recipient_id_fkey(full_name, email)
           `)
-          .or(`and(sender_id.eq.${userId},receiver_id.eq.${activeConversation}),and(sender_id.eq.${activeConversation},receiver_id.eq.${userId})`)
+          .or(`and(sender_id.eq.${userId},recipient_id.eq.${activeConversation}),and(sender_id.eq.${activeConversation},recipient_id.eq.${userId})`)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
         
-        setMessages(data || []);
-        
-        // Mark messages as read
-        const unreadMessageIds = data
-          ?.filter(msg => msg.receiver_id === userId && !msg.read)
-          .map(msg => msg.id);
+        if (data && Array.isArray(data)) {
+          setMessages(data as Message[]);
           
-        if (unreadMessageIds && unreadMessageIds.length > 0) {
-          await supabase
-            .from('messages')
-            .update({ read: true })
-            .in('id', unreadMessageIds);
+          // Mark messages as read
+          const unreadMessageIds = data
+            .filter(msg => msg.recipient_id === userId && !msg.read)
+            .map(msg => msg.id);
             
-          // Update conversations to reflect read messages
-          setConversations(prev => 
-            prev.map(conv => 
-              conv.userId === activeConversation 
-                ? { ...conv, unreadCount: 0 } 
-                : conv
-            )
-          );
+          if (unreadMessageIds && unreadMessageIds.length > 0) {
+            await supabase
+              .from('messages')
+              .update({ read: true })
+              .in('id', unreadMessageIds);
+              
+            // Update conversations to reflect read messages
+            setConversations(prev => 
+              prev.map(conv => 
+                conv.userId === activeConversation 
+                  ? { ...conv, unreadCount: 0 } 
+                  : conv
+              )
+            );
+          }
+        } else {
+          setMessages([]);
         }
       } catch (error: any) {
         console.error('Error fetching messages:', error);
@@ -214,7 +221,7 @@ const Messages = () => {
         () => fetchMessages()
       )
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${activeConversation}` }, 
+        { event: '*', schema: 'public', table: 'messages', filter: `recipient_id=eq.${activeConversation}` }, 
         () => fetchMessages()
       )
       .subscribe();
@@ -233,7 +240,7 @@ const Messages = () => {
         .from('messages')
         .insert({
           sender_id: userId,
-          receiver_id: activeConversation,
+          recipient_id: activeConversation,
           content: newMessage.trim(),
           read: false
         });
@@ -273,7 +280,7 @@ const Messages = () => {
         .from('messages')
         .insert({
           sender_id: userId,
-          receiver_id: userData.id,
+          recipient_id: userData.id,
           content: newMessageContent.trim(),
           read: false
         });

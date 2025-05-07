@@ -132,7 +132,7 @@ const WriterDashboard = () => {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', userId || '')
         .single();
         
       if (profileError) {
@@ -178,7 +178,7 @@ const WriterDashboard = () => {
       
       const rlsPoliciesInfo = rlsError ? 
         "Could not verify RLS policies" : 
-        `Found ${rlsPolicies?.length || 0} RLS policies for assignments table`;
+        `Found ${rlsPolicies ? rlsPolicies.length : 0} RLS policies for assignments table`;
       
       // Detailed check of all assignments
       let statuses = allAssignments.reduce((acc: any, curr: any) => {
@@ -220,7 +220,11 @@ const WriterDashboard = () => {
         .single();
         
       if (error) {
-        toast.error("Error counting assignments: " + error.message);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Error counting assignments: " + error.message
+        });
       } else {
         console.log(`Database has ${data?.count || 0} total assignments`);
       }
@@ -236,7 +240,11 @@ const WriterDashboard = () => {
       setTimeout(() => setProcessing(null), 100);
       
     } catch (err: any) {
-      toast.error("Error refreshing: " + err.message);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error refreshing: " + err.message
+      });
     }
   };
   

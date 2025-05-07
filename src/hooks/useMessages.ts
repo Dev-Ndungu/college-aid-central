@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export type Message = {
   id: string;
@@ -33,7 +33,7 @@ export const useMessages = (assignmentId?: string) => {
   const [messages, setMessages] = useState<MessageWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, userId } = useAuth();
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -61,8 +61,11 @@ export const useMessages = (assignmentId?: string) => {
         if (messagesError) throw messagesError;
         
         // Properly cast the data to MessageWithProfile[] type
-        const typedMessages = data as unknown as MessageWithProfile[];
-        setMessages(typedMessages || []);
+        if (data && Array.isArray(data)) {
+          setMessages(data as unknown as MessageWithProfile[]);
+        } else {
+          setMessages([]);
+        }
 
       } catch (err: any) {
         console.error('Error fetching messages:', err);
@@ -79,7 +82,7 @@ export const useMessages = (assignmentId?: string) => {
       .channel('messages-changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'messages' }, 
-        (payload) => {
+        () => {
           fetchMessages(); // Refetch all messages when there are changes
         }
       )
@@ -91,20 +94,23 @@ export const useMessages = (assignmentId?: string) => {
   }, [isAuthenticated, assignmentId]);
 
   const sendMessage = async (content: string, recipientId: string, assignmentId?: string) => {
+    if (!userId) {
+      toast.error("You must be logged in to send messages");
+      return null;
+    }
+    
     try {
-      // Define our message without sender_id, which will be added by RLS
-      // Using type assertion to tell TypeScript this is intentional
       const newMessage = {
-        content,
+        sender_id: userId,
         recipient_id: recipientId,
+        content,
         assignment_id: assignmentId || null,
+        read: false
       };
       
-      // Type assertion to tell TypeScript that it's okay to omit sender_id
-      // since it will be added by Row Level Security in Supabase
       const { data, error } = await supabase
         .from('messages')
-        .insert(newMessage as any)
+        .insert(newMessage)
         .select(`
           *,
           sender:profiles!messages_sender_id_fkey(id, full_name, email, role, avatar_url),
@@ -113,19 +119,12 @@ export const useMessages = (assignmentId?: string) => {
 
       if (error) throw error;
       
-      toast({
-        title: "Message sent",
-        description: "Your message has been sent successfully.",
-      });
+      toast.success("Message sent successfully");
 
       return data[0] as unknown as MessageWithProfile;
     } catch (err: any) {
       console.error('Error sending message:', err);
-      toast({
-        variant: "destructive",
-        title: "Failed to send message",
-        description: err.message || "An error occurred while sending your message.",
-      });
+      toast.error(err.message || "Failed to send message");
       throw err;
     }
   };

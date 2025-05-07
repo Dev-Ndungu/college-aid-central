@@ -56,6 +56,8 @@ const Profile = () => {
 
   // Function to check if writer_bio and writer_skills columns exist
   const checkWriterFields = async () => {
+    if (!userId) return;
+    
     try {
       // Add writer_bio and writer_skills columns if they don't exist
       const { error } = await supabase.rpc('add_writer_fields');
