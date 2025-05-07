@@ -19,14 +19,12 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import WriterDashboard from '@/components/dashboard/WriterDashboard';
-import ProfileTab from '@/components/dashboard/ProfileTab';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { isAuthenticated, userEmail, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("dashboard");
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -122,20 +120,10 @@ const Dashboard = () => {
             </div>
           </header>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-8">
-              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="dashboard">
-              {userRole === 'student' ? <StudentDashboard /> : <WriterDashboard />}
-            </TabsContent>
-
-            <TabsContent value="profile">
-              <ProfileTab />
-            </TabsContent>
-          </Tabs>
+          {/* Dashboard content without the tabs */}
+          <div className="dashboard-content">
+            {userRole === 'student' ? <StudentDashboard /> : <WriterDashboard />}
+          </div>
         </div>
       </main>
       <Footer />

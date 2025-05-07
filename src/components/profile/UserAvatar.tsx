@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
       
       checkGoogleAvatar();
     }
-  }, [userId, userAvatar]);
+  }, [userId, userAvatar, updateUserAvatar]);
 
   const getInitials = () => {
     if (!userEmail) return "U";

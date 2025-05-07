@@ -30,7 +30,18 @@ export const useWriters = () => {
           .eq('role', 'writer');
 
         if (writersError) throw writersError;
-        setWriters(data || []);
+        
+        // Make sure we cast the data to the Writer type and handle any missing fields
+        const formattedWriters: Writer[] = (data || []).map(writer => ({
+          id: writer.id,
+          email: writer.email,
+          full_name: writer.full_name,
+          avatar_url: writer.avatar_url,
+          writer_bio: writer.writer_bio || null,
+          writer_skills: writer.writer_skills || null
+        }));
+        
+        setWriters(formattedWriters);
 
       } catch (err: any) {
         console.error('Error fetching writers:', err);

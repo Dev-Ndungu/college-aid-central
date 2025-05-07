@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
 import {
@@ -14,6 +14,7 @@ import UserAvatar from '@/components/profile/UserAvatar';
 
 const Navbar = () => {
   const { isAuthenticated, signOut, userRole } = useAuth();
+  const navigate = useNavigate();
   
   return (
     <header className="bg-white shadow-sm sticky top-0 z-10">
@@ -63,10 +64,11 @@ const Navbar = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Link to="/dashboard" className="w-full">
-                      Dashboard
-                    </Link>
+                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    Profile
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => signOut()}>

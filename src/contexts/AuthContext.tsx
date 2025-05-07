@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +17,7 @@ type AuthContextType = {
   userEmail: string | null;
   userRole: 'student' | 'writer' | null;
   userAvatar: string | null;
+  userId: string | null; // Added userId property
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<'student' | 'writer' | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null); // Added userId state
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -44,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email);
+        setUserId(session.user.id); // Set userId from session
         
         // Defer Supabase profile fetch with setTimeout to avoid deadlocks
         setTimeout(async () => {
@@ -84,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserEmail(null);
         setUserRole(null);
         setUserAvatar(null);
+        setUserId(null); // Clear userId on logout
       }
     });
 
@@ -95,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) {
           setIsAuthenticated(true);
           setUserEmail(session.user.email);
+          setUserId(session.user.id); // Set userId from session
           
           // Get user role and avatar from profiles table
           const { data: profile, error } = await supabase
@@ -128,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserEmail(null);
           setUserRole(null);
           setUserAvatar(null);
+          setUserId(null); // Clear userId if no session
         }
       } catch (error) {
         console.error('Error checking authentication status:', error);
@@ -411,6 +418,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userEmail,
     userRole,
     userAvatar,
+    userId, // Include userId in the context value
     signIn,
     signInWithGoogle,
     signUp,
