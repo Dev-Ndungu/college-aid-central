@@ -59,12 +59,8 @@ const Profile = () => {
     if (!userId) return;
     
     try {
-      // Fix: Define proper type for RPC response
-      interface AddWriterFieldsResponse {
-        success: boolean;
-      }
-      
-      const { error } = await supabase.rpc<AddWriterFieldsResponse, Record<string, never>>('add_writer_fields', {});
+      // Instead of using a generic type, use 'any' for now since we don't know the exact structure
+      const { error } = await supabase.rpc('add_writer_fields', {});
       
       if (error) {
         console.error("Error checking writer fields:", error);

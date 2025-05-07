@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -175,17 +176,16 @@ const WriterDashboard = () => {
       // Safely handle the RPC call and response
       let rlsPoliciesInfo = "Could not verify RLS policies";
       try {
-        // Fix: Use proper type parameters for RPC
-        interface GetPoliciesResponse {
-          policies: string[];
-        }
-        
+        // Fix: Using any for rpc response until we can define the type properly
         const { data: rlsPolicies, error: rlsError } = await supabase
-          .rpc<GetPoliciesResponse, { table_name: string }>('get_policies_for_table', { table_name: 'assignments' });
+          .rpc('get_policies_for_table', { table_name: 'assignments' });
         
-        if (!rlsError) {
-          const policiesCount = rlsPolicies ? 
-            (Array.isArray(rlsPolicies.policies) ? rlsPolicies.policies.length : 0) : 0;
+        if (!rlsError && rlsPolicies) {
+          // Safely access the policies property if it exists
+          const policiesArray = rlsPolicies && typeof rlsPolicies === 'object' && 'policies' in rlsPolicies 
+            ? rlsPolicies.policies as any[] 
+            : [];
+          const policiesCount = Array.isArray(policiesArray) ? policiesArray.length : 0;
           rlsPoliciesInfo = `Found ${policiesCount} RLS policies for assignments table`;
         }
       } catch (e) {
