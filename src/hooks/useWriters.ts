@@ -84,7 +84,9 @@ export const useWriters = () => {
         .from('assignments')
         .select('*');
       
-      console.log('All assignments in system:', allAssignments?.length);
+      if (assignmentsError) throw assignmentsError;
+      
+      console.log('All assignments in system:', allAssignments?.length || 0);
       
       // Check available assignments for writers
       const { data: availableAssignments, error: availableError } = await supabase
@@ -93,7 +95,9 @@ export const useWriters = () => {
         .eq('status', 'submitted')
         .is('writer_id', null);
       
-      console.log('Available assignments for writers:', availableAssignments?.length);
+      if (availableError) throw availableError;
+      
+      console.log('Available assignments for writers:', availableAssignments?.length || 0);
       console.log('Available assignments details:', availableAssignments);
       
       // Check assignments assigned to current writer
@@ -103,16 +107,13 @@ export const useWriters = () => {
           .select('*')
           .eq('writer_id', userId);
         
-        console.log('Assignments assigned to current writer:', myAssignments?.length);
-      }
-      
-      if (assignmentsError || availableError) {
-        console.error('Error checking assignments:', assignmentsError || availableError);
-        return false;
+        if (myAssignmentsError) throw myAssignmentsError;
+        
+        console.log('Assignments assigned to current writer:', myAssignments?.length || 0);
       }
       
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error during assignment check:', err);
       return false;
     }

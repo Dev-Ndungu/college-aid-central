@@ -172,13 +172,13 @@ const WriterDashboard = () => {
         return;
       }
 
-      // Check RLS policies to ensure they're set up correctly
+      // FIX: Use safe optional chaining for policies length check
       const { data: rlsPolicies, error: rlsError } = await supabase
         .rpc('get_policies_for_table', { table_name: 'assignments' });
       
       const rlsPoliciesInfo = rlsError ? 
         "Could not verify RLS policies" : 
-        `Found ${rlsPolicies ? rlsPolicies.length : 0} RLS policies for assignments table`;
+        `Found ${rlsPolicies ? (Array.isArray(rlsPolicies) ? rlsPolicies.length : 0) : 0} RLS policies for assignments table`;
       
       // Detailed check of all assignments
       let statuses = allAssignments.reduce((acc: any, curr: any) => {

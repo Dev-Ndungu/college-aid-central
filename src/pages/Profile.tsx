@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -59,7 +58,7 @@ const Profile = () => {
     if (!userId) return;
     
     try {
-      // Add writer_bio and writer_skills columns if they don't exist
+      // FIX: Handle the return type properly for the RPC call
       const { error } = await supabase.rpc('add_writer_fields');
       
       if (error) {
