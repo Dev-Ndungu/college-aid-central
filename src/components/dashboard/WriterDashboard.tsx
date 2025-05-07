@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -104,10 +103,10 @@ const renderStars = (rating: number) => {
 };
 
 const WriterDashboard = () => {
-  const { activeAssignments, completedAssignments, isLoading, error } = useAssignments();
+  const { activeAssignments, completedAssignments, isLoading, error, fetchAssignments } = useAssignments();
   const { checkAssignments } = useWriters();
   const { toast } = useToast();
-  const { userEmail } = useAuth();
+  const { userId } = useAuth();
   const [processing, setProcessing] = React.useState<string | null>(null);
   const [viewingAssignment, setViewingAssignment] = useState<string | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
@@ -129,18 +128,11 @@ const WriterDashboard = () => {
     try {
       setDebugInfo("Running debug check...");
       
-      // Check if the user is authenticated and get their profile
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setDebugInfo("Error: No authenticated user found");
-        return;
-      }
-      
       // Get user profile from database
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single();
         
       if (profileError) {
@@ -184,7 +176,7 @@ const WriterDashboard = () => {
       setDebugInfo(`Found ${allAssignments.length} assignments in database. 
         Statuses: ${JSON.stringify(statuses)}. 
         ${submitted ? submitted.length : 0} are available for writers (status='submitted' and writer_id=null).
-        User role: ${profile.role}, User ID: ${user.id}`);
+        User role: ${profile.role}, User ID: ${userId}`);
       
       toast({
         title: "Debug Information",
@@ -202,6 +194,7 @@ const WriterDashboard = () => {
       description: "Fetching the latest assignments...",
     });
     await checkAssignments();
+    fetchAssignments();
     // Force component re-render
     setProcessing("refreshing");
     setTimeout(() => setProcessing(null), 100);
@@ -218,8 +211,7 @@ const WriterDashboard = () => {
   const takeAssignment = async (assignmentId: string) => {
     setProcessing(assignmentId);
     try {
-      // First, get the writer's ID from profiles
-      if (!userEmail) {
+      if (!userId) {
         toast({
           variant: "destructive",
           title: "Error",
@@ -229,22 +221,12 @@ const WriterDashboard = () => {
         return;
       }
 
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userEmail)
-        .single();
-
-      if (profileError || !profileData) {
-        throw new Error("Could not find your user profile. Please log in again.");
-      }
-
       // Update the assignment to assign it to this writer
       const { data, error } = await supabase
         .from('assignments')
         .update({ 
           status: 'in-progress',
-          writer_id: profileData.id 
+          writer_id: userId 
         })
         .eq('id', assignmentId)
         .select();
@@ -266,7 +248,7 @@ const WriterDashboard = () => {
         });
         // Force refresh of assignments
         await checkAssignments();
-        refreshAssignments();
+        fetchAssignments();
       }
     } catch (err: any) {
       toast({

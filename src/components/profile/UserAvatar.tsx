@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,7 +18,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
   showUploadButton = false,
   className = ""
 }) => {
-  const { userAvatar, userEmail, updateUserAvatar } = useAuth();
+  const { userAvatar, userEmail, updateUserAvatar, userId } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -29,21 +29,67 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
     lg: "h-20 w-20"
   }[size];
 
+  useEffect(() => {
+    // This will check if we have an avatar from Google sign-in
+    if (!userAvatar && userId) {
+      const checkGoogleAvatar = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', userId)
+            .single();
+            
+          if (error) {
+            console.error("Error fetching avatar:", error);
+            return;
+          }
+          
+          if (data?.avatar_url) {
+            updateUserAvatar(data.avatar_url);
+          }
+        } catch (err) {
+          console.error("Failed to check for Google avatar:", err);
+        }
+      };
+      
+      checkGoogleAvatar();
+    }
+  }, [userId, userAvatar]);
+
   const getInitials = () => {
-    return userEmail ? userEmail.substring(0, 2).toUpperCase() : "U";
+    if (!userEmail) return "U";
+    
+    const parts = userEmail.split('@')[0].split(/[._-]/);
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    
+    return userEmail.substring(0, 2).toUpperCase();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !userId) return;
 
     try {
       setIsUploading(true);
       
+      // Check if avatars bucket exists, create if not
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
+      
+      if (!avatarBucketExists) {
+        await supabase.storage.createBucket('avatars', {
+          public: true,
+          fileSizeLimit: 1024 * 1024 * 2 // 2MB
+        });
+      }
+      
       // Generate a unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
       // Upload the file to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -60,7 +106,19 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         .getPublicUrl(filePath);
 
       if (publicURL?.publicUrl) {
+        // Update user profile in database
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: publicURL.publicUrl })
+          .eq('id', userId);
+          
+        if (updateError) {
+          throw updateError;
+        }
+        
+        // Update local state
         await updateUserAvatar(publicURL.publicUrl);
+        
         toast({
           title: "Avatar updated",
           description: "Your profile avatar has been updated successfully.",

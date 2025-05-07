@@ -1,4 +1,5 @@
 
+
 # This is the Supabase config file.
 
 # Note: The project_id is randomly generated and unique to your project.
@@ -35,3 +36,4 @@ file_size_limit = "50MiB"
 
 [storage.buckets]
 avatars = { public = true }
+

@@ -24,33 +24,18 @@ export const useAssignments = () => {
   const [completedAssignments, setCompletedAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, userRole, userEmail } = useAuth();
+  const { isAuthenticated, userRole, userEmail, userId } = useAuth();
 
   const fetchAssignments = async () => {
-    if (!isAuthenticated || !userEmail) return;
+    if (!isAuthenticated || !userId) {
+      console.log('User not authenticated or userId not available');
+      return;
+    }
     
     try {
       setIsLoading(true);
       setError(null);
-
-      // First, get the user's ID from the profiles table using their email
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userEmail)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-        throw new Error('Unable to fetch your profile information.');
-      }
-
-      if (!profileData?.id) {
-        throw new Error('User profile not found.');
-      }
-
-      const userId = profileData.id;
-      console.log('User ID:', userId);
+      console.log('Fetching assignments for user ID:', userId);
       console.log('User role:', userRole);
 
       // For students - only show their own assignments
@@ -63,7 +48,12 @@ export const useAssignments = () => {
           .neq('status', 'completed')
           .order('due_date', { ascending: true });
 
-        if (activeError) throw activeError;
+        if (activeError) {
+          console.error('Error fetching active assignments:', activeError);
+          throw activeError;
+        }
+        
+        console.log('Student active assignments fetched:', active?.length || 0);
         setActiveAssignments(active || []);
 
         // Fetch completed assignments
@@ -74,12 +64,17 @@ export const useAssignments = () => {
           .eq('status', 'completed')
           .order('completed_date', { ascending: false });
 
-        if (completedError) throw completedError;
+        if (completedError) {
+          console.error('Error fetching completed assignments:', completedError);
+          throw completedError;
+        }
+        
+        console.log('Student completed assignments fetched:', completed?.length || 0);
         setCompletedAssignments(completed || []);
       }
       // For writers - show all available assignments and their own assigned ones
       else if (userRole === 'writer') {
-        console.log('Fetching assignments for writer');
+        console.log('Fetching assignments for writer with ID:', userId);
         
         // Get available assignments (status='submitted' AND writer_id IS NULL)
         const { data: availableAssignments, error: availableError } = await supabase
@@ -126,7 +121,12 @@ export const useAssignments = () => {
           .eq('status', 'completed')
           .order('completed_date', { ascending: false });
 
-        if (completedError) throw completedError;
+        if (completedError) {
+          console.error('Error fetching completed assignments:', completedError);
+          throw completedError;
+        }
+        
+        console.log('Writer completed assignments fetched:', completed?.length || 0);
         setCompletedAssignments(completed || []);
       }
 
@@ -139,24 +139,27 @@ export const useAssignments = () => {
   };
 
   useEffect(() => {
-    fetchAssignments();
-    
-    // Set up real-time subscription for assignments
-    const assignmentsSubscription = supabase
-      .channel('assignments-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'assignments' }, 
-        () => {
-          console.log('Assignments change detected - fetching updated assignments');
-          fetchAssignments();
-        }
-      )
-      .subscribe();
+    if (isAuthenticated && userId) {
+      console.log('Authenticated user with ID, fetching assignments:', userId);
+      fetchAssignments();
+      
+      // Set up real-time subscription for assignments
+      const assignmentsSubscription = supabase
+        .channel('assignments-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'assignments' }, 
+          () => {
+            console.log('Assignments change detected - fetching updated assignments');
+            fetchAssignments();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(assignmentsSubscription);
-    };
-  }, [isAuthenticated, userEmail, userRole]);
+      return () => {
+        supabase.removeChannel(assignmentsSubscription);
+      };
+    }
+  }, [isAuthenticated, userId, userRole]);
 
   const createAssignment = async (assignmentData: {
     title: string;
