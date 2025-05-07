@@ -175,8 +175,10 @@ const WriterDashboard = () => {
       // Safely handle the RPC call and response
       let rlsPoliciesInfo = "Could not verify RLS policies";
       try {
+        // Fix: Use proper type assertion for RPC parameters
+        type RPCParams = { table_name: string };
         const { data: rlsPolicies, error: rlsError } = await supabase
-          .rpc('get_policies_for_table', { table_name: 'assignments' } as any);
+          .rpc<any, RPCParams>('get_policies_for_table', { table_name: 'assignments' });
         
         if (!rlsError) {
           const policiesCount = rlsPolicies ? 
