@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export type Assignment = {
   id: string;
@@ -89,6 +90,7 @@ export const useAssignments = () => {
         }
         
         console.log('Available assignments found:', availableAssignments?.length || 0);
+        console.log('Available assignments data:', availableAssignments);
         
         // Get assignments assigned to this specific writer
         const { data: assignedToWriter, error: assignedError } = await supabase
@@ -133,6 +135,7 @@ export const useAssignments = () => {
     } catch (err: any) {
       console.error('Error fetching assignments:', err);
       setError(err.message || 'Failed to fetch assignments');
+      toast.error('Failed to fetch assignments');
     } finally {
       setIsLoading(false);
     }
@@ -161,6 +164,7 @@ export const useAssignments = () => {
     }
   }, [isAuthenticated, userId, userRole]);
 
+  // Expose all the CRUD operations
   const createAssignment = async (assignmentData: {
     title: string;
     subject: string;

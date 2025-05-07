@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -19,6 +18,10 @@ import {
 } from 'lucide-react';
 import { useAssignments } from '@/hooks/useAssignments';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 // Get status color
 const getStatusColor = (status: string) => {
@@ -63,7 +66,9 @@ const formatDate = (dateStr: string | null) => {
 };
 
 const StudentDashboard = () => {
-  const { activeAssignments, completedAssignments, isLoading, error } = useAssignments();
+  const { activeAssignments, completedAssignments, isLoading, error, fetchAssignments } = useAssignments();
+  const { userId } = useAuth();
+  const navigate = useNavigate();
   
   // Count upcoming deadlines (assignments due within 7 days)
   const upcomingDeadlines = activeAssignments.filter(assignment => {
@@ -74,6 +79,37 @@ const StudentDashboard = () => {
     sevenDaysFromNow.setDate(today.getDate() + 7);
     return dueDate <= sevenDaysFromNow && dueDate >= today;
   }).length;
+
+  const createSampleAssignment = async () => {
+    if (!userId) {
+      toast.error("You need to be logged in to create assignments");
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .insert([{
+          title: 'Sample Research Paper',
+          subject: 'English Literature',
+          description: 'This is a sample assignment created for testing the writer assignment system.',
+          status: 'submitted', // This makes it available for writers
+          user_id: userId,
+          due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // 14 days from now
+        }])
+        .select();
+    
+    if (error) throw error;
+    
+    toast.success("Created a sample assignment for testing");
+    // Refresh assignments list
+    fetchAssignments();
+    
+  } catch (err: any) {
+    console.error("Error creating sample assignment:", err);
+    toast.error("Failed to create sample assignment: " + err.message);
+  }
+};
 
   if (isLoading) {
     return (
@@ -144,9 +180,24 @@ const StudentDashboard = () => {
             <Card>
               <CardContent className="text-center py-10">
                 <p className="text-gray-500">No active assignments found</p>
-                <Button className="mt-4" variant="outline" size="sm">
-                  Create a new assignment
-                </Button>
+                <div className="flex justify-center gap-2 mt-4">
+                  <Button 
+                    className="mt-4" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/submit-assignment')}
+                  >
+                    Create a new assignment
+                  </Button>
+                  <Button 
+                    className="mt-4" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={createSampleAssignment}
+                  >
+                    Create Sample Assignment
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (

@@ -24,9 +24,25 @@ export const useWriters = () => {
         setIsLoading(true);
         setError(null);
 
+        // Check if writer_bio and writer_skills columns exist
+        const { data: columnCheck, error: columnError } = await supabase
+          .from('profiles')
+          .select('*')
+          .limit(1);
+          
+        if (columnError) throw columnError;
+        
+        // Construct query based on available columns
+        let query = 'id, email, full_name, avatar_url';
+        
+        // Only include columns if they exist in the profiles table
+        const columns = columnCheck && columnCheck[0] ? Object.keys(columnCheck[0]) : [];
+        if (columns.includes('writer_bio')) query += ', writer_bio';
+        if (columns.includes('writer_skills')) query += ', writer_skills';
+        
         const { data, error: writersError } = await supabase
           .from('profiles')
-          .select('id, email, full_name, avatar_url, writer_bio, writer_skills')
+          .select(query)
           .eq('role', 'writer');
 
         if (writersError) throw writersError;
@@ -74,6 +90,7 @@ export const useWriters = () => {
         .is('writer_id', null);
       
       console.log('Available assignments for writers:', availableAssignments?.length);
+      console.log('Available assignments details:', availableAssignments);
       
       // Check assignments assigned to current writer
       if (userId) {

@@ -126,9 +126,9 @@ const WriterDashboard = () => {
   // Debug function to check database status
   const runDebugCheck = async () => {
     try {
-      setDebugInfo("Running debug check...");
+      setDebugInfo("Running comprehensive debug check...");
       
-      // Get user profile from database
+      // Get user profile and role information
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -138,6 +138,11 @@ const WriterDashboard = () => {
       if (profileError) {
         setDebugInfo("Error fetching profile: " + profileError.message);
         return;
+      }
+      
+      // Check if the current user has the writer role
+      if (profile?.role !== 'writer') {
+        setDebugInfo(`User has role '${profile?.role}' instead of 'writer'. This may affect assignment visibility.`);
       }
       
       // Check if there are assignments in the database
@@ -151,22 +156,30 @@ const WriterDashboard = () => {
       }
       
       if (!allAssignments || allAssignments.length === 0) {
-        setDebugInfo("No assignments found in database");
+        setDebugInfo("No assignments found in database. Please create some assignments first.");
         return;
       }
       
       // Check specifically for submitted assignments with no writer
-      const { data: submitted, error: submittedError } = await supabase
+      const { data: availableAssignments, error: availableError } = await supabase
         .from('assignments')
         .select('*')
         .eq('status', 'submitted')
         .is('writer_id', null);
       
-      if (submittedError) {
-        setDebugInfo("Error fetching submitted assignments: " + submittedError.message);
+      if (availableError) {
+        setDebugInfo("Error fetching submitted assignments: " + availableError.message);
         return;
       }
 
+      // Check RLS policies to ensure they're set up correctly
+      const { data: rlsPolicies, error: rlsError } = await supabase
+        .rpc('get_policies_for_table', { table_name: 'assignments' });
+      
+      const rlsPoliciesInfo = rlsError ? 
+        "Could not verify RLS policies" : 
+        `Found ${rlsPolicies?.length || 0} RLS policies for assignments table`;
+      
       // Detailed check of all assignments
       let statuses = allAssignments.reduce((acc: any, curr: any) => {
         acc[curr.status] = (acc[curr.status] || 0) + 1;
@@ -175,12 +188,17 @@ const WriterDashboard = () => {
       
       setDebugInfo(`Found ${allAssignments.length} assignments in database. 
         Statuses: ${JSON.stringify(statuses)}. 
-        ${submitted ? submitted.length : 0} are available for writers (status='submitted' and writer_id=null).
-        User role: ${profile.role}, User ID: ${userId}`);
+        ${availableAssignments ? availableAssignments.length : 0} are available for writers (status='submitted' and writer_id=null).
+        User role: ${profile.role}, User ID: ${userId}.
+        ${rlsPoliciesInfo}
+        
+        Available assignments:
+        ${JSON.stringify(availableAssignments?.slice(0, 2) || [], null, 2)}
+        `);
       
       toast({
         title: "Debug Information",
-        description: `Found ${allAssignments.length} total assignments. ${submitted ? submitted.length : 0} available for writers.`,
+        description: `Found ${allAssignments.length} total assignments. ${availableAssignments ? availableAssignments.length : 0} available for writers.`,
       });
     } catch (err: any) {
       setDebugInfo(`Error during debug: ${err.message}`);
@@ -193,11 +211,33 @@ const WriterDashboard = () => {
       title: "Refreshing",
       description: "Fetching the latest assignments...",
     });
-    await checkAssignments();
-    fetchAssignments();
-    // Force component re-render
-    setProcessing("refreshing");
-    setTimeout(() => setProcessing(null), 100);
+    
+    try {
+      // Double check there are assignments in the system
+      const { data, error } = await supabase
+        .from('assignments')
+        .select('count')
+        .single();
+        
+      if (error) {
+        toast.error("Error counting assignments: " + error.message);
+      } else {
+        console.log(`Database has ${data?.count || 0} total assignments`);
+      }
+      
+      // Run our debug check to verify assignments
+      await checkAssignments();
+      
+      // Fetch the assignments to update the UI
+      fetchAssignments();
+      
+      // Force component re-render
+      setProcessing("refreshing");
+      setTimeout(() => setProcessing(null), 100);
+      
+    } catch (err: any) {
+      toast.error("Error refreshing: " + err.message);
+    }
   };
   
   useEffect(() => {
@@ -205,7 +245,12 @@ const WriterDashboard = () => {
     console.log("Writer dashboard mounted, active assignments:", activeAssignments);
     console.log("Available assignments:", availableAssignments.length);
     console.log("Current assignments:", currentAssignments.length);
-    runDebugCheck(); // Run debug check on mount to help diagnose issues
+    
+    // Run debug check on mount to help diagnose issues
+    runDebugCheck();
+    
+    // Force a refresh to make sure we have the latest data
+    fetchAssignments();
   }, []);
 
   const takeAssignment = async (assignmentId: string) => {
@@ -374,14 +419,29 @@ const WriterDashboard = () => {
             <Card>
               <CardContent className="text-center py-10">
                 <p className="text-gray-500">No available jobs found</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-4"
-                  onClick={refreshAssignments}
-                >
-                  Refresh Assignments
-                </Button>
+                <div className="flex justify-center gap-2 mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={refreshAssignments}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Refresh
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={runDebugCheck}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Debug
+                  </Button>
+                </div>
+                {debugInfo && (
+                  <div className="mt-4 text-xs text-left bg-gray-50 p-3 rounded overflow-auto max-h-60">
+                    <pre className="whitespace-pre-wrap">{debugInfo}</pre>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
