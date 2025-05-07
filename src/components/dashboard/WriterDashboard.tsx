@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -173,22 +172,18 @@ const WriterDashboard = () => {
         return;
       }
 
-      // Safely handle the RPC call and response
+      // Safely handle the RLS policies information
       let rlsPoliciesInfo = "Could not verify RLS policies";
       try {
-        // Use a type assertion since we know what we expect to get back
-        type PolicyResponse = { policies?: any[] };
+        // Instead of using RPC, we'll query the PostgreSQL system tables directly
+        const { data: policiesData, error: policiesError } = await supabase
+          .from('pg_policies')
+          .select('*')
+          .eq('tablename', 'assignments');
         
-        const { data: rlsPolicies, error: rlsError } = await supabase
-          .rpc('get_policies_for_table', { table_name: 'assignments' }) as { 
-            data: PolicyResponse | null, 
-            error: any 
-          };
-        
-        if (!rlsError && rlsPolicies) {
-          const policiesArray = rlsPolicies.policies || [];
-          const policiesCount = Array.isArray(policiesArray) ? policiesArray.length : 0;
-          rlsPoliciesInfo = `Found ${policiesCount} RLS policies for assignments table`;
+        if (!policiesError && policiesData) {
+          const policiesCount = Array.isArray(policiesData) ? policiesData.length : 0;
+          rlsPoliciesInfo = `Found ${policiesCount} RLS policies for assignments table based on system query`;
         }
       } catch (e) {
         console.error("Error checking RLS policies:", e);
