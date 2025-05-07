@@ -176,7 +176,7 @@ const WriterDashboard = () => {
       let rlsPoliciesInfo = "Could not verify RLS policies";
       try {
         const { data: rlsPolicies, error: rlsError } = await supabase
-          .rpc('get_policies_for_table', { table_name: 'assignments' });
+          .rpc('get_policies_for_table', { table_name: 'assignments' } as any);
         
         if (!rlsError) {
           const policiesCount = rlsPolicies ? 

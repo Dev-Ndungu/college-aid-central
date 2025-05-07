@@ -60,7 +60,7 @@ const Profile = () => {
     
     try {
       // Type-safe RPC call
-      const { error } = await supabase.rpc('add_writer_fields', {});
+      const { error } = await supabase.rpc('add_writer_fields', {} as any);
       
       if (error) {
         console.error("Error checking writer fields:", error);
