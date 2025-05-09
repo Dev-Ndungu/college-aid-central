@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -185,6 +186,23 @@ export const useAssignments = () => {
 
       if (error) throw error;
       
+      // Send notification to writers about new assignment
+      try {
+        await fetch(`${supabase.supabaseUrl}/functions/v1/notify-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabase.supabaseKey}`,
+          },
+          body: JSON.stringify({
+            type: 'assignment_submitted',
+            assignment: data[0]
+          }),
+        });
+      } catch (notifyError) {
+        console.error('Error sending assignment submission notification:', notifyError);
+      }
+      
       return data[0];
     } catch (err: any) {
       console.error('Error creating assignment:', err);
@@ -202,9 +220,101 @@ export const useAssignments = () => {
 
       if (error) throw error;
       
+      // If the assignment is being taken by a writer, send a notification
+      if (updates.writer_id && userRole === 'writer') {
+        // Get the writer information
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', updates.writer_id)
+          .single();
+        
+        if (!writerError && writerData) {
+          // Send notification to the student
+          try {
+            await fetch(`${supabase.supabaseUrl}/functions/v1/notify-message`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabase.supabaseKey}`,
+              },
+              body: JSON.stringify({
+                type: 'assignment_taken',
+                assignment: data[0],
+                writer: writerData
+              }),
+            });
+          } catch (notifyError) {
+            console.error('Error sending assignment taken notification:', notifyError);
+          }
+        }
+      }
+      
       return data[0];
     } catch (err: any) {
       console.error('Error updating assignment:', err);
+      throw err;
+    }
+  };
+
+  const takeAssignment = async (assignmentId: string) => {
+    if (!userId) {
+      toast.error("You must be logged in to take an assignment");
+      return null;
+    }
+
+    if (userRole !== 'writer') {
+      toast.error("Only writers can take assignments");
+      return null;
+    }
+
+    try {
+      const updates = {
+        writer_id: userId,
+        status: 'in_progress',
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('assignments')
+        .update(updates)
+        .eq('id', assignmentId)
+        .is('writer_id', null) // Only allow taking if no writer has taken it yet
+        .select(`
+          *,
+          writer:profiles!assignments_writer_id_fkey(id, full_name, email)
+        `);
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Send notification to student about assignment being taken
+        try {
+          await fetch(`${supabase.supabaseUrl}/functions/v1/notify-message`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabase.supabaseKey}`,
+            },
+            body: JSON.stringify({
+              type: 'assignment_taken',
+              assignment: data[0],
+              writer: data[0].writer
+            }),
+          });
+        } catch (notifyError) {
+          console.error('Error sending assignment taken notification:', notifyError);
+        }
+        
+        toast.success("Assignment taken successfully");
+        return data[0];
+      } else {
+        toast.error("This assignment has already been taken by another writer");
+        return null;
+      }
+    } catch (err: any) {
+      console.error('Error taking assignment:', err);
+      toast.error(err.message || "Failed to take assignment");
       throw err;
     }
   };
@@ -233,6 +343,7 @@ export const useAssignments = () => {
     createAssignment,
     updateAssignment,
     deleteAssignment,
+    takeAssignment,
     fetchAssignments // Export this to allow manual refresh
   };
 };

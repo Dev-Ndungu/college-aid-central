@@ -1,313 +1,308 @@
-import React from 'react';
-import { Button } from "@/components/ui/button";
+
+import React, { useState } from 'react';
 import { 
   Card, 
   CardContent, 
+  CardDescription, 
   CardHeader, 
-  CardTitle,
-  CardDescription,
-  CardFooter
+  CardTitle 
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
-  Calendar,
-  Loader
-} from 'lucide-react';
-import { useAssignments } from '@/hooks/useAssignments';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-
-// Get status color
-const getStatusColor = (status: string) => {
-  switch(status) {
-    case 'submitted':
-      return 'bg-blue-100 text-blue-800';
-    case 'in-progress':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'review':
-      return 'bg-purple-100 text-purple-800';
-    case 'completed':
-      return 'bg-green-100 text-green-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
-// Get status label
-const getStatusLabel = (status: string) => {
-  switch(status) {
-    case 'submitted':
-      return 'Submitted';
-    case 'in-progress':
-      return 'In Progress';
-    case 'review':
-      return 'Under Review';
-    case 'completed':
-      return 'Completed';
-    default:
-      return status.charAt(0).toUpperCase() + status.slice(1);
-  }
-};
-
-// Format date display
-const formatDate = (dateStr: string | null) => {
-  if (!dateStr) return 'Not set';
-  try {
-    return format(new Date(dateStr), 'MMM d, yyyy');
-  } catch (e) {
-    return 'Invalid date';
-  }
-};
+import { Edit2, Trash2, Clock, CheckCircle, CalendarDays, BookOpen, MessageCircle } from "lucide-react";
+import { Assignment, useAssignments } from '@/hooks/useAssignments';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 const StudentDashboard = () => {
-  const { activeAssignments, completedAssignments, isLoading, error, fetchAssignments } = useAssignments();
-  const { userId } = useAuth();
+  const { activeAssignments, completedAssignments, isLoading, deleteAssignment } = useAssignments();
   const navigate = useNavigate();
-  
-  // Count upcoming deadlines (assignments due within 7 days)
-  const upcomingDeadlines = activeAssignments.filter(assignment => {
-    if (!assignment.due_date) return false;
-    const dueDate = new Date(assignment.due_date);
-    const today = new Date();
-    const sevenDaysFromNow = new Date();
-    sevenDaysFromNow.setDate(today.getDate() + 7);
-    return dueDate <= sevenDaysFromNow && dueDate >= today;
-  }).length;
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const createSampleAssignment = async () => {
-    if (!userId) {
-      toast.error("You need to be logged in to create assignments");
-      return;
-    }
-    
+  const handleDelete = async (id: string) => {
     try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .insert([{
-          title: 'Sample Research Paper',
-          subject: 'English Literature',
-          description: 'This is a sample assignment created for testing the writer assignment system.',
-          status: 'submitted', // Changed from 'in-progress' to 'submitted'
-          user_id: userId,
-          due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // 14 days from now
-        }])
-        .select();
-    
-    if (error) throw error;
-    
-    toast.success("Created a sample assignment for testing");
-    // Refresh assignments list
-    fetchAssignments();
-    
-  } catch (err: any) {
-    console.error("Error creating sample assignment:", err);
-    toast.error("Failed to create sample assignment: " + err.message);
-  }
-};
+      setIsDeleting(true);
+      setDeleteId(id);
+      await deleteAssignment(id);
+      toast.success("Assignment deleted successfully");
+    } catch (error) {
+      console.error("Error deleting assignment:", error);
+      toast.error("Failed to delete assignment");
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
+    }
+  };
 
-  if (isLoading) {
+  const ActiveAssignments = () => {
+    if (activeAssignments.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
+            <BookOpen className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="text-lg font-medium">No Active Assignments</h3>
+          <p className="text-gray-500 max-w-sm mx-auto mt-1">
+            You haven't submitted any assignments yet. Click the "New Assignment" button to get started.
+          </p>
+          <Button onClick={() => navigate('/submit-assignment')} className="mt-4">
+            Submit New Assignment
+          </Button>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex justify-center items-center py-20">
-        <Loader className="h-8 w-8 animate-spin text-brand-500" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 my-4">
-        <h3 className="text-lg font-semibold">Error loading assignments</h3>
-        <p>{error}</p>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <Clock className="h-5 w-5 mr-2 text-yellow-500" />
-              Active Assignments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{activeAssignments.length}</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
-              Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{completedAssignments.length}</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center">
-              <AlertCircle className="h-5 w-5 mr-2 text-red-500" />
-              Upcoming Deadlines
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{upcomingDeadlines}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="active" className="mb-8">
-        <TabsList>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="feedback">Feedback</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="active" className="mt-6">
-          {activeAssignments.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-10">
-                <p className="text-gray-500">No active assignments found</p>
-                <div className="flex justify-center gap-2 mt-4">
-                  <Button 
-                    className="mt-4" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/submit-assignment')}
-                  >
-                    Create a new assignment
-                  </Button>
-                  <Button 
-                    className="mt-4" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={createSampleAssignment}
-                  >
-                    Create Sample Assignment
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {activeAssignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{assignment.title}</CardTitle>
-                        <CardDescription>{assignment.subject}</CardDescription>
-                      </div>
-                      <span 
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}
-                      >
-                        {getStatusLabel(assignment.status)}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Progress</span>
-                        <span>{assignment.progress || 0}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="bg-brand-500 h-2.5 rounded-full" 
-                          style={{ width: `${assignment.progress || 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    {assignment.due_date && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        Due: {formatDate(assignment.due_date)}
+      <div className="space-y-4">
+        <div className="overflow-auto">
+          <table className="w-full min-w-[800px] text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="p-3 text-left font-medium">Assignment</th>
+                <th className="p-3 text-left font-medium">Subject</th>
+                <th className="p-3 text-left font-medium">Status</th>
+                <th className="p-3 text-left font-medium">Due Date</th>
+                <th className="p-3 text-left font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {activeAssignments.map(assignment => (
+                <tr key={assignment.id} className="border-b">
+                  <td className="p-3">
+                    <div className="font-medium">{assignment.title}</div>
+                    {assignment.description && (
+                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {assignment.description}
                       </div>
                     )}
-                  </CardContent>
-                  <CardFooter className="border-t pt-4">
-                    <Button variant="outline" size="sm" className="mr-2">
-                      View Details
-                    </Button>
-                    <Button size="sm">
-                      Track Progress
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="completed" className="mt-6">
-          {completedAssignments.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-10">
-                <p className="text-gray-500">No completed assignments found</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {completedAssignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{assignment.title}</CardTitle>
-                        <CardDescription>{assignment.subject}</CardDescription>
-                      </div>
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
-                        Grade: {assignment.grade || "Pending"}
-                      </span>
+                  </td>
+                  <td className="p-3">{assignment.subject}</td>
+                  <td className="p-3">
+                    <AssignmentStatusBadge status={assignment.status} />
+                  </td>
+                  <td className="p-3">
+                    {assignment.due_date ? 
+                      new Date(assignment.due_date).toLocaleDateString() : 
+                      'Not set'
+                    }
+                  </td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {/* Show chat button only if the assignment has been taken by a writer */}
+                      {assignment.writer_id && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
+                        >
+                          <MessageCircle className="mr-1 h-3 w-3" />
+                          Chat with Writer
+                        </Button>
+                      )}
+                      
+                      {/* Only allow editing if the assignment is still in submitted status */}
+                      {assignment.status === 'submitted' && !assignment.writer_id && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="h-8 w-8" 
+                          onClick={() => navigate(`/edit-assignment/${assignment.id}`)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Assignment</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this assignment? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDelete(assignment.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              disabled={isDeleting && deleteId === assignment.id}
+                            >
+                              {isDeleting && deleteId === assignment.id ? (
+                                <>
+                                  <div className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                                  Deleting...
+                                </>
+                              ) : (
+                                'Delete'
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
-                      Completed: {formatDate(assignment.completed_date)}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t pt-4">
-                    <Button variant="outline" size="sm">
-                      View Assignment
-                    </Button>
-                  </CardFooter>
-                </Card>
+                  </td>
+                </tr>
               ))}
-            </div>
-          )}
-        </TabsContent>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const CompletedAssignments = () => {
+    if (completedAssignments.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
+            <CheckCircle className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="text-lg font-medium">No Completed Assignments</h3>
+          <p className="text-gray-500 max-w-sm mx-auto mt-1">
+            You don't have any completed assignments yet.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="overflow-auto">
+          <table className="w-full min-w-[800px] text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="p-3 text-left font-medium">Assignment</th>
+                <th className="p-3 text-left font-medium">Subject</th>
+                <th className="p-3 text-left font-medium">Completed Date</th>
+                <th className="p-3 text-left font-medium">Grade</th>
+                <th className="p-3 text-left font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {completedAssignments.map(assignment => (
+                <tr key={assignment.id} className="border-b">
+                  <td className="p-3">
+                    <div className="font-medium">{assignment.title}</div>
+                  </td>
+                  <td className="p-3">{assignment.subject}</td>
+                  <td className="p-3">
+                    {assignment.completed_date ? 
+                      new Date(assignment.completed_date).toLocaleDateString() : 
+                      'N/A'
+                    }
+                  </td>
+                  <td className="p-3">{assignment.grade || 'Not graded'}</td>
+                  <td className="p-3">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
+                    >
+                      <MessageCircle className="mr-1 h-3 w-3" />
+                      View Messages
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <Tabs defaultValue="active" className="w-full">
+        <TabsList className="grid grid-cols-2 mb-8">
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+        </TabsList>
         
-        <TabsContent value="feedback" className="mt-6">
+        <TabsContent value="active" className="w-full">
           <Card>
-            <CardHeader>
-              <CardTitle>Feedback</CardTitle>
+            <CardHeader className="pb-4">
+              <CardTitle>Active Assignments</CardTitle>
               <CardDescription>
-                View feedback for your completed assignments
+                Assignments that are in progress or awaiting a writer.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-center py-10 text-gray-500">
-                No feedback available yet
-              </p>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-500">Loading assignments...</p>
+                </div>
+              ) : (
+                <ActiveAssignments />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="completed" className="w-full">
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle>Completed Assignments</CardTitle>
+              <CardDescription>
+                Assignments that have been completed by writers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-sm text-gray-500">Loading assignments...</p>
+                </div>
+              ) : (
+                <CompletedAssignments />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-    </>
+    </div>
   );
+};
+
+const AssignmentStatusBadge = ({ status }: { status: string }) => {
+  switch (status) {
+    case 'submitted':
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+          <Clock className="mr-1 h-3 w-3" /> Submitted
+        </span>
+      );
+    case 'in_progress':
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <Clock className="mr-1 h-3 w-3" /> In Progress
+        </span>
+      );
+    case 'completed':
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <CheckCircle className="mr-1 h-3 w-3" /> Completed
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          {status}
+        </span>
+      );
+  }
 };
 
 export default StudentDashboard;
