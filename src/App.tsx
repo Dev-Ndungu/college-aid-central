@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -24,8 +24,8 @@ import AssignmentChat from '@/pages/AssignmentChat';
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <Router>
+      <Router>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -41,9 +41,9 @@ function App() {
             <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Router>
-        <Toaster />
-      </AuthProvider>
+          <Toaster />
+        </AuthProvider>
+      </Router>
     </ThemeProvider>
   );
 }
