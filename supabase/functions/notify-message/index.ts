@@ -1,11 +1,15 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize Resend client with the API key
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -43,26 +47,55 @@ serve(async (req) => {
         );
       }
 
-      // In a real application, you would send an email here
-      console.log(`Sending email notification to ${student.email} about assignment taken by writer ${writer.full_name || writer.email}`);
-      
       const emailSubject = `Your assignment "${assignment.title}" has been taken by a writer`;
       const emailBody = `
-        Great news! Your assignment "${assignment.title}" has been taken by ${writer.full_name || writer.email}.
-        
-        You can now communicate directly with the writer through our messaging system.
-        
-        Assignment details:
-        - Title: ${assignment.title}
-        - Subject: ${assignment.subject}
-        
-        Login to track the progress of your assignment.
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4338ca;">Great news!</h2>
+          <p>Your assignment <strong>"${assignment.title}"</strong> has been taken by ${writer.full_name || writer.email}.</p>
+          
+          <p>You can now communicate directly with the writer through our messaging system.</p>
+          
+          <h3>Assignment details:</h3>
+          <ul>
+            <li><strong>Title:</strong> ${assignment.title}</li>
+            <li><strong>Subject:</strong> ${assignment.subject}</li>
+          </ul>
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${supabaseUrl.replace('.supabase.co', '')}/assignment-chat/${assignment.id}" 
+               style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+              Start Chatting With Your Writer
+            </a>
+          </div>
+          
+          <p>Login to track the progress of your assignment.</p>
+          
+          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            This is an automated message from College Aid Central. Please do not reply directly to this email.
+          </p>
+        </div>
       `;
       
-      console.log('Email Subject:', emailSubject);
-      console.log('Email Body:', emailBody);
+      console.log('Sending email to student:', student.email);
       
-      // Here you would use an email service like SendGrid, Mailgun, etc.
+      try {
+        // Send email using Resend
+        const { data, error } = await resend.emails.send({
+          from: 'College Aid Central <onboarding@resend.dev>',
+          to: [student.email],
+          subject: emailSubject,
+          html: emailBody,
+        });
+
+        if (error) {
+          console.error('Error sending email with Resend:', error);
+        } else {
+          console.log('Email sent successfully with Resend:', data);
+        }
+      } catch (emailError) {
+        console.error('Exception sending email with Resend:', emailError);
+      }
+      
     } 
     else if (payload.type === 'assignment_submitted') {
       // This is a new assignment notification for writers
@@ -85,24 +118,54 @@ serve(async (req) => {
         );
       }
 
+      const emailSubject = `New Assignment Available: "${assignment.title}"`;
+      const emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4338ca;">New Assignment Available</h2>
+          <p>A new assignment is available for you to take:</p>
+          
+          <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">${assignment.title}</h3>
+            <p><strong>Subject:</strong> ${assignment.subject}</p>
+            <p><strong>Description:</strong> ${assignment.description || 'No description provided.'}</p>
+          </div>
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${supabaseUrl.replace('.supabase.co', '')}/dashboard" 
+               style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+              View Assignment Details
+            </a>
+          </div>
+          
+          <p>Login to view more details and take this assignment.</p>
+          
+          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            This is an automated message from College Aid Central. Please do not reply directly to this email.
+          </p>
+        </div>
+      `;
+
       // In a real application, you would send an email to each writer
       for (const writer of writers) {
-        console.log(`Sending email notification to writer ${writer.email} about new assignment`);
+        console.log(`Sending email to writer ${writer.email} about new assignment`);
         
-        const emailSubject = `New Assignment Available: "${assignment.title}"`;
-        const emailBody = `
-          A new assignment is available for you to take:
-          
-          Title: ${assignment.title}
-          Subject: ${assignment.subject}
-          
-          Login to view more details and take this assignment.
-        `;
-        
-        console.log('Email Subject:', emailSubject);
-        console.log('Email Body:', emailBody);
-        
-        // Here you would use an email service like SendGrid, Mailgun, etc.
+        try {
+          // Send email using Resend
+          const { data, error } = await resend.emails.send({
+            from: 'College Aid Central <onboarding@resend.dev>',
+            to: [writer.email],
+            subject: emailSubject,
+            html: emailBody,
+          });
+
+          if (error) {
+            console.error(`Error sending email to writer ${writer.email}:`, error);
+          } else {
+            console.log(`Email sent successfully to writer ${writer.email}:`, data);
+          }
+        } catch (emailError) {
+          console.error(`Exception sending email to writer ${writer.email}:`, emailError);
+        }
       }
     }
     else {
@@ -157,22 +220,46 @@ serve(async (req) => {
 
       // Only send email notifications to writers
       if (recipient.role === 'writer') {
-        // In a real application, you would integrate with an email service here
-        // For this example, we'll just log the notification
-        console.log(`Sending email notification to ${recipient.email} about new message from ${sender.email}`);
-        
-        // Example email content
         const emailSubject = `New Message from ${sender.full_name || sender.email}`;
         const emailBody = `
-          You have received a new message from ${sender.full_name || sender.email}.
-          
-          Message: "${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}"
-          
-          Login to respond to this message.
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4338ca;">You have a new message</h2>
+            <p>You have received a new message from <strong>${sender.full_name || sender.email}</strong>.</p>
+            
+            <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0; font-style: italic;">"${message.content.substring(0, 150)}${message.content.length > 150 ? '...' : ''}"</p>
+            </div>
+            
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${supabaseUrl.replace('.supabase.co', '')}/messages" 
+                 style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+                Respond to Message
+              </a>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+              This is an automated message from College Aid Central. Please do not reply directly to this email.
+            </p>
+          </div>
         `;
         
-        console.log('Email Subject:', emailSubject);
-        console.log('Email Body:', emailBody);
+        try {
+          // Send email using Resend
+          const { data, error } = await resend.emails.send({
+            from: 'College Aid Central <onboarding@resend.dev>',
+            to: [recipient.email],
+            subject: emailSubject,
+            html: emailBody,
+          });
+
+          if (error) {
+            console.error('Error sending message notification email:', error);
+          } else {
+            console.log('Message notification email sent successfully:', data);
+          }
+        } catch (emailError) {
+          console.error('Exception sending message notification email:', emailError);
+        }
       }
     }
 

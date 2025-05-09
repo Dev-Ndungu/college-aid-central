@@ -188,7 +188,7 @@ export const useAssignments = () => {
       
       // Send notification to writers about new assignment
       try {
-        // Use environment variables directly in the URL construction
+        // Use the full URL for the function call
         await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
           method: 'POST',
           headers: {
@@ -233,6 +233,7 @@ export const useAssignments = () => {
         if (!writerError && writerData) {
           // Send notification to the student
           try {
+            // Use the full URL for the function call
             await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
               method: 'POST',
               headers: {
@@ -291,6 +292,7 @@ export const useAssignments = () => {
       if (data && data.length > 0) {
         // Send notification to student about assignment being taken
         try {
+          // Use the full URL for the function call
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
             method: 'POST',
             headers: {

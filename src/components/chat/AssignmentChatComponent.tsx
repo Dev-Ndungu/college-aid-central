@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,8 +65,8 @@ const AssignmentChatComponent = () => {
         // Transform the data to match our expected type
         const transformedData: AssignmentWithWriter = {
           ...data,
-          writer: data.writer ? Array.isArray(data.writer) ? data.writer[0] : data.writer : null,
-          user: data.user ? Array.isArray(data.user) ? data.user[0] : data.user : null
+          writer: data.writer ? (Array.isArray(data.writer) ? data.writer[0] : data.writer) : null,
+          user: data.user ? (Array.isArray(data.user) ? data.user[0] : data.user) : null
         };
 
         setAssignment(transformedData);
