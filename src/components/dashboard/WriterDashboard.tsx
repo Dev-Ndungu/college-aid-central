@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -112,18 +113,24 @@ const WriterDashboard = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
   
-  // Filter assignments by status - IMPORTANT CHANGE: make sure we filter properly
+  // CRITICAL: Improved assignment filtering with better logging
   // Available assignments = status 'submitted' AND writer_id is NULL
-  const availableAssignments = activeAssignments.filter(a => 
-    a.status === 'submitted' && !a.writer_id
-  );
+  const availableAssignments = activeAssignments.filter(a => {
+    const isAvailable = a.status === 'submitted' && !a.writer_id;
+    if (isAvailable) {
+      console.log('Found available assignment:', a.id, a.title);
+    }
+    return isAvailable;
+  });
   
   // Current assignments = has writer_id matching current user AND status is either 'in-progress' or 'review'
-  const currentAssignments = activeAssignments.filter(a => 
-    a.writer_id === userId && (a.status === 'in-progress' || a.status === 'review')
-  );
+  const currentAssignments = activeAssignments.filter(a => {
+    const isCurrentForWriter = a.writer_id === userId && 
+      (a.status === 'in-progress' || a.status === 'review');
+    return isCurrentForWriter;
+  });
 
-  // Debug function to check database status
+  // Enhanced debug function to provide more comprehensive information
   const runDebugCheck = async () => {
     try {
       setDebugInfo("Running comprehensive debug check...");
@@ -160,7 +167,7 @@ const WriterDashboard = () => {
         return;
       }
       
-      // Check specifically for submitted assignments with no writer
+      // ENHANCED: Check specifically for submitted assignments with no writer
       const { data: availableAssignments, error: availableError } = await supabase
         .from('assignments')
         .select('*')
@@ -171,64 +178,90 @@ const WriterDashboard = () => {
         setDebugInfo("Error fetching submitted assignments: " + availableError.message);
         return;
       }
+      
+      // ENHANCED: Direct query for all assignments with writer_id = current user
+      const { data: myAssignments, error: myAssignmentsError } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('writer_id', userId || '');
+        
+      if (myAssignmentsError) {
+        setDebugInfo("Error fetching my assignments: " + myAssignmentsError.message);
+        return;
+      }
 
       // Check for RLS policies by looking at the count of different query results
-      // This is a workaround since we can't directly query pg_policies
       let rlsPoliciesInfo = "RLS status: checking through assignment queries";
       
       // Try to check for RLS indirectly by running authorized vs unauthorized queries
       try {
         const assignmentsCountWithoutFilter = allAssignments?.length || 0;
         
-        // Check if all authors can see their own assignments (role-based filter)
-        const { data: authorAssignments } = await supabase
+        // Check if writers can see their own assignments (role-based filter)
+        const { data: writerAssignments } = await supabase
           .from('assignments')
           .select('*')
-          .eq('user_id', userId || '');
+          .eq('writer_id', userId || '');
           
-        const authorAssignmentsCount = authorAssignments?.length || 0;
+        const writerAssignmentsCount = writerAssignments?.length || 0;
         
         // Try to infer RLS based on query results
-        if (assignmentsCountWithoutFilter > 0 && authorAssignmentsCount >= 0) {
-          rlsPoliciesInfo = `RLS appears to be active. User can see ${authorAssignmentsCount} of their own assignments out of ${assignmentsCountWithoutFilter} total assignments.`;
+        if (assignmentsCountWithoutFilter > 0) {
+          rlsPoliciesInfo = `RLS appears to be working. Writer can see ${writerAssignmentsCount} of their assigned assignments and ${availableAssignments?.length || 0} available assignments out of ${assignmentsCountWithoutFilter} total assignments.`;
         }
       } catch (e) {
         console.error("Error checking RLS status:", e);
         rlsPoliciesInfo = "Could not verify RLS status";
       }
       
-      // Detailed check of all assignments
+      // ENHANCED: Detailed check of all assignments
       let statuses = allAssignments.reduce((acc: any, curr: any) => {
         acc[curr.status] = (acc[curr.status] || 0) + 1;
         return acc;
       }, {});
       
-      // Add more detailed info about the assignments
+      // ENHANCED: Add more detailed info about the assignments
       const submittedCount = allAssignments.filter(a => a.status === 'submitted').length;
       const submittedWithNoWriterCount = allAssignments.filter(a => a.status === 'submitted' && !a.writer_id).length;
+      const assignmentsAssignedToMe = allAssignments.filter(a => a.writer_id === userId).length;
       
-      setDebugInfo(`Found ${allAssignments.length} assignments in database. 
-        Statuses: ${JSON.stringify(statuses)}. 
-        ${submittedCount} assignments have status='submitted'.
-        ${submittedWithNoWriterCount} assignments have status='submitted' AND writer_id=null.
-        ${availableAssignments ? availableAssignments.length : 0} are available for writers based on query.
-        User role: ${profile.role}, User ID: ${userId}.
+      // COMPREHENSIVE DEBUG INFO
+      setDebugInfo(`
+        === Assignment Statistics ===
+        Found ${allAssignments.length} total assignments in database. 
+        Status breakdown: ${JSON.stringify(statuses)}
+        
+        === For Writers ===
+        ${submittedCount} assignments have status='submitted'
+        ${submittedWithNoWriterCount} assignments have status='submitted' AND writer_id=null (available for taking)
+        ${assignmentsAssignedToMe} assignments assigned to current writer
+        ${availableAssignments?.length || 0} assignments showing as available from direct query
+        
+        === User Info ===
+        User role: ${profile?.role}
+        User ID: ${userId}
+        
+        === RLS Status ===
         ${rlsPoliciesInfo}
         
+        === Example Assignments ===
         Available assignments from direct query:
         ${JSON.stringify(availableAssignments?.slice(0, 2) || [], null, 2)}
-        `);
+        
+        Assignments assigned to me:
+        ${JSON.stringify(myAssignments?.slice(0, 2) || [], null, 2)}
+      `);
       
       toast({
         title: "Debug Information",
-        description: `Found ${allAssignments.length} total assignments. ${availableAssignments ? availableAssignments.length : 0} available for writers.`,
+        description: `Found ${allAssignments.length} total assignments. ${availableAssignments?.length || 0} available for writers.`,
       });
     } catch (err: any) {
       setDebugInfo(`Error during debug: ${err.message}`);
     }
   };
   
-  // Manually refresh assignments
+  // ENHANCED: Manually refresh assignments with more detailed logging
   const refreshAssignments = async () => {
     toast({
       title: "Refreshing",
@@ -236,27 +269,44 @@ const WriterDashboard = () => {
     });
     
     try {
-      // Double check there are assignments in the system
-      const { data, error } = await supabase
+      // Double check there are assignments in the system with direct counts
+      const { count: totalCount, error: countError } = await supabase
         .from('assignments')
-        .select('count')
-        .single();
+        .select('*', { count: 'exact', head: true });
         
-      if (error) {
+      if (countError) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Error counting assignments: " + error.message
+          description: "Error counting assignments: " + countError.message
         });
       } else {
-        console.log(`Database has ${data?.count || 0} total assignments`);
+        console.log(`Database has ${totalCount || 0} total assignments`);
+      }
+      
+      // Count of available assignments
+      const { count: availableCount, error: availableCountError } = await supabase
+        .from('assignments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'submitted')
+        .is('writer_id', null);
+        
+      if (availableCountError) {
+        console.error('Error counting available assignments:', availableCountError);
+      } else {
+        console.log(`Database has ${availableCount || 0} available assignments`);
       }
       
       // Run our debug check to verify assignments
       await checkAssignments();
       
-      // Fetch the assignments to update the UI
-      fetchAssignments();
+      // Fetch the assignments to update the UI with forced refresh
+      await fetchAssignments();
+      
+      toast({
+        title: "Refreshed",
+        description: `Found ${totalCount || 0} assignments (${availableCount || 0} available)`,
+      });
       
       // Force component re-render
       setProcessing("refreshing");

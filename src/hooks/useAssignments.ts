@@ -77,22 +77,22 @@ export const useAssignments = () => {
       else if (userRole === 'writer') {
         console.log('Fetching assignments for writer with ID:', userId);
         
-        // FIXED: Get ONLY assignments with status='submitted' AND writer_id IS NULL
-        const { data: availableAssignments, error: availableError } = await supabase
+        // CRITICAL FIX: Use two separate queries with specific filters
+        // 1. Query for UNASSIGNED submitted assignments (available to be taken)
+        const { data: unassignedAssignments, error: availableError } = await supabase
           .from('assignments')
           .select('*')
           .eq('status', 'submitted')
-          .is('writer_id', null); // This ensures we only get unassigned assignments
+          .is('writer_id', null);
           
         if (availableError) {
           console.error('Error fetching available assignments:', availableError);
           throw availableError;
         }
         
-        console.log('Available unassigned assignments found:', availableAssignments?.length || 0);
-        console.log('Available assignments data:', availableAssignments);
+        console.log('Unassigned available assignments found:', unassignedAssignments?.length || 0);
         
-        // Get assignments assigned to this specific writer
+        // 2. Query for assignments ALREADY ASSIGNED to this specific writer
         const { data: assignedToWriter, error: assignedError } = await supabase
           .from('assignments')
           .select('*')
@@ -104,11 +104,11 @@ export const useAssignments = () => {
           throw assignedError;
         }
         
-        console.log('Writer\'s assignments found:', assignedToWriter?.length || 0);
+        console.log('Writer\'s assigned assignments found:', assignedToWriter?.length || 0);
         
         // Combine the results - available assignments (unassigned) + assignments assigned to this writer
         const combinedActive = [
-          ...(availableAssignments || []), 
+          ...(unassignedAssignments || []), 
           ...(assignedToWriter || [])
         ];
         
@@ -146,19 +146,22 @@ export const useAssignments = () => {
       console.log('Authenticated user with ID, fetching assignments:', userId);
       fetchAssignments();
       
-      // Set up real-time subscription for assignments
+      // Set up real-time subscription for assignments with enhanced logging
       const assignmentsSubscription = supabase
         .channel('assignments-changes')
         .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'assignments' }, 
-          () => {
-            console.log('Assignments change detected - fetching updated assignments');
+          (payload) => {
+            console.log('Assignments change detected:', payload);
             fetchAssignments();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+        });
 
       return () => {
+        console.log('Cleaning up realtime subscription');
         supabase.removeChannel(assignmentsSubscription);
       };
     }
