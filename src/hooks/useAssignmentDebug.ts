@@ -123,8 +123,8 @@ export const useAssignmentDebug = () => {
         ${JSON.stringify(myAssignments?.slice(0, 2) || [], null, 2)}
       `);
       
-      toast({
-        title: "Debug Information",
+      // This is the corrected toast format for the Sonner toast library
+      toast.success("Debug Information", {
         description: `Found ${allAssignments.length} total assignments. ${availableAssignments?.length || 0} available for writers.`
       });
     } catch (err: any) {
