@@ -112,15 +112,15 @@ const WriterDashboard = () => {
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
   
-  // Filter assignments by status
-  // Available assignments = status 'submitted' AND no writer_id
+  // Filter assignments by status - IMPORTANT CHANGE: make sure we filter properly
+  // Available assignments = status 'submitted' AND writer_id is NULL
   const availableAssignments = activeAssignments.filter(a => 
     a.status === 'submitted' && !a.writer_id
   );
   
-  // Current assignments = has writer_id AND status is either 'in-progress' or 'review'
+  // Current assignments = has writer_id matching current user AND status is either 'in-progress' or 'review'
   const currentAssignments = activeAssignments.filter(a => 
-    a.writer_id && (a.status === 'in-progress' || a.status === 'review')
+    a.writer_id === userId && (a.status === 'in-progress' || a.status === 'review')
   );
 
   // Debug function to check database status
@@ -203,13 +203,19 @@ const WriterDashboard = () => {
         return acc;
       }, {});
       
+      // Add more detailed info about the assignments
+      const submittedCount = allAssignments.filter(a => a.status === 'submitted').length;
+      const submittedWithNoWriterCount = allAssignments.filter(a => a.status === 'submitted' && !a.writer_id).length;
+      
       setDebugInfo(`Found ${allAssignments.length} assignments in database. 
         Statuses: ${JSON.stringify(statuses)}. 
-        ${availableAssignments ? availableAssignments.length : 0} are available for writers (status='submitted' and writer_id=null).
+        ${submittedCount} assignments have status='submitted'.
+        ${submittedWithNoWriterCount} assignments have status='submitted' AND writer_id=null.
+        ${availableAssignments ? availableAssignments.length : 0} are available for writers based on query.
         User role: ${profile.role}, User ID: ${userId}.
         ${rlsPoliciesInfo}
         
-        Available assignments:
+        Available assignments from direct query:
         ${JSON.stringify(availableAssignments?.slice(0, 2) || [], null, 2)}
         `);
       

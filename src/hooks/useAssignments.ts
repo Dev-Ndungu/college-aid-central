@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -72,22 +73,23 @@ export const useAssignments = () => {
         console.log('Student completed assignments fetched:', completed?.length || 0);
         setCompletedAssignments(completed || []);
       }
-      // For writers - show all available assignments and their own assigned ones
+      // For writers - show available assignments and their own assigned ones
       else if (userRole === 'writer') {
         console.log('Fetching assignments for writer with ID:', userId);
         
-        // This is the key fix: Get ALL assignments with status='submitted', not just those with writer_id IS NULL
+        // FIXED: Get ONLY assignments with status='submitted' AND writer_id IS NULL
         const { data: availableAssignments, error: availableError } = await supabase
           .from('assignments')
           .select('*')
-          .eq('status', 'submitted');
+          .eq('status', 'submitted')
+          .is('writer_id', null); // This ensures we only get unassigned assignments
           
         if (availableError) {
           console.error('Error fetching available assignments:', availableError);
           throw availableError;
         }
         
-        console.log('Available assignments found:', availableAssignments?.length || 0);
+        console.log('Available unassigned assignments found:', availableAssignments?.length || 0);
         console.log('Available assignments data:', availableAssignments);
         
         // Get assignments assigned to this specific writer
@@ -104,7 +106,7 @@ export const useAssignments = () => {
         
         console.log('Writer\'s assignments found:', assignedToWriter?.length || 0);
         
-        // Combine the results
+        // Combine the results - available assignments (unassigned) + assignments assigned to this writer
         const combinedActive = [
           ...(availableAssignments || []), 
           ...(assignedToWriter || [])
