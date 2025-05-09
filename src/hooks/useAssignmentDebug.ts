@@ -32,7 +32,7 @@ export const useAssignmentDebug = () => {
       }
       
       // Check if there are any RLS policies for assignments
-      // Use RPC for system table query instead of direct access
+      // Use RPC for system table query, now fixed to work correctly
       const { data: policies, error: policiesError } = await supabase
         .rpc('get_assignment_policies');
         
@@ -93,7 +93,7 @@ export const useAssignmentDebug = () => {
       let policiesInfo = "No RLS policies found";
       if (policies && policies.length > 0) {
         policiesInfo = `Found ${policies.length} RLS policies for assignments table: ` + 
-          policies.map((p: any) => p.policy_name || p.policyname).join(", ");
+          policies.map((p: any) => p.policyname).join(", ");
       }
       
       // COMPREHENSIVE DEBUG INFO
@@ -123,7 +123,8 @@ export const useAssignmentDebug = () => {
         ${JSON.stringify(myAssignments?.slice(0, 2) || [], null, 2)}
       `);
       
-      toast("Debug Information", {
+      toast({
+        title: "Debug Information",
         description: `Found ${allAssignments.length} total assignments. ${availableAssignments?.length || 0} available for writers.`
       });
     } catch (err: any) {
