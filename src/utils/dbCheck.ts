@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Utility to check database configuration and column existence
+ * Utility to check database configuration and RLS policies
  */
 export const checkDatabaseConfig = async () => {
   try {
@@ -38,23 +38,37 @@ export const checkDatabaseConfig = async () => {
       };
     }
     
-    // Check assignments table and RLS policies
-    const { data: assignments, error: assignmentsError } = await supabase
+    // Check assignments table structure and count
+    const { data: assignmentCount, error: countError } = await supabase
       .from('assignments')
       .select('count')
       .single();
       
-    if (assignmentsError) {
-      console.error("Error checking assignments table:", assignmentsError);
+    if (countError) {
+      console.error("Error checking assignments table count:", countError);
+    }
+    
+    // Check RLS policies for assignments table
+    const { data: policies, error: policiesError } = await supabase
+      .rpc('get_assignment_policies');
+      
+    if (policiesError) {
+      console.error("Error checking assignment policies:", policiesError);
       return {
         success: false,
-        message: `Error checking assignments table: ${assignmentsError.message}`
+        message: `Error checking assignment policies: ${policiesError.message}`
       };
     }
     
+    // Find writer access policy
+    const writerPolicy = policies?.find((p: any) => 
+      p.policyname === 'Writers can view all assignments' || 
+      p.policyname?.includes('Writers can view')
+    );
+    
     return {
       success: true,
-      message: `Database configuration looks good. Found ${assignments?.count || 0} assignments.`
+      message: `Database configuration looks good. Found ${assignmentCount?.count || 0} assignments. Writers policy: ${writerPolicy ? 'Present' : 'Missing'}`
     };
   } catch (err: any) {
     console.error("Database check failed:", err);
