@@ -93,7 +93,7 @@ const StudentDashboard = () => {
           title: 'Sample Research Paper',
           subject: 'English Literature',
           description: 'This is a sample assignment created for testing the writer assignment system.',
-          status: 'submitted', // This makes it available for writers
+          status: 'submitted', // Changed from 'in-progress' to 'submitted'
           user_id: userId,
           due_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() // 14 days from now
         }])

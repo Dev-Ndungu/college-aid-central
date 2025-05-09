@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -99,7 +98,7 @@ const AssignmentSubmission = () => {
             description,
             due_date: date ? date.toISOString() : null,
             user_id: profileData.id, // Use the correct UUID from profiles
-            status: 'in-progress',
+            status: 'submitted', // Changed from 'in-progress' to 'submitted'
             progress: 0
           }
         ])
@@ -130,7 +129,7 @@ const AssignmentSubmission = () => {
       // Show success message
       toast({
         title: "Assignment Submitted",
-        description: "Your assignment has been successfully submitted."
+        description: "Your assignment has been successfully submitted and is now available for writers to view."
       });
 
       // Redirect to dashboard

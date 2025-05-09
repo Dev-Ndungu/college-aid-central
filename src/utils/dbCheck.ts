@@ -60,6 +60,22 @@ export const checkDatabaseConfig = async () => {
       };
     }
 
+    // Direct fetch to test writer access to assignments with status 'submitted'
+    const { data: submittedAssignments, error: submittedError } = await supabase
+      .from('assignments')
+      .select('count')
+      .eq('status', 'submitted');
+
+    if (submittedError) {
+      console.error("Error checking submitted assignments:", submittedError);
+      return {
+        success: false,
+        message: `Error checking submitted assignments: ${submittedError.message}`
+      };
+    }
+    
+    const submittedCount = submittedAssignments?.length || 0;
+
     // Direct fetch to test writer access to assignments
     const { data: writerAccess, error: writerAccessError } = await supabase
       .from('assignments')
@@ -75,11 +91,11 @@ export const checkDatabaseConfig = async () => {
       };
     }
 
-    const accessSummary = `Writer can access ${writerAccess?.length || 0} assignments directly`;
+    const accessSummary = `Writer can access ${writerAccess?.length || 0} submitted assignments directly`;
     
     return {
       success: true,
-      message: `Database configuration looks good. Found ${assignmentCount?.count || 0} assignments. ${accessSummary}`
+      message: `Database configuration looks good. Found ${assignmentCount?.count || 0} total assignments, with ${submittedCount} in 'submitted' status. ${accessSummary}`
     };
   } catch (err: any) {
     console.error("Database check failed:", err);
