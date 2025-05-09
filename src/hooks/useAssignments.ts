@@ -73,13 +73,12 @@ export const useAssignments = () => {
         console.log('Student completed assignments fetched:', completed?.length || 0);
         setCompletedAssignments(completed || []);
       }
-      // For writers - show available assignments and their own assigned ones
+      // For writers - simplified and more direct queries based on RLS policies
       else if (userRole === 'writer') {
         console.log('Fetching assignments for writer with ID:', userId);
         
-        // CRITICAL FIX: Use two separate queries with specific filters
-        // 1. Query for UNASSIGNED submitted assignments (available to be taken)
-        const { data: unassignedAssignments, error: availableError } = await supabase
+        // IMPORTANT FIX: Direct query for available assignments (relies on RLS policy)
+        const { data: availableAssignments, error: availableError } = await supabase
           .from('assignments')
           .select('*')
           .eq('status', 'submitted')
@@ -90,9 +89,12 @@ export const useAssignments = () => {
           throw availableError;
         }
         
-        console.log('Unassigned available assignments found:', unassignedAssignments?.length || 0);
+        console.log('Available assignments found:', availableAssignments?.length || 0);
+        if (availableAssignments?.length) {
+          console.log('Sample available assignment:', availableAssignments[0]);
+        }
         
-        // 2. Query for assignments ALREADY ASSIGNED to this specific writer
+        // Get assignments assigned to this writer
         const { data: assignedToWriter, error: assignedError } = await supabase
           .from('assignments')
           .select('*')
@@ -106,9 +108,9 @@ export const useAssignments = () => {
         
         console.log('Writer\'s assigned assignments found:', assignedToWriter?.length || 0);
         
-        // Combine the results - available assignments (unassigned) + assignments assigned to this writer
+        // Combine results
         const combinedActive = [
-          ...(unassignedAssignments || []), 
+          ...(availableAssignments || []), 
           ...(assignedToWriter || [])
         ];
         

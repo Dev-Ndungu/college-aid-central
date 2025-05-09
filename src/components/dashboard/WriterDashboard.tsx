@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,22 +25,16 @@ import {
   Loader,
   X,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  PlusCircle
 } from 'lucide-react';
 import { useAssignments } from '@/hooks/useAssignments';
+import { useAssignmentDebug } from '@/hooks/useAssignmentDebug';
 import { useWriters } from '@/hooks/useWriters';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 // Get status color
 const getStatusColor = (status: string) => {
@@ -105,21 +98,17 @@ const renderStars = (rating: number) => {
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, error, fetchAssignments } = useAssignments();
+  const { debugInfo, isChecking, runDebugCheck, createTestAssignment, setDebugInfo } = useAssignmentDebug();
   const { checkAssignments } = useWriters();
   const { toast } = useToast();
   const { userId } = useAuth();
   const [processing, setProcessing] = React.useState<string | null>(null);
   const [viewingAssignment, setViewingAssignment] = useState<string | null>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   
-  // CRITICAL: Improved assignment filtering with better logging
   // Available assignments = status 'submitted' AND writer_id is NULL
   const availableAssignments = activeAssignments.filter(a => {
     const isAvailable = a.status === 'submitted' && !a.writer_id;
-    if (isAvailable) {
-      console.log('Found available assignment:', a.id, a.title);
-    }
     return isAvailable;
   });
   
@@ -129,137 +118,6 @@ const WriterDashboard = () => {
       (a.status === 'in-progress' || a.status === 'review');
     return isCurrentForWriter;
   });
-
-  // Enhanced debug function to provide more comprehensive information
-  const runDebugCheck = async () => {
-    try {
-      setDebugInfo("Running comprehensive debug check...");
-      
-      // Get user profile and role information
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId || '')
-        .single();
-        
-      if (profileError) {
-        setDebugInfo("Error fetching profile: " + profileError.message);
-        return;
-      }
-      
-      // Check if the current user has the writer role
-      if (profile?.role !== 'writer') {
-        setDebugInfo(`User has role '${profile?.role}' instead of 'writer'. This may affect assignment visibility.`);
-      }
-      
-      // Check if there are assignments in the database
-      const { data: allAssignments, error: assignmentsError } = await supabase
-        .from('assignments')
-        .select('*');
-      
-      if (assignmentsError) {
-        setDebugInfo("Error fetching assignments: " + assignmentsError.message);
-        return;
-      }
-      
-      if (!allAssignments || allAssignments.length === 0) {
-        setDebugInfo("No assignments found in database. Please create some assignments first.");
-        return;
-      }
-      
-      // ENHANCED: Check specifically for submitted assignments with no writer
-      const { data: availableAssignments, error: availableError } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('status', 'submitted')
-        .is('writer_id', null);
-      
-      if (availableError) {
-        setDebugInfo("Error fetching submitted assignments: " + availableError.message);
-        return;
-      }
-      
-      // ENHANCED: Direct query for all assignments with writer_id = current user
-      const { data: myAssignments, error: myAssignmentsError } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('writer_id', userId || '');
-        
-      if (myAssignmentsError) {
-        setDebugInfo("Error fetching my assignments: " + myAssignmentsError.message);
-        return;
-      }
-
-      // Check for RLS policies by looking at the count of different query results
-      let rlsPoliciesInfo = "RLS status: checking through assignment queries";
-      
-      // Try to check for RLS indirectly by running authorized vs unauthorized queries
-      try {
-        const assignmentsCountWithoutFilter = allAssignments?.length || 0;
-        
-        // Check if writers can see their own assignments (role-based filter)
-        const { data: writerAssignments } = await supabase
-          .from('assignments')
-          .select('*')
-          .eq('writer_id', userId || '');
-          
-        const writerAssignmentsCount = writerAssignments?.length || 0;
-        
-        // Try to infer RLS based on query results
-        if (assignmentsCountWithoutFilter > 0) {
-          rlsPoliciesInfo = `RLS appears to be working. Writer can see ${writerAssignmentsCount} of their assigned assignments and ${availableAssignments?.length || 0} available assignments out of ${assignmentsCountWithoutFilter} total assignments.`;
-        }
-      } catch (e) {
-        console.error("Error checking RLS status:", e);
-        rlsPoliciesInfo = "Could not verify RLS status";
-      }
-      
-      // ENHANCED: Detailed check of all assignments
-      let statuses = allAssignments.reduce((acc: any, curr: any) => {
-        acc[curr.status] = (acc[curr.status] || 0) + 1;
-        return acc;
-      }, {});
-      
-      // ENHANCED: Add more detailed info about the assignments
-      const submittedCount = allAssignments.filter(a => a.status === 'submitted').length;
-      const submittedWithNoWriterCount = allAssignments.filter(a => a.status === 'submitted' && !a.writer_id).length;
-      const assignmentsAssignedToMe = allAssignments.filter(a => a.writer_id === userId).length;
-      
-      // COMPREHENSIVE DEBUG INFO
-      setDebugInfo(`
-        === Assignment Statistics ===
-        Found ${allAssignments.length} total assignments in database. 
-        Status breakdown: ${JSON.stringify(statuses)}
-        
-        === For Writers ===
-        ${submittedCount} assignments have status='submitted'
-        ${submittedWithNoWriterCount} assignments have status='submitted' AND writer_id=null (available for taking)
-        ${assignmentsAssignedToMe} assignments assigned to current writer
-        ${availableAssignments?.length || 0} assignments showing as available from direct query
-        
-        === User Info ===
-        User role: ${profile?.role}
-        User ID: ${userId}
-        
-        === RLS Status ===
-        ${rlsPoliciesInfo}
-        
-        === Example Assignments ===
-        Available assignments from direct query:
-        ${JSON.stringify(availableAssignments?.slice(0, 2) || [], null, 2)}
-        
-        Assignments assigned to me:
-        ${JSON.stringify(myAssignments?.slice(0, 2) || [], null, 2)}
-      `);
-      
-      toast({
-        title: "Debug Information",
-        description: `Found ${allAssignments.length} total assignments. ${availableAssignments?.length || 0} available for writers.`,
-      });
-    } catch (err: any) {
-      setDebugInfo(`Error during debug: ${err.message}`);
-    }
-  };
   
   // ENHANCED: Manually refresh assignments with more detailed logging
   const refreshAssignments = async () => {
@@ -326,9 +184,6 @@ const WriterDashboard = () => {
     console.log("Writer dashboard mounted, active assignments:", activeAssignments);
     console.log("Available assignments:", availableAssignments.length);
     console.log("Current assignments:", currentAssignments.length);
-    
-    // Run debug check on mount to help diagnose issues
-    runDebugCheck();
     
     // Force a refresh to make sure we have the latest data
     fetchAssignments();
@@ -414,30 +269,47 @@ const WriterDashboard = () => {
             onClick={runDebugCheck}
             variant="outline" 
             size="sm"
+            disabled={isChecking}
           >
-            <AlertTriangle className="h-4 w-4 mr-1" />
-            Debug
+            {isChecking ? (
+              <><Loader className="h-4 w-4 mr-1 animate-spin" /> Debugging...</>
+            ) : (
+              <><AlertTriangle className="h-4 w-4 mr-1" /> Debug</>
+            )}
           </Button>
           <Button 
             onClick={refreshAssignments}
             variant="outline" 
             size="sm"
             className="flex items-center gap-1"
+            disabled={isChecking || processing !== null}
           >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
+            {processing === "refreshing" ? (
+              <><Loader className="h-4 w-4 mr-1 animate-spin" /> Refreshing...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4 mr-1" /> Refresh</>
+            )}
+          </Button>
+          <Button
+            onClick={createTestAssignment}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+            disabled={isChecking}
+          >
+            <PlusCircle className="h-4 w-4 mr-1" /> Create Test
           </Button>
         </div>
       </div>
 
       {debugInfo && (
         <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6 flex justify-between items-start">
-          <div>
+          <div className="flex-1 mr-4">
             <h3 className="text-lg font-semibold flex items-center">
               <AlertTriangle className="h-5 w-5 mr-2" />
               Debug Information
             </h3>
-            <p className="whitespace-pre-wrap">{debugInfo}</p>
+            <pre className="whitespace-pre-wrap text-xs mt-2 bg-white p-3 rounded border border-blue-100 overflow-auto max-h-80">{debugInfo}</pre>
           </div>
           <Button 
             variant="ghost" 
@@ -517,12 +389,15 @@ const WriterDashboard = () => {
                     <AlertTriangle className="h-4 w-4 mr-1" />
                     Debug
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={createTestAssignment}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-1" />
+                    Create Test Assignment
+                  </Button>
                 </div>
-                {debugInfo && (
-                  <div className="mt-4 text-xs text-left bg-gray-50 p-3 rounded overflow-auto max-h-60">
-                    <pre className="whitespace-pre-wrap">{debugInfo}</pre>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ) : (
