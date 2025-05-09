@@ -31,13 +31,14 @@ export const useAssignmentDebug = () => {
         setDebugInfo(`User has role '${profile?.role}' instead of 'writer'. This may affect assignment visibility.`);
       }
       
-      // Check if there are any RLS policies for assignments
-      // Use RPC for system table query, now fixed to work correctly
+      // Check RLS policies for assignments
       const { data: policies, error: policiesError } = await supabase
         .rpc('get_assignment_policies');
         
       if (policiesError) {
         console.error("Error checking policies:", policiesError);
+        setDebugInfo("Error checking RLS policies: " + policiesError.message);
+        return;
       }
       
       // Check if there are assignments in the database
@@ -55,7 +56,7 @@ export const useAssignmentDebug = () => {
         return;
       }
       
-      // ENHANCED: Check specifically for submitted assignments with no writer
+      // Direct query for submitted assignments with no writer
       const { data: availableAssignments, error: availableError } = await supabase
         .from('assignments')
         .select('*')
@@ -67,7 +68,7 @@ export const useAssignmentDebug = () => {
         return;
       }
       
-      // ENHANCED: Direct query for all assignments with writer_id = current user
+      // Direct query for all assignments with writer_id = current user
       const { data: myAssignments, error: myAssignmentsError } = await supabase
         .from('assignments')
         .select('*')
@@ -78,13 +79,13 @@ export const useAssignmentDebug = () => {
         return;
       }
 
-      // ENHANCED: Detailed check of all assignments
+      // Detailed check of all assignments
       let statuses = allAssignments.reduce((acc: any, curr: any) => {
         acc[curr.status] = (acc[curr.status] || 0) + 1;
         return acc;
       }, {});
       
-      // ENHANCED: Add more detailed info about the assignments
+      // Add more detailed info about the assignments
       const submittedCount = allAssignments.filter(a => a.status === 'submitted').length;
       const submittedWithNoWriterCount = allAssignments.filter(a => a.status === 'submitted' && !a.writer_id).length;
       const assignmentsAssignedToMe = allAssignments.filter(a => a.writer_id === userId).length;

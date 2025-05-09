@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,11 +72,11 @@ export const useAssignments = () => {
         console.log('Student completed assignments fetched:', completed?.length || 0);
         setCompletedAssignments(completed || []);
       }
-      // For writers - simplified and more direct queries based on RLS policies
+      // For writers - enhanced query approach
       else if (userRole === 'writer') {
         console.log('Fetching assignments for writer with ID:', userId);
         
-        // IMPORTANT FIX: Direct query for available assignments (relies on RLS policy)
+        // First, fetch all available assignments (status='submitted', writer_id=null)
         const { data: availableAssignments, error: availableError } = await supabase
           .from('assignments')
           .select('*')
@@ -89,10 +88,9 @@ export const useAssignments = () => {
           throw availableError;
         }
         
-        console.log('Available assignments found:', availableAssignments?.length || 0);
-        if (availableAssignments?.length) {
-          console.log('Sample available assignment:', availableAssignments[0]);
-        }
+        // Log the raw results to see what's coming back from DB
+        console.log('Raw available assignments result:', availableAssignments);
+        console.log('Available assignments count:', availableAssignments?.length || 0);
         
         // Get assignments assigned to this writer
         const { data: assignedToWriter, error: assignedError } = await supabase
