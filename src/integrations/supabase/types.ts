@@ -174,6 +174,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_assignment_policies: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          tablename: string
+          policyname: string
+          policy_info: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

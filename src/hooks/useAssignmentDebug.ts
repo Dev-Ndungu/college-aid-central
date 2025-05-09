@@ -34,8 +34,7 @@ export const useAssignmentDebug = () => {
       // Check if there are any RLS policies for assignments
       // Use RPC for system table query instead of direct access
       const { data: policies, error: policiesError } = await supabase
-        .rpc('get_assignment_policies')
-        .select('*');
+        .rpc('get_assignment_policies');
         
       if (policiesError) {
         console.error("Error checking policies:", policiesError);
@@ -146,10 +145,7 @@ export const useAssignmentDebug = () => {
         .limit(1);
         
       if (studentsError || !students || students.length === 0) {
-        toast("Error", {
-          variant: "destructive",
-          description: "No student accounts found to create test assignment"
-        });
+        toast.error("No student accounts found to create test assignment");
         return;
       }
       
@@ -167,21 +163,13 @@ export const useAssignmentDebug = () => {
         .select();
         
       if (error) {
-        toast("Error", {
-          variant: "destructive",
-          description: "Failed to create test assignment: " + error.message
-        });
+        toast.error("Failed to create test assignment: " + error.message);
       } else {
-        toast("Success", {
-          description: "Test assignment created successfully"
-        });
+        toast.success("Test assignment created successfully");
         setDebugInfo(prev => prev + "\n\n=== Created Test Assignment ===\n" + JSON.stringify(data[0], null, 2));
       }
     } catch (err: any) {
-      toast("Error", {
-        variant: "destructive",
-        description: "Error creating test assignment: " + err.message
-      });
+      toast.error("Error creating test assignment: " + err.message);
     } finally {
       setIsChecking(false);
     }
