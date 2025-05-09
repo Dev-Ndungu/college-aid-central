@@ -32,10 +32,10 @@ export const useAssignmentDebug = () => {
       }
       
       // Check if there are any RLS policies for assignments
+      // Use RPC for system table query instead of direct access
       const { data: policies, error: policiesError } = await supabase
-        .from('pg_policies')
-        .select('policyname, cmd, qual')
-        .eq('tablename', 'assignments');
+        .rpc('get_assignment_policies')
+        .select('*');
         
       if (policiesError) {
         console.error("Error checking policies:", policiesError);
@@ -94,7 +94,7 @@ export const useAssignmentDebug = () => {
       let policiesInfo = "No RLS policies found";
       if (policies && policies.length > 0) {
         policiesInfo = `Found ${policies.length} RLS policies for assignments table: ` + 
-          policies.map(p => p.policyname).join(", ");
+          policies.map((p: any) => p.policy_name || p.policyname).join(", ");
       }
       
       // COMPREHENSIVE DEBUG INFO
@@ -124,9 +124,8 @@ export const useAssignmentDebug = () => {
         ${JSON.stringify(myAssignments?.slice(0, 2) || [], null, 2)}
       `);
       
-      toast({
-        title: "Debug Information",
-        description: `Found ${allAssignments.length} total assignments. ${availableAssignments?.length || 0} available for writers.`,
+      toast("Debug Information", {
+        description: `Found ${allAssignments.length} total assignments. ${availableAssignments?.length || 0} available for writers.`
       });
     } catch (err: any) {
       setDebugInfo(`Error during debug: ${err.message}`);
@@ -147,9 +146,8 @@ export const useAssignmentDebug = () => {
         .limit(1);
         
       if (studentsError || !students || students.length === 0) {
-        toast({
+        toast("Error", {
           variant: "destructive",
-          title: "Error",
           description: "No student accounts found to create test assignment"
         });
         return;
@@ -169,22 +167,19 @@ export const useAssignmentDebug = () => {
         .select();
         
       if (error) {
-        toast({
+        toast("Error", {
           variant: "destructive",
-          title: "Error",
           description: "Failed to create test assignment: " + error.message
         });
       } else {
-        toast({
-          title: "Success",
+        toast("Success", {
           description: "Test assignment created successfully"
         });
         setDebugInfo(prev => prev + "\n\n=== Created Test Assignment ===\n" + JSON.stringify(data[0], null, 2));
       }
     } catch (err: any) {
-      toast({
+      toast("Error", {
         variant: "destructive",
-        title: "Error",
         description: "Error creating test assignment: " + err.message
       });
     } finally {
