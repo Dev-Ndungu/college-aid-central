@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,18 @@ import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { ChevronLeft, Clock, CheckCircle, Info } from 'lucide-react';
 
+interface Writer {
+  id: string;
+  full_name: string | null;
+  email: string;
+}
+
+interface User {
+  id: string;
+  full_name: string | null;
+  email: string;
+}
+
 interface AssignmentWithWriter {
   id: string;
   title: string;
@@ -18,16 +29,8 @@ interface AssignmentWithWriter {
   status: string;
   user_id: string;
   writer_id: string | null;
-  writer?: {
-    id: string;
-    full_name: string | null;
-    email: string;
-  } | null;
-  user?: {
-    id: string;
-    full_name: string | null;
-    email: string;
-  } | null;
+  writer?: Writer | null;
+  user?: User | null;
 }
 
 const AssignmentChatComponent = () => {
@@ -58,7 +61,14 @@ const AssignmentChatComponent = () => {
 
         if (error) throw error;
 
-        setAssignment(data as AssignmentWithWriter);
+        // Transform the data to match our expected type
+        const transformedData: AssignmentWithWriter = {
+          ...data,
+          writer: data.writer ? Array.isArray(data.writer) ? data.writer[0] : data.writer : null,
+          user: data.user ? Array.isArray(data.user) ? data.user[0] : data.user : null
+        };
+
+        setAssignment(transformedData);
       } catch (err: any) {
         console.error('Error fetching assignment:', err);
         setError(err.message || 'Failed to fetch assignment');

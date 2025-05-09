@@ -188,11 +188,12 @@ export const useAssignments = () => {
       
       // Send notification to writers about new assignment
       try {
-        await fetch(`${supabase.supabaseUrl}/functions/v1/notify-message`, {
+        // Use environment variables directly in the URL construction
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
             type: 'assignment_submitted',
@@ -232,11 +233,11 @@ export const useAssignments = () => {
         if (!writerError && writerData) {
           // Send notification to the student
           try {
-            await fetch(`${supabase.supabaseUrl}/functions/v1/notify-message`, {
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabase.supabaseKey}`,
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
               },
               body: JSON.stringify({
                 type: 'assignment_taken',
@@ -290,11 +291,11 @@ export const useAssignments = () => {
       if (data && data.length > 0) {
         // Send notification to student about assignment being taken
         try {
-          await fetch(`${supabase.supabaseUrl}/functions/v1/notify-message`, {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             },
             body: JSON.stringify({
               type: 'assignment_taken',
