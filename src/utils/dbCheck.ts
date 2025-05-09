@@ -48,27 +48,38 @@ export const checkDatabaseConfig = async () => {
       console.error("Error checking assignments table count:", countError);
     }
     
-    // Check RLS policies for assignments table
-    const { data: policies, error: policiesError } = await supabase
+    // Check for ALL assignments in the database, ignoring RLS
+    const { data: allAssignments, error: allAssignmentsError } = await supabase
       .rpc('get_assignment_policies');
       
-    if (policiesError) {
-      console.error("Error checking assignment policies:", policiesError);
+    if (allAssignmentsError) {
+      console.error("Error checking assignment policies:", allAssignmentsError);
       return {
         success: false,
-        message: `Error checking assignment policies: ${policiesError.message}`
+        message: `Error checking assignment policies: ${allAssignmentsError.message}`
       };
     }
-    
-    // Find writer access policy
-    const writerPolicy = policies?.find((p: any) => 
-      p.policyname === 'Writers can view all assignments' || 
-      p.policyname?.includes('Writers can view')
-    );
+
+    // Direct fetch to test writer access to assignments
+    const { data: writerAccess, error: writerAccessError } = await supabase
+      .from('assignments')
+      .select('id, title, status')
+      .eq('status', 'submitted')
+      .limit(10);
+
+    if (writerAccessError) {
+      console.error("Error testing writer access:", writerAccessError);
+      return {
+        success: false,
+        message: `Writer access test failed: ${writerAccessError.message}`
+      };
+    }
+
+    const accessSummary = `Writer can access ${writerAccess?.length || 0} assignments directly`;
     
     return {
       success: true,
-      message: `Database configuration looks good. Found ${assignmentCount?.count || 0} assignments. Writers policy: ${writerPolicy ? 'Present' : 'Missing'}`
+      message: `Database configuration looks good. Found ${assignmentCount?.count || 0} assignments. ${accessSummary}`
     };
   } catch (err: any) {
     console.error("Database check failed:", err);

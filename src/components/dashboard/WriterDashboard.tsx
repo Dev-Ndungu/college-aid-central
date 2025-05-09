@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
@@ -16,6 +17,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { 
   Clock, 
   CheckCircle, 
@@ -26,17 +35,32 @@ import {
   X,
   AlertTriangle,
   RefreshCw,
-  PlusCircle
+  PlusCircle,
+  Eye
 } from 'lucide-react';
-import { useAssignments } from '@/hooks/useAssignments';
-import { useAssignmentDebug } from '@/hooks/useAssignmentDebug';
-import { useWriters } from '@/hooks/useWriters';
-import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { checkDatabaseConfig } from '@/utils/dbCheck';
+import { format } from 'date-fns';
 
-// Get status color
+// Define Assignment type
+type Assignment = {
+  id: string;
+  title: string;
+  subject: string;
+  description: string | null;
+  status: string;
+  progress: number | null;
+  due_date: string | null;
+  completed_date: string | null;
+  grade: string | null;
+  created_at: string | null;
+  writer_id?: string | null;
+  user_id: string;
+};
+
+// Status formatting utilities
 const getStatusColor = (status: string) => {
   switch(status) {
     case 'submitted':
@@ -52,7 +76,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-// Get status label
 const getStatusLabel = (status: string) => {
   switch(status) {
     case 'submitted':
@@ -68,7 +91,7 @@ const getStatusLabel = (status: string) => {
   }
 };
 
-// Format date display
+// Format date for display
 const formatDate = (dateStr: string | null) => {
   if (!dateStr) return 'Not set';
   try {
@@ -78,179 +101,233 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
-// Render stars
-const renderStars = (rating: number) => {
-  return Array(5)
-    .fill(0)
-    .map((_, i) => (
-      <svg
-        key={i}
-        className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
-        aria-hidden="true"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="currentColor"
-        viewBox="0 0 22 20"
-      >
-        <path d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z" />
-      </svg>
-    ));
-};
-
 const WriterDashboard = () => {
-  const { activeAssignments, completedAssignments, isLoading, error, fetchAssignments } = useAssignments();
-  const { debugInfo, isChecking, runDebugCheck, createTestAssignment, setDebugInfo } = useAssignmentDebug();
-  const { checkAssignments } = useWriters();
-  const { toast } = useToast();
   const { userId } = useAuth();
-  const [processing, setProcessing] = React.useState<string | null>(null);
+  const [availableAssignments, setAvailableAssignments] = useState<Assignment[]>([]);
+  const [currentAssignments, setCurrentAssignments] = useState<Assignment[]>([]);
+  const [completedAssignments, setCompletedAssignments] = useState<Assignment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [viewingAssignment, setViewingAssignment] = useState<string | null>(null);
-  const [selectedAssignment, setSelectedAssignment] = useState<any | null>(null);
-  
-  // Available assignments = status 'submitted' AND writer_id is NULL
-  const availableAssignments = activeAssignments.filter(a => {
-    const isAvailable = a.status === 'submitted' && !a.writer_id;
-    return isAvailable;
-  });
-  
-  // Current assignments = has writer_id matching current user AND status is either 'in-progress' or 'review'
-  const currentAssignments = activeAssignments.filter(a => {
-    const isCurrentForWriter = a.writer_id === userId && 
-      (a.status === 'in-progress' || a.status === 'review');
-    return isCurrentForWriter;
-  });
-  
-  // ENHANCED: Manually refresh assignments with more detailed logging
-  const refreshAssignments = async () => {
-    toast({
-      title: "Refreshing",
-      description: "Fetching the latest assignments...",
-    });
-    
+
+  // Fetch all assignments for writers
+  const fetchAssignments = async () => {
     try {
-      // Double check there are assignments in the system with direct counts
-      const { count: totalCount, error: countError } = await supabase
-        .from('assignments')
-        .select('*', { count: 'exact', head: true });
-        
-      if (countError) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Error counting assignments: " + countError.message
-        });
-      } else {
-        console.log(`Database has ${totalCount || 0} total assignments`);
-      }
+      setIsLoading(true);
+      setError(null);
+      console.log('Fetching assignments for writer with ID:', userId);
+
+      // Direct DB check
+      const dbCheck = await checkDatabaseConfig();
+      console.log('Database check result:', dbCheck);
       
-      // Count of available assignments
-      const { count: availableCount, error: availableCountError } = await supabase
+      // STEP 1: Fetch available assignments (status='submitted', no writer assigned)
+      const { data: available, error: availableError } = await supabase
         .from('assignments')
-        .select('*', { count: 'exact', head: true })
+        .select('*')
         .eq('status', 'submitted')
         .is('writer_id', null);
         
-      if (availableCountError) {
-        console.error('Error counting available assignments:', availableCountError);
-      } else {
-        console.log(`Database has ${availableCount || 0} available assignments`);
-      }
-      
-      // Run our debug check to verify assignments
-      await checkAssignments();
-      
-      // Fetch the assignments to update the UI with forced refresh
-      await fetchAssignments();
-      
-      toast({
-        title: "Refreshed",
-        description: `Found ${totalCount || 0} assignments (${availableCount || 0} available)`,
-      });
-      
-      // Force component re-render
-      setProcessing("refreshing");
-      setTimeout(() => setProcessing(null), 100);
-      
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Error refreshing: " + err.message
-      });
-    }
-  };
-  
-  useEffect(() => {
-    // Check on mount
-    console.log("Writer dashboard mounted, active assignments:", activeAssignments);
-    console.log("Available assignments:", availableAssignments.length);
-    console.log("Current assignments:", currentAssignments.length);
-    
-    // Force a refresh to make sure we have the latest data
-    fetchAssignments();
-  }, []);
-
-  const takeAssignment = async (assignmentId: string) => {
-    setProcessing(assignmentId);
-    try {
-      if (!userId) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "User information not available. Please log in again."
-        });
-        setProcessing(null);
+      if (availableError) {
+        console.error('Error fetching available assignments:', availableError);
+        setError(`Failed to fetch available assignments: ${availableError.message}`);
         return;
       }
+      
+      console.log('Available assignments fetched:', available?.length || 0);
+      setAvailableAssignments(available || []);
 
+      // STEP 2: Fetch writer's current assignments
+      if (userId) {
+        const { data: current, error: currentError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('writer_id', userId)
+          .in('status', ['in-progress', 'review']);
+          
+        if (currentError) {
+          console.error('Error fetching current assignments:', currentError);
+          setError(`Failed to fetch current assignments: ${currentError.message}`);
+          return;
+        }
+        
+        console.log('Current assignments fetched:', current?.length || 0);
+        setCurrentAssignments(current || []);
+      }
+
+      // STEP 3: Fetch completed assignments
+      if (userId) {
+        const { data: completed, error: completedError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('writer_id', userId)
+          .eq('status', 'completed');
+          
+        if (completedError) {
+          console.error('Error fetching completed assignments:', completedError);
+          setError(`Failed to fetch completed assignments: ${completedError.message}`);
+          return;
+        }
+        
+        console.log('Completed assignments fetched:', completed?.length || 0);
+        setCompletedAssignments(completed || []);
+      }
+
+    } catch (err: any) {
+      console.error('Error in fetchAssignments:', err);
+      setError(`Error: ${err.message}`);
+      toast.error('Failed to fetch assignments');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Take assignment functionality
+  const takeAssignment = async (assignmentId: string) => {
+    if (!userId) {
+      toast.error('You must be logged in to take assignments');
+      return;
+    }
+    
+    setProcessing(assignmentId);
+    try {
       // Update the assignment to assign it to this writer
       const { data, error } = await supabase
         .from('assignments')
         .update({ 
           status: 'in-progress',
-          writer_id: userId 
+          writer_id: userId,
+          updated_at: new Date().toISOString()
         })
         .eq('id', assignmentId)
+        .is('writer_id', null) // Ensure it's not already assigned
         .select();
 
       if (error) {
-        if (error.message.includes("writer_id")) {
-          toast({
-            variant: "destructive",
-            title: "Assignment Already Taken",
-            description: "This assignment has already been taken by another writer."
-          });
-        } else {
-          throw error;
-        }
-      } else {
-        toast({
-          title: "Assignment Taken",
-          description: "You have successfully taken this assignment."
-        });
-        // Force refresh of assignments
-        await checkAssignments();
-        fetchAssignments();
+        console.error('Error taking assignment:', error);
+        toast.error(error.message || 'Failed to take assignment');
+        return;
       }
+      
+      toast.success('Assignment successfully taken');
+      
+      // Refresh assignments
+      await fetchAssignments();
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: err.message || "Failed to take assignment."
-      });
+      toast.error(err.message || 'Failed to take assignment');
     } finally {
       setProcessing(null);
     }
   };
 
-  const handleViewDetails = (assignment: any) => {
+  // Debug RLS and database issues
+  const runDebugCheck = async () => {
+    setProcessing('debug');
+    try {
+      // 1. Check database configuration
+      const dbCheck = await checkDatabaseConfig();
+      
+      // 2. Direct count of submissions in DB
+      const { count: submittedCount, error: countError } = await supabase
+        .from('assignments')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'submitted');
+        
+      // 3. Check user role
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId || '')
+        .single();
+
+      // Compile debug info
+      const debugText = `
+WRITER DASHBOARD DEBUG INFO:
+---------------------------
+Database check: ${dbCheck.success ? 'Success' : 'Failed'} - ${dbCheck.message}
+User ID: ${userId || 'Not available'}
+User role: ${userProfile?.role || 'Unknown'}
+Submitted assignments in DB: ${submittedCount || 'Error fetching count'}
+Available assignments fetched: ${availableAssignments.length}
+Current assignments fetched: ${currentAssignments.length}
+Completed assignments fetched: ${completedAssignments.length}
+${countError ? 'Count error: ' + countError.message : ''}
+${profileError ? 'Profile error: ' + profileError.message : ''}
+      `;
+      
+      setDebugInfo(debugText);
+      console.log(debugText);
+      
+    } catch (err: any) {
+      setDebugInfo(`Error running debug check: ${err.message}`);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  // Create test assignment for debugging
+  const createTestAssignment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .insert({
+          title: `Test Assignment ${new Date().getTime()}`,
+          subject: 'Test Subject',
+          description: 'This is a test assignment created for debugging purposes.',
+          status: 'submitted',
+          user_id: userId || '',
+          due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+        })
+        .select();
+        
+      if (error) {
+        toast.error(`Failed to create test assignment: ${error.message}`);
+        return;
+      }
+      
+      toast.success('Test assignment created');
+      await fetchAssignments();
+      
+    } catch (err: any) {
+      toast.error(`Error creating test assignment: ${err.message}`);
+    }
+  };
+
+  // View assignment details
+  const handleViewDetails = (assignment: Assignment) => {
     setSelectedAssignment(assignment);
     setViewingAssignment(assignment.id);
   };
 
+  // Close assignment details dialog
   const closeDialog = () => {
     setViewingAssignment(null);
     setSelectedAssignment(null);
   };
+
+  // Effect for initial data fetching
+  useEffect(() => {
+    fetchAssignments();
+    
+    // Set up real-time subscription for assignment changes
+    const assignmentsSubscription = supabase
+      .channel('assignments-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'assignments' }, 
+        (payload) => {
+          console.log('Assignment change detected:', payload);
+          fetchAssignments();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(assignmentsSubscription);
+    };
+  }, [userId]);
 
   if (isLoading) {
     return (
@@ -262,63 +339,88 @@ const WriterDashboard = () => {
 
   return (
     <>
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold">Writer Dashboard</h2>
-        <div className="space-x-2">
+        <div className="flex gap-2">
           <Button 
             onClick={runDebugCheck}
             variant="outline" 
             size="sm"
-            disabled={isChecking}
+            disabled={processing === 'debug'}
+            className="flex items-center gap-1"
           >
-            {isChecking ? (
-              <><Loader className="h-4 w-4 mr-1 animate-spin" /> Debugging...</>
+            {processing === 'debug' ? (
+              <Loader className="h-4 w-4 mr-1 animate-spin" />
             ) : (
-              <><AlertTriangle className="h-4 w-4 mr-1" /> Debug</>
+              <AlertTriangle className="h-4 w-4 mr-1" />
             )}
+            Debug
           </Button>
           <Button 
-            onClick={refreshAssignments}
+            onClick={fetchAssignments}
             variant="outline" 
             size="sm"
+            disabled={processing === 'refresh'}
             className="flex items-center gap-1"
-            disabled={isChecking || processing !== null}
           >
-            {processing === "refreshing" ? (
-              <><Loader className="h-4 w-4 mr-1 animate-spin" /> Refreshing...</>
+            {processing === 'refresh' ? (
+              <Loader className="h-4 w-4 mr-1 animate-spin" />
             ) : (
-              <><RefreshCw className="h-4 w-4 mr-1" /> Refresh</>
+              <RefreshCw className="h-4 w-4 mr-1" />
             )}
+            Refresh
           </Button>
           <Button
             onClick={createTestAssignment}
             variant="outline"
             size="sm"
             className="flex items-center gap-1"
-            disabled={isChecking}
           >
-            <PlusCircle className="h-4 w-4 mr-1" /> Create Test
+            <PlusCircle className="h-4 w-4 mr-1" />
+            Create Test
           </Button>
         </div>
       </div>
 
       {debugInfo && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6 flex justify-between items-start">
-          <div className="flex-1 mr-4">
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-6">
+          <div className="flex justify-between items-start">
             <h3 className="text-lg font-semibold flex items-center">
               <AlertTriangle className="h-5 w-5 mr-2" />
               Debug Information
             </h3>
-            <pre className="whitespace-pre-wrap text-xs mt-2 bg-white p-3 rounded border border-blue-100 overflow-auto max-h-80">{debugInfo}</pre>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setDebugInfo(null)}
+              className="text-blue-800"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setDebugInfo(null)}
-            className="text-blue-800"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <pre className="whitespace-pre-wrap text-xs mt-2 bg-white p-3 rounded border border-blue-100 overflow-auto max-h-80">
+            {debugInfo}
+          </pre>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6">
+          <div className="flex justify-between items-start">
+            <h3 className="font-semibold flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              Error
+            </h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setError(null)}
+              className="text-red-800"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="mt-1">{error}</p>
         </div>
       )}
 
@@ -376,93 +478,59 @@ const WriterDashboard = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={refreshAssignments}
+                    onClick={fetchAssignments}
                   >
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Refresh
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={runDebugCheck}
-                  >
-                    <AlertTriangle className="h-4 w-4 mr-1" />
-                    Debug
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={createTestAssignment}
-                  >
-                    <PlusCircle className="h-4 w-4 mr-1" />
-                    Create Test Assignment
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {availableAssignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{assignment.title}</CardTitle>
-                        <CardDescription>{assignment.subject}</CardDescription>
-                      </div>
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
-                        ${Math.floor((assignment.title?.length || 0) * 0.8) + 50}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-1 text-gray-500" />
-                        <span className="text-gray-700">Due: {formatDate(assignment.due_date)}</span>
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <FileText className="h-4 w-4 mr-1 text-gray-500" />
-                        <span className="text-gray-700">Words: {Math.floor((assignment.description?.length || 0) * 0.2) + 1000}</span>
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                        <span className="text-gray-700">Complexity: {
-                          assignment.title?.length > 30 ? "High" : assignment.title?.length > 20 ? "Medium" : "Low"
-                        }</span>
-                      </div>
-                    </div>
-                    {assignment.description && (
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-700 line-clamp-3">{assignment.description}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardFooter className="border-t pt-4 flex justify-between">
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleViewDetails(assignment)}
-                    >
-                      View Details
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      disabled={processing === assignment.id}
-                      onClick={() => takeAssignment(assignment.id)}
-                    >
-                      {processing === assignment.id ? (
-                        <>
-                          <Loader className="h-4 w-4 mr-2 animate-spin" />
-                          Taking...
-                        </>
-                      ) : (
-                        'Take Assignment'
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {availableAssignments.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell className="font-medium">{assignment.title}</TableCell>
+                      <TableCell>{assignment.subject}</TableCell>
+                      <TableCell>{formatDate(assignment.due_date)}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(assignment.status)}`}>
+                          {getStatusLabel(assignment.status)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleViewDetails(assignment)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={processing === assignment.id}
+                            onClick={() => takeAssignment(assignment.id)}
+                          >
+                            {processing === assignment.id ? 'Taking...' : 'Take'}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </TabsContent>
@@ -475,48 +543,45 @@ const WriterDashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {currentAssignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{assignment.title}</CardTitle>
-                        <CardDescription>{assignment.subject}</CardDescription>
-                      </div>
-                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
-                        ${Math.floor((assignment.title?.length || 0) * 0.8) + 50}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Progress</span>
-                        <span>{assignment.progress || 0}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div 
-                          className="bg-brand-500 h-2.5 rounded-full" 
-                          style={{ width: `${assignment.progress || 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      Due: {formatDate(assignment.due_date)}
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t pt-4">
-                    <Button variant="outline" size="sm" className="mr-2" onClick={() => handleViewDetails(assignment)}>
-                      View Details
-                    </Button>
-                    <Button size="sm">
-                      Update Progress
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Progress</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentAssignments.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell className="font-medium">{assignment.title}</TableCell>
+                      <TableCell>{assignment.subject}</TableCell>
+                      <TableCell>{formatDate(assignment.due_date)}</TableCell>
+                      <TableCell>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className="bg-brand-500 h-2.5 rounded-full" 
+                            style={{ width: `${assignment.progress || 0}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs text-gray-600 mt-1">{assignment.progress || 0}%</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleViewDetails(assignment)}
+                        >
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </TabsContent>
@@ -529,41 +594,37 @@ const WriterDashboard = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {completedAssignments.map((assignment) => (
-                <Card key={assignment.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{assignment.title}</CardTitle>
-                        <CardDescription>{assignment.subject}</CardDescription>
-                      </div>
-                      <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
-                        ${Math.floor((assignment.title?.length || 0) * 0.8) + 50}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
-                        Completed: {formatDate(assignment.completed_date)}
-                      </div>
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-500 mr-2">Client Rating:</span>
-                        <div className="flex items-center">
-                          {renderStars(4)} {/* Mock rating */}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="border-t pt-4">
-                    <Button variant="outline" size="sm" onClick={() => handleViewDetails(assignment)}>
-                      View Assignment
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Completed Date</TableHead>
+                    <TableHead>Grade</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completedAssignments.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell className="font-medium">{assignment.title}</TableCell>
+                      <TableCell>{assignment.subject}</TableCell>
+                      <TableCell>{formatDate(assignment.completed_date)}</TableCell>
+                      <TableCell>{assignment.grade || 'Not graded'}</TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleViewDetails(assignment)}
+                        >
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </TabsContent>
