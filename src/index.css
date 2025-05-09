@@ -74,8 +74,12 @@
     @apply border-border;
   }
 
+  html, body {
+    @apply w-full overflow-x-hidden m-0 p-0;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans min-h-screen;
     font-family: 'Inter', sans-serif;
   }
 
@@ -99,15 +103,15 @@
 /* Custom Components */
 @layer components {
   .hero {
-    @apply py-20 md:py-32;
+    @apply py-8 md:py-16 w-full px-4 md:px-8;
   }
   
   .section {
-    @apply py-12 md:py-20;
+    @apply py-8 md:py-16 w-full px-4 md:px-8;
   }
   
   .container-tight {
-    @apply max-w-5xl mx-auto px-4;
+    @apply w-full max-w-5xl mx-auto;
   }
   
   .card-hover {
