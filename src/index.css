@@ -39,34 +39,33 @@
   }
 
   .dark {
-    /* Dark purple theme inspired by the uploaded image */
-    --background: 270 35% 9%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 270 30% 15%;
+    --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 270 35% 12%;
+    --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 270 80% 60%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 195 65% 65%;
+    --primary-foreground: 215 25% 27%;
 
-    --secondary: 280 60% 45%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 195 40% 50%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 270 25% 20%;
-    --muted-foreground: 215 20.2% 75.1%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 280 65% 55%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 195 35% 55%;
+    --accent-foreground: 222.2 47.4% 11.2%;
 
-    --destructive: 0 62.8% 50.6%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 270 25% 25%;
-    --input: 270 25% 25%;
-    --ring: 280 65% 60%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
 
@@ -82,8 +81,6 @@
   body {
     @apply bg-background text-foreground font-sans min-h-screen;
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(to bottom right, hsl(270, 50%, 12%), hsl(260, 50%, 7%));
-    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -107,8 +104,6 @@
 @layer components {
   .hero {
     @apply py-8 md:py-16 w-full px-4 md:px-8;
-    background: linear-gradient(135deg, rgba(88, 28, 135, 0.8), rgba(45, 15, 70, 0.9));
-    border-radius: 0 0 1.5rem 1.5rem;
   }
   
   .section {
@@ -121,34 +116,9 @@
   
   .card-hover {
     @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
-    background: rgba(88, 28, 135, 0.2);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent;
-  }
-  
-  /* New glass card style based on the image */
-  .glass-card {
-    @apply rounded-xl border border-white/10 shadow-lg;
-    background: rgba(60, 20, 90, 0.3);
-    backdrop-filter: blur(10px);
-  }
-  
-  /* CTA section gradient style */
-  .cta-gradient {
-    background: linear-gradient(135deg, hsl(270, 70%, 40%), hsl(300, 70%, 30%));
-  }
-  
-  /* Button gradients */
-  .btn-gradient {
-    @apply rounded-md px-4 py-2 text-white font-medium transition-all;
-    background: linear-gradient(to right, #ff5f6d, #ffc371);
-  }
-  
-  .btn-gradient:hover {
-    box-shadow: 0 0 15px rgba(255, 95, 109, 0.5);
+    @apply bg-gradient-to-r from-brand-500 to-accent1-400 bg-clip-text text-transparent;
   }
 }

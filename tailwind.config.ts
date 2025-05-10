@@ -71,33 +71,29 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Adding new purple palette based on the image
-				purple: {
-					50: '#f5f3ff',
-					100: '#ede9fe',
-					200: '#ddd6fe',
-					300: '#c4b5fd',
-					400: '#a78bfa',
-					500: '#8b5cf6',
-					600: '#7c3aed',
-					700: '#6d28d9',
-					800: '#5b21b6',
-					900: '#4c1d95',
-					950: '#2e1065',
+				brand: {
+					50: '#e6f3f7',
+					100: '#cce6ef',
+					200: '#99cee0',
+					300: '#66b5d0',
+					400: '#339dc1',
+					500: '#1a5f7a', // primary brand color
+					600: '#154c62',
+					700: '#103949',
+					800: '#0a2531',
+					900: '#051218',
 				},
-				// Adding a complementary orange palette for buttons and highlights
-				orange: {
-					50: '#fff7ed',
-					100: '#ffedd5',
-					200: '#fed7aa',
-					300: '#fdba74',
-					400: '#fb923c',
-					500: '#f97316',
-					600: '#ea580c',
-					700: '#c2410c',
-					800: '#9a3412',
-					900: '#7c2d12',
-					950: '#431407',
+				accent1: {
+					50: '#e6f5f9',
+					100: '#ccebf2',
+					200: '#99d7e6',
+					300: '#66c3d9',
+					400: '#4d9bb0', // accent color
+					500: '#267d96',
+					600: '#1f6478',
+					700: '#174b5a',
+					800: '#0f323c',
+					900: '#07191e',
 				},
 			},
 			borderRadius: {
@@ -131,32 +127,13 @@ export default {
 						opacity: '1',
 						transform: 'translateY(0)'
 					}
-				},
-				'pulse-glow': {
-					'0%, 100%': {
-						opacity: '1',
-						boxShadow: '0 0 10px rgba(139, 92, 246, 0.5)'
-					},
-					'50%': {
-						opacity: '0.7',
-						boxShadow: '0 0 20px rgba(139, 92, 246, 0.8)'
-					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.5s ease-out',
-				'pulse-glow': 'pulse-glow 2s infinite'
-			},
-			backgroundImage: {
-				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-				'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-				'hero-pattern': 'linear-gradient(to right bottom, rgba(88, 28, 135, 0.8), rgba(45, 15, 70, 0.9))',
-				'card-gradient': 'linear-gradient(to bottom right, rgba(88, 28, 135, 0.3), rgba(45, 15, 70, 0.4))',
-				'cta-gradient': 'linear-gradient(135deg, #6d28d9, #4c1d95)',
-				'btn-gradient': 'linear-gradient(to right, #f97316, #c2410c)',
-			},
+				'fade-in': 'fade-in 0.5s ease-out'
+			}
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
