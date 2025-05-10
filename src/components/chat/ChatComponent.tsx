@@ -78,11 +78,11 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
             </div>
           ) : filteredMessages.length === 0 ? (
             <div className="text-center py-12">
-              <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
-                <MessageCircle className="h-8 w-8 text-gray-500" />
+              <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4 dark:bg-gray-800">
+                <MessageCircle className="h-8 w-8 text-gray-500 dark:text-gray-400" />
               </div>
               <h3 className="text-lg font-medium">No messages yet</h3>
-              <p className="text-gray-500 max-w-sm mx-auto mt-1">
+              <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mt-1">
                 Start the conversation by sending a message!
               </p>
             </div>
@@ -105,19 +105,19 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
         </div>
       </ScrollArea>
       
-      <Card className="border-t rounded-t-none rounded-b-lg">
+      <Card className="border-t rounded-t-none rounded-b-lg bg-background/50 backdrop-blur-sm border-purple-800/20">
         <form onSubmit={handleSendMessage} className="flex gap-2 p-3">
           <Textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your message here..."
-            className="resize-none flex-grow min-h-[80px] max-h-[120px]"
+            className="resize-none flex-grow min-h-[80px] max-h-[120px] bg-background/70 border-purple-800/30"
           />
           <div className="flex flex-col justify-between">
             <Button 
               type="submit" 
               size="icon" 
-              className="h-10 w-10"
+              className="h-10 w-10 bg-gradient-to-br from-indigo-700 to-purple-800 hover:from-indigo-800 hover:to-purple-900"
               disabled={isSending || !newMessage.trim()}
             >
               {isSending ? (
@@ -152,7 +152,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       <div className={`flex gap-2 max-w-[80%] ${isCurrentUserMessage ? 'flex-row-reverse' : ''}`}>
         {showAvatar ? (
           <Avatar className="h-8 w-8 mt-1">
-            <AvatarFallback className={isCurrentUserMessage ? 'bg-brand-100 text-brand-800' : 'bg-muted'}>
+            <AvatarFallback className={isCurrentUserMessage 
+              ? 'bg-indigo-900/20 text-indigo-200' 
+              : 'bg-purple-900/20 text-purple-200'}>
               {message.sender.full_name 
                 ? message.sender.full_name.charAt(0).toUpperCase() 
                 : message.sender.email.charAt(0).toUpperCase()}
@@ -167,19 +169,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         
         <div>
           {showAvatar && (
-            <p className="text-xs text-gray-500 mb-1 px-1">
+            <p className="text-xs text-gray-400 mb-1 px-1">
               {message.sender.full_name || message.sender.email}
             </p>
           )}
           <div className={`
             px-4 py-3 rounded-2xl shadow-sm 
             ${isCurrentUserMessage 
-              ? 'bg-brand-100 text-brand-900 rounded-tr-none' 
-              : 'bg-white border rounded-tl-none'}
+              ? 'bg-gradient-to-br from-indigo-900/70 to-purple-900/80 text-white/90 rounded-tr-none backdrop-blur-sm border border-indigo-700/30' 
+              : 'bg-white/10 border border-white/20 text-white/90 rounded-tl-none backdrop-blur-sm'}
           `}>
             <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
           </div>
-          <p className={`text-xs text-gray-500 mt-1 ${isCurrentUserMessage ? 'text-right' : 'text-left'}`}>
+          <p className={`text-xs text-gray-400 mt-1 ${isCurrentUserMessage ? 'text-right' : 'text-left'}`}>
             {messageTime}
           </p>
         </div>

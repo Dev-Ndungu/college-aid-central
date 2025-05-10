@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { ChevronLeft, Clock, CheckCircle, Info, MessageCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Writer {
   id: string;
@@ -31,6 +32,7 @@ interface AssignmentWithWriter {
   writer_id: string | null;
   writer?: Writer | null;
   user?: User | null;
+  progress?: number | null;
 }
 
 interface AssignmentChatComponentProps {
@@ -41,6 +43,7 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
   const [assignment, setAssignment] = useState<AssignmentWithWriter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   const { userId, userRole } = useAuth();
   const navigate = useNavigate();
 
@@ -107,6 +110,70 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
   const chatRecipientId = userRole === 'student' 
     ? assignment?.writer_id 
     : assignment?.user_id;
+
+  // Handle assignment status update
+  const handleStatusUpdate = async (status: string) => {
+    if (!assignment || isUpdating) return;
+    
+    try {
+      setIsUpdating(true);
+      
+      // Update status and completed_date if status is 'completed'
+      const updates: {
+        status: string;
+        completed_date?: string | null;
+        updated_at: string;
+      } = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Set completed date if status is completed
+      if (status === 'completed') {
+        updates.completed_date = new Date().toISOString();
+      } else {
+        updates.completed_date = null;
+      }
+      
+      const { error } = await supabase
+        .from('assignments')
+        .update(updates)
+        .eq('id', assignment.id);
+        
+      if (error) throw error;
+      
+      // Notify student about status change
+      if (assignment.user_id) {
+        const statusMessages = {
+          'in_progress': `I'm currently working on your assignment "${assignment.title}".`,
+          'almost_done': `I'm almost done with your assignment "${assignment.title}". It should be completed soon.`,
+          'completed': `Great news! I've completed your assignment "${assignment.title}". Please review it and let me know if you have any questions.`
+        };
+        
+        const message = statusMessages[status as keyof typeof statusMessages];
+        
+        if (message) {
+          await supabase
+            .from('messages')
+            .insert({
+              sender_id: userId,
+              recipient_id: assignment.user_id,
+              content: message,
+              assignment_id: assignment.id,
+              read: false
+            });
+        }
+      }
+      
+      toast.success(`Assignment status updated to ${status.replace('_', ' ')}`);
+      
+    } catch (err: any) {
+      console.error('Error updating assignment status:', err);
+      toast.error(err.message || 'Failed to update assignment status');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -219,8 +286,8 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
           Back
         </Button>
 
-        <Card className="mb-6">
-          <CardHeader className="bg-muted/50">
+        <Card className="mb-6 bg-background/50 backdrop-blur-sm border-purple-800/30">
+          <CardHeader className="bg-purple-900/20">
             <CardTitle>{assignment.title}</CardTitle>
             <p className="text-sm text-muted-foreground">Subject: {assignment.subject}</p>
           </CardHeader>
@@ -232,17 +299,17 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
               </div>
             )}
             
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
-              <h3 className="font-medium text-amber-800 mb-2 flex items-center">
+            <div className="bg-indigo-900/30 border border-indigo-700/40 rounded-md p-4 backdrop-blur-sm">
+              <h3 className="font-medium text-purple-200 mb-2 flex items-center">
                 <Info className="h-4 w-4 mr-2" />
                 Available Assignment
               </h3>
-              <p className="text-sm text-amber-800 mb-3">
+              <p className="text-sm text-purple-200/80 mb-3">
                 This assignment is available for you to take. Once you take it, you'll be able to chat with the student.
               </p>
               <Button 
                 onClick={handleTakeAssignment}
-                className="bg-amber-600 hover:bg-amber-700"
+                className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 border-none"
               >
                 Take Assignment
               </Button>
@@ -257,41 +324,51 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
     ? (assignment.writer?.full_name || assignment.writer?.email || 'Writer') 
     : (assignment.user?.full_name || assignment.user?.email || 'Student');
 
+  // Status badge styling helper
+  const getStatusBadgeClass = (status: string) => {
+    switch(status) {
+      case 'completed':
+        return 'bg-green-900/30 text-green-200 border-green-700/40';
+      case 'in_progress':
+        return 'bg-blue-900/30 text-blue-200 border-blue-700/40';
+      case 'almost_done':
+        return 'bg-teal-900/30 text-teal-200 border-teal-700/40';
+      default:
+        return 'bg-amber-900/30 text-amber-200 border-amber-700/40';
+    }
+  };
+
+  // Status display helper
+  const getStatusDisplay = (status: string) => {
+    switch(status) {
+      case 'completed':
+        return <div className="flex items-center"><CheckCircle className="w-3 h-3 mr-1" />Completed</div>;
+      case 'in_progress':
+        return <div className="flex items-center"><Clock className="w-3 h-3 mr-1" />In Progress</div>;
+      case 'almost_done':
+        return <div className="flex items-center"><Clock className="w-3 h-3 mr-1" />Almost Done</div>;
+      default:
+        return <div className="flex items-center"><Info className="w-3 h-3 mr-1" />Submitted</div>;
+    }
+  };
+
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4 text-purple-300 hover:text-purple-200 hover:bg-purple-900/20">
         <ChevronLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
 
-      <Card className="mb-6">
-        <CardHeader className="bg-muted/50">
+      <Card className="mb-6 bg-background/50 backdrop-blur-sm border-purple-800/30">
+        <CardHeader className="bg-purple-900/20">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
             <div>
               <CardTitle>{assignment.title}</CardTitle>
               <p className="text-sm text-muted-foreground">Subject: {assignment.subject}</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`px-2 py-1 rounded-full text-xs font-medium
-                ${assignment.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                  assignment.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
-                  'bg-amber-100 text-amber-800'}`}>
-                {assignment.status === 'completed' ? (
-                  <div className="flex items-center">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Completed
-                  </div>
-                ) : assignment.status === 'in_progress' ? (
-                  <div className="flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    In Progress
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <Info className="w-3 h-3 mr-1" />
-                    Submitted
-                  </div>
-                )}
+              <div className={`px-2 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${getStatusBadgeClass(assignment.status)}`}>
+                {getStatusDisplay(assignment.status)}
               </div>
             </div>
           </div>
@@ -303,11 +380,38 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
               <p className="text-sm whitespace-pre-wrap">{assignment.description}</p>
             </div>
           )}
+          
+          {/* Assignment status update UI for writers */}
+          {userRole === 'writer' && assignment.status !== 'completed' && (
+            <div className="mt-6 p-4 bg-indigo-900/20 rounded-lg border border-indigo-700/30 backdrop-blur-sm">
+              <h4 className="text-sm font-medium mb-2">Update Assignment Status</h4>
+              <div className="flex gap-2">
+                <Select
+                  disabled={isUpdating}
+                  value={assignment.status}
+                  onValueChange={handleStatusUpdate}
+                >
+                  <SelectTrigger className="w-[180px] bg-background/30 border-purple-700/30">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background/90 backdrop-blur-sm border-purple-700/30">
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="almost_done">Almost Done</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                {isUpdating && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                The student will be notified when you update the status.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Card className="h-[600px] flex flex-col">
-        <CardHeader className="bg-muted/50">
+      <Card className="h-[600px] flex flex-col bg-background/50 backdrop-blur-sm border-purple-800/30">
+        <CardHeader className="bg-purple-900/20">
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Chat with {chatPartnerName}</CardTitle>
           </div>

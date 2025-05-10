@@ -33,6 +33,7 @@ export const useMessages = (assignmentId?: string) => {
   const [messages, setMessages] = useState<MessageWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { isAuthenticated, userRole, userId } = useAuth();
 
   const fetchMessages = async () => {
@@ -74,8 +75,15 @@ export const useMessages = (assignmentId?: string) => {
       // Properly cast the data to MessageWithProfile[] type
       if (data && Array.isArray(data)) {
         setMessages(data as unknown as MessageWithProfile[]);
+        
+        // Count unread messages addressed to current user
+        const unread = data.filter(msg => 
+          msg.recipient_id === userId && !msg.read
+        ).length;
+        setUnreadCount(unread);
       } else {
         setMessages([]);
+        setUnreadCount(0);
       }
 
     } catch (err: any) {
@@ -83,6 +91,25 @@ export const useMessages = (assignmentId?: string) => {
       setError(err.message || 'Failed to fetch messages');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fetch unread count only (for notifications)
+  const fetchUnreadCount = async () => {
+    if (!isAuthenticated || !userId) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_id', userId)
+        .eq('read', false);
+        
+      if (error) throw error;
+      
+      setUnreadCount(count || 0);
+    } catch (err) {
+      console.error('Error fetching unread count:', err);
     }
   };
 
@@ -100,6 +127,38 @@ export const useMessages = (assignmentId?: string) => {
           (payload) => {
             console.log('Message change detected:', payload);
             fetchMessages(); // Refetch all messages when there are changes
+            
+            // Show notification for new message if recipient is current user
+            const changeEvent = payload.eventType;
+            const newMessage = payload.new as Message;
+            
+            if (changeEvent === 'INSERT' && newMessage && newMessage.recipient_id === userId && !newMessage.read) {
+              // Get sender info
+              supabase
+                .from('profiles')
+                .select('full_name, email')
+                .eq('id', newMessage.sender_id)
+                .single()
+                .then(({ data }) => {
+                  const senderName = data?.full_name || data?.email || 'Someone';
+                  toast.message(`New message from ${senderName}`, {
+                    description: newMessage.content.length > 50 
+                      ? `${newMessage.content.substring(0, 50)}...` 
+                      : newMessage.content,
+                    action: {
+                      label: "View",
+                      onClick: () => {
+                        // Navigate to assignment chat if there's an assignment_id
+                        if (newMessage.assignment_id) {
+                          window.location.href = `/assignment-chat/${newMessage.assignment_id}`;
+                        } else {
+                          window.location.href = '/messages';
+                        }
+                      }
+                    }
+                  });
+                });
+            }
           }
         )
         .subscribe((status) => {
@@ -167,6 +226,9 @@ export const useMessages = (assignmentId?: string) => {
         )
       );
       
+      // Update unread count
+      fetchUnreadCount();
+      
       return true;
     } catch (err: any) {
       console.error('Error marking message as read:', err);
@@ -178,8 +240,10 @@ export const useMessages = (assignmentId?: string) => {
     messages,
     isLoading,
     error,
+    unreadCount,
     sendMessage,
     markAsRead,
-    fetchMessages
+    fetchMessages,
+    fetchUnreadCount
   };
 };
