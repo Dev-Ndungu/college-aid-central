@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,14 +6,17 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, MessageCircle } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, MessageCircle, Eye } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
+import FileAttachments from '../assignment/FileAttachments';
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [updatingProgressIds, setUpdatingProgressIds] = useState<Set<string>>(new Set());
+  const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const { userId } = useAuth();
   const navigate = useNavigate();
 
@@ -134,6 +136,10 @@ const WriterDashboard = () => {
     }
   };
 
+  const handleViewAssignment = (assignment: Assignment) => {
+    setViewingAssignment(assignment);
+  };
+
   const AvailableAssignments = () => {
     // Filter for assignments that have not been taken yet
     const availableAssignments = activeAssignments.filter(
@@ -183,6 +189,12 @@ const WriterDashboard = () => {
                         {assignment.description}
                       </div>
                     )}
+                    {assignment.file_urls && assignment.file_urls.length > 0 && (
+                      <div className="mt-1 text-xs text-purple-200/70 flex items-center">
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-purple-200">{assignment.subject}</td>
                   <td className="p-3">
@@ -209,11 +221,11 @@ const WriterDashboard = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
+                        onClick={() => handleViewAssignment(assignment)}
                         className="border-purple-700/30 text-purple-200 hover:bg-purple-900/30"
                       >
-                        <MessageCircle className="mr-1 h-3 w-3" />
-                        View
+                        <Eye className="mr-1 h-3 w-3" />
+                        View Details
                       </Button>
                     </div>
                   </td>
@@ -276,6 +288,12 @@ const WriterDashboard = () => {
                         {assignment.description}
                       </div>
                     )}
+                    {assignment.file_urls && assignment.file_urls.length > 0 && (
+                      <div className="mt-1 text-xs text-purple-200/70 flex items-center">
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-purple-200">{assignment.subject}</td>
                   <td className="p-3">
@@ -309,11 +327,20 @@ const WriterDashboard = () => {
                       <Button 
                         variant="outline"
                         size="sm"
+                        onClick={() => handleViewAssignment(assignment)}
+                        className="border-purple-700/30 text-purple-200 hover:bg-purple-900/30"
+                      >
+                        <Eye className="mr-1 h-3 w-3" />
+                        View Details
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="sm"
                         onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
                         className="border-purple-700/30 text-purple-200 hover:bg-purple-900/30"
                       >
                         <MessageCircle className="mr-1 h-3 w-3" />
-                        Chat with Student
+                        Chat
                       </Button>
                     </div>
                   </td>
@@ -365,6 +392,12 @@ const WriterDashboard = () => {
                 <tr key={assignment.id} className="border-b border-purple-700/20">
                   <td className="p-3">
                     <div className="font-medium text-purple-200">{assignment.title}</div>
+                    {assignment.file_urls && assignment.file_urls.length > 0 && (
+                      <div className="mt-1 text-xs text-purple-200/70 flex items-center">
+                        <BookOpen className="h-3 w-3 mr-1" />
+                        {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
                   </td>
                   <td className="p-3 text-purple-200">{assignment.subject}</td>
                   <td className="p-3 text-purple-200">
@@ -374,15 +407,26 @@ const WriterDashboard = () => {
                     }
                   </td>
                   <td className="p-3">
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
-                      className="border-purple-700/30 text-purple-200 hover:bg-purple-900/30"
-                    >
-                      <MessageCircle className="mr-1 h-3 w-3" />
-                      View Messages
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewAssignment(assignment)}
+                        className="border-purple-700/30 text-purple-200 hover:bg-purple-900/30"
+                      >
+                        <Eye className="mr-1 h-3 w-3" />
+                        View Details
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
+                        className="border-purple-700/30 text-purple-200 hover:bg-purple-900/30"
+                      >
+                        <MessageCircle className="mr-1 h-3 w-3" />
+                        Messages
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -465,6 +509,13 @@ const WriterDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Assignment Details Modal */}
+      <AssignmentDetailsModal 
+        assignment={viewingAssignment} 
+        isOpen={viewingAssignment !== null}
+        onClose={() => setViewingAssignment(null)}
+      />
     </div>
   );
 };
