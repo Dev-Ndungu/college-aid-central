@@ -10,59 +10,38 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Send, User, Loader } from 'lucide-react';
+import { Send, User, Loader, MessageCircle, Bell } from 'lucide-react';
 import { Writer } from '@/hooks/useWriters';
-
-// Define message type
-type Message = {
-  id: string;
-  sender_id: string;
-  recipient_id: string; // Changed from receiver_id to recipient_id
-  content: string;
-  created_at: string;
-  read: boolean;
-  sender?: {
-    full_name: string | null;
-    email: string;
-  };
-  recipient?: { // Changed from receiver to recipient
-    full_name: string | null;
-    email: string;
-  };
-};
-
-// Define conversation type
-type Conversation = {
-  userId: string;
-  userName: string | null;
-  userEmail: string;
-  lastMessage: string;
-  lastMessageDate: string;
-  unreadCount: number;
-};
+import { useMessages } from '@/hooks/useMessages';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const Messages = () => {
-  const { isAuthenticated, isLoading, userId, userEmail } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, userId, userEmail } = useAuth();
   const navigate = useNavigate();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [conversations, setConversations] = useState<any[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
   const [activeUserName, setActiveUserName] = useState<string | null>(null);
-  const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
-  const [writer, setWriter] = useState<Writer | null>(null);
   const [showNewMessageForm, setShowNewMessageForm] = useState(false);
   const [newMessageEmail, setNewMessageEmail] = useState('');
   const [newMessageContent, setNewMessageContent] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  
+  const { 
+    messages, 
+    isLoading: messagesLoading, 
+    sendMessage, 
+    markAllAsRead, 
+    fetchMessages 
+  } = useMessages();
 
   // Check authentication
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated) {
       navigate('/login');
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, authLoading, navigate]);
 
   // Fetch conversations
   useEffect(() => {
@@ -81,8 +60,8 @@ const Messages = () => {
             read,
             sender_id, 
             recipient_id,
-            sender:profiles!messages_sender_id_fkey(full_name, email),
-            recipient:profiles!messages_recipient_id_fkey(full_name, email)
+            sender:profiles!messages_sender_id_fkey(id, full_name, email),
+            recipient:profiles!messages_recipient_id_fkey(id, full_name, email)
           `)
           .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
           .order('created_at', { ascending: false });
@@ -90,7 +69,7 @@ const Messages = () => {
         if (messagesError) throw messagesError;
 
         // Process messages into conversations
-        const conversationsMap = new Map<string, Conversation>();
+        const conversationsMap = new Map<string, any>();
         
         if (messagesData && Array.isArray(messagesData)) {
           messagesData.forEach(message => {
@@ -138,11 +117,7 @@ const Messages = () => {
     const messagesSubscription = supabase
       .channel('messages-channel')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages', filter: `sender_id=eq.${userId}` }, 
-        () => fetchConversations()
-      )
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages', filter: `recipient_id=eq.${userId}` }, 
+        { event: '*', schema: 'public', table: 'messages' }, 
         () => fetchConversations()
       )
       .subscribe();
@@ -151,108 +126,6 @@ const Messages = () => {
       supabase.removeChannel(messagesSubscription);
     };
   }, [userId]);
-
-  // Fetch messages for active conversation
-  useEffect(() => {
-    const fetchMessages = async () => {
-      if (!userId || !activeConversation) return;
-      
-      setLoadingMessages(true);
-      try {
-        // Get messages between the user and the active conversation user
-        const { data, error } = await supabase
-          .from('messages')
-          .select(`
-            id, 
-            content, 
-            created_at, 
-            read,
-            sender_id, 
-            recipient_id,
-            sender:profiles!messages_sender_id_fkey(full_name, email),
-            recipient:profiles!messages_recipient_id_fkey(full_name, email)
-          `)
-          .or(`and(sender_id.eq.${userId},recipient_id.eq.${activeConversation}),and(sender_id.eq.${activeConversation},recipient_id.eq.${userId})`)
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        
-        if (data && Array.isArray(data)) {
-          setMessages(data as Message[]);
-          
-          // Mark messages as read
-          const unreadMessageIds = data
-            .filter(msg => msg.recipient_id === userId && !msg.read)
-            .map(msg => msg.id);
-            
-          if (unreadMessageIds && unreadMessageIds.length > 0) {
-            await supabase
-              .from('messages')
-              .update({ read: true })
-              .in('id', unreadMessageIds);
-              
-            // Update conversations to reflect read messages
-            setConversations(prev => 
-              prev.map(conv => 
-                conv.userId === activeConversation 
-                  ? { ...conv, unreadCount: 0 } 
-                  : conv
-              )
-            );
-          }
-        } else {
-          setMessages([]);
-        }
-      } catch (error: any) {
-        console.error('Error fetching messages:', error);
-        toast.error('Failed to load messages');
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
-
-    fetchMessages();
-    
-    // Set up real-time subscription for messages in this conversation
-    const conversationSubscription = supabase
-      .channel(`conversation-${activeConversation}`)
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages', filter: `sender_id=eq.${activeConversation}` }, 
-        () => fetchMessages()
-      )
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages', filter: `recipient_id=eq.${activeConversation}` }, 
-        () => fetchMessages()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(conversationSubscription);
-    };
-  }, [userId, activeConversation]);
-
-  // Handle sending a message
-  const sendMessage = async () => {
-    if (!userId || !activeConversation || !newMessage.trim()) return;
-    
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: userId,
-          recipient_id: activeConversation,
-          content: newMessage.trim(),
-          read: false
-        });
-
-      if (error) throw error;
-      
-      setNewMessage('');
-    } catch (error: any) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-    }
-  };
 
   // Handle starting a new conversation
   const startNewConversation = async () => {
@@ -276,16 +149,7 @@ const Messages = () => {
       }
 
       // Send the message
-      const { error: messageError } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: userId,
-          recipient_id: userData.id,
-          content: newMessageContent.trim(),
-          read: false
-        });
-
-      if (messageError) throw messageError;
+      await sendMessage(newMessageContent.trim(), userData.id);
       
       toast.success('Message sent successfully');
       setShowNewMessageForm(false);
@@ -296,17 +160,52 @@ const Messages = () => {
       setActiveConversation(userData.id);
       setActiveUserName(userData.full_name || userData.email);
       
-      // Add to conversations if not already there
-      const existingConversation = conversations.find(c => c.userId === userData.id);
-      if (!existingConversation) {
-        setConversations(prev => [{
-          userId: userData.id,
-          userName: userData.full_name,
-          userEmail: userData.email,
-          lastMessage: newMessageContent.trim(),
-          lastMessageDate: new Date().toISOString(),
-          unreadCount: 0
-        }, ...prev]);
+      // Force refresh conversations
+      const { data: freshConversations } = await supabase
+        .from('messages')
+        .select(`
+          id, 
+          content, 
+          created_at, 
+          read,
+          sender_id, 
+          recipient_id,
+          sender:profiles!messages_sender_id_fkey(id, full_name, email),
+          recipient:profiles!messages_recipient_id_fkey(id, full_name, email)
+        `)
+        .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
+        
+      if (freshConversations && Array.isArray(freshConversations)) {
+        // Process into conversations
+        const conversationsMap = new Map<string, any>();
+        freshConversations.forEach(message => {
+          const isUserSender = message.sender_id === userId;
+          const otherUserId = isUserSender ? message.recipient_id : message.sender_id;
+          const otherUserData = isUserSender ? message.recipient : message.sender;
+          
+          if (!otherUserId || !otherUserData) return;
+          
+          if (!conversationsMap.has(otherUserId)) {
+            conversationsMap.set(otherUserId, {
+              userId: otherUserId,
+              userName: otherUserData.full_name,
+              userEmail: otherUserData.email,
+              lastMessage: message.content,
+              lastMessageDate: message.created_at,
+              unreadCount: (!isUserSender && !message.read) ? 1 : 0
+            });
+          } else if (!isUserSender && !message.read) {
+            const conversation = conversationsMap.get(otherUserId)!;
+            conversation.unreadCount += 1;
+          }
+        });
+        
+        // Convert to array and sort
+        const conversationsArray = Array.from(conversationsMap.values())
+          .sort((a, b) => new Date(b.lastMessageDate).getTime() - new Date(a.lastMessageDate).getTime());
+        
+        setConversations(conversationsArray);
       }
     } catch (error: any) {
       console.error('Error starting conversation:', error);
@@ -321,6 +220,32 @@ const Messages = () => {
     setActiveConversation(userId);
     setActiveUserName(userName);
     setShowNewMessageForm(false);
+    
+    // Mark all messages from this user as read
+    markAllAsRead(userId);
+    
+    // Update conversations to reflect read messages
+    setConversations(prev => 
+      prev.map(conv => 
+        conv.userId === userId 
+          ? { ...conv, unreadCount: 0 } 
+          : conv
+      )
+    );
+  };
+  
+  // Handle sending message in active conversation
+  const handleSendMessage = async (content: string) => {
+    if (!activeConversation || !content.trim()) return;
+    
+    try {
+      await sendMessage(content, activeConversation);
+      
+      // Force refresh messages
+      fetchMessages();
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
   };
 
   // Format date for display
@@ -346,7 +271,15 @@ const Messages = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  if (isLoading) {
+  // Filter messages for active conversation
+  const activeMessages = messages.filter(message => 
+    message.sender_id === activeConversation || message.recipient_id === activeConversation
+  );
+
+  // Count total unread messages
+  const totalUnreadMessages = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
+
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>
@@ -363,12 +296,20 @@ const Messages = () => {
       <Navbar />
       <main className="flex-grow bg-gray-50 py-8 px-4">
         <div className="container mx-auto">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold">Messages</h1>
-            <p className="text-gray-600">Communicate with students and writers</p>
+          <header className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">Messages</h1>
+              <p className="text-gray-600">Communicate with students and writers</p>
+            </div>
+            
+            {totalUnreadMessages > 0 && (
+              <Badge variant="destructive" className="text-sm">
+                {totalUnreadMessages} unread message{totalUnreadMessages > 1 ? 's' : ''}
+              </Badge>
+            )}
           </header>
 
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <Card className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="flex h-[600px]">
               {/* Conversations sidebar */}
               <div className="w-1/3 border-r">
@@ -391,6 +332,7 @@ const Messages = () => {
                     </div>
                   ) : conversations.length === 0 ? (
                     <div className="p-6 text-center text-gray-500">
+                      <MessageCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                       <p>No conversations yet</p>
                       <p className="text-sm mt-1">Start a new message to begin chatting</p>
                     </div>
@@ -404,12 +346,19 @@ const Messages = () => {
                         onClick={() => selectConversation(conversation.userId, conversation.userName)}
                       >
                         <div className="flex items-center">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback>{getInitials(conversation.userName)}</AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback>{getInitials(conversation.userName)}</AvatarFallback>
+                            </Avatar>
+                            {conversation.unreadCount > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs">
+                                {conversation.unreadCount}
+                              </span>
+                            )}
+                          </div>
                           <div className="ml-3 flex-1">
                             <div className="flex justify-between items-center">
-                              <p className="font-medium">
+                              <p className={`font-medium ${conversation.unreadCount > 0 ? 'font-bold' : ''}`}>
                                 {conversation.userName || conversation.userEmail}
                               </p>
                               <span className="text-xs text-gray-500">
@@ -417,14 +366,13 @@ const Messages = () => {
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <p className="text-sm text-gray-600 truncate max-w-[180px]">
+                              <p className={`text-sm truncate max-w-[180px] ${
+                                conversation.unreadCount > 0 
+                                  ? 'font-semibold text-gray-900' 
+                                  : 'text-gray-600'
+                              }`}>
                                 {conversation.lastMessage}
                               </p>
-                              {conversation.unreadCount > 0 && (
-                                <span className="bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                  {conversation.unreadCount}
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -499,17 +447,18 @@ const Messages = () => {
                     </div>
                     
                     <div className="flex-grow overflow-y-auto p-4 space-y-4">
-                      {loadingMessages ? (
+                      {messagesLoading ? (
                         <div className="flex justify-center items-center h-32">
                           <Loader className="h-6 w-6 animate-spin text-gray-400" />
                         </div>
-                      ) : messages.length === 0 ? (
+                      ) : activeMessages.length === 0 ? (
                         <div className="text-center text-gray-500 py-8">
+                          <MessageCircle className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                           <p>No messages yet</p>
                           <p className="text-sm">Send a message to start the conversation</p>
                         </div>
                       ) : (
-                        messages.map(message => {
+                        activeMessages.map(message => {
                           const isCurrentUser = message.sender_id === userId;
                           return (
                             <div 
@@ -519,11 +468,11 @@ const Messages = () => {
                               <div 
                                 className={`max-w-[70%] rounded-lg p-3 ${
                                   isCurrentUser 
-                                    ? 'bg-primary text-white' 
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-primary text-white rounded-tr-none' 
+                                    : 'bg-gray-100 text-gray-800 rounded-tl-none'
                                 }`}
                               >
-                                <p>{message.content}</p>
+                                <p className="whitespace-pre-wrap break-words">{message.content}</p>
                                 <p className={`text-xs mt-1 ${isCurrentUser ? 'text-primary-50' : 'text-gray-500'}`}>
                                   {formatMessageDate(message.created_at)}
                                 </p>
@@ -535,29 +484,33 @@ const Messages = () => {
                     </div>
                     
                     <div className="p-4 border-t">
-                      <div className="flex">
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const form = e.target as HTMLFormElement;
+                          const input = form.elements.namedItem('messageInput') as HTMLInputElement;
+                          if (input.value.trim()) {
+                            handleSendMessage(input.value);
+                            input.value = '';
+                          }
+                        }}
+                        className="flex"
+                      >
                         <Input 
+                          name="messageInput"
                           placeholder="Type a message..." 
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              sendMessage();
-                            }
-                          }}
                           className="mr-2"
                         />
-                        <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+                        <Button type="submit">
                           <Send className="h-4 w-4" />
                         </Button>
-                      </div>
+                      </form>
                     </div>
                   </>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-500">
                     <div className="text-center">
-                      <User className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                       <h3 className="text-lg font-medium mb-1">No conversation selected</h3>
                       <p>Choose a conversation from the sidebar or start a new one</p>
                     </div>
@@ -565,7 +518,7 @@ const Messages = () => {
                 )}
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </main>
       <Footer />

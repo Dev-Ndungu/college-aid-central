@@ -57,7 +57,11 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
         // Fetch assignment with writer and user details
         const { data, error } = await supabase
           .from('assignments')
-          .select('*, writer:profiles(id, full_name, email), user:profiles(id, full_name, email)')
+          .select(`
+            *,
+            writer:profiles!assignments_writer_id_fkey(id, full_name, email),
+            user:profiles!assignments_user_id_fkey(id, full_name, email)
+          `)
           .eq('id', assignmentId)
           .single();
 
