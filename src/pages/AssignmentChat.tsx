@@ -3,12 +3,11 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate, useParams } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import AssignmentChatComponent from '@/components/chat/AssignmentChatComponent';
 
 const AssignmentChat = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  const { assignmentId } = useParams<{ assignmentId: string }>();
 
   // Redirect to login if not authenticated
   if (!isLoading && !isAuthenticated) {
@@ -19,7 +18,7 @@ const AssignmentChat = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow bg-gray-50">
-        <AssignmentChatComponent assignmentId={assignmentId} />
+        <AssignmentChatComponent />
       </main>
       <Footer />
     </div>

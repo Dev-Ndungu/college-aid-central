@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader, Send, MessageCircle } from "lucide-react";
+import { Loader, Send, Image as ImageIcon, Paperclip } from "lucide-react";
 import { useMessages, type MessageWithProfile } from "@/hooks/useMessages";
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,18 +17,16 @@ interface ChatComponentProps {
 
 const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId }) => {
   const [newMessage, setNewMessage] = useState('');
-  const { messages, isLoading, sendMessage, markAsRead, fetchMessages } = useMessages(assignmentId);
+  const { messages, isLoading, sendMessage, markAsRead } = useMessages(assignmentId);
   const [isSending, setIsSending] = useState(false);
   const { userEmail, userId } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Filter messages to only show those between the current user and the recipient
   // When assignmentId is provided, it will automatically filter by assignment thanks to useMessages hook
-  const filteredMessages = assignmentId 
-    ? messages 
-    : messages.filter(message => 
-        (message.sender_id === recipientId || message.recipient_id === recipientId)
-      );
+  const filteredMessages = recipientId ? messages.filter(message => 
+    (message.sender_id === recipientId || message.recipient_id === recipientId)
+  ) : messages;
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +36,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
       setIsSending(true);
       await sendMessage(newMessage, recipientId, assignmentId);
       setNewMessage('');
-      // Force refresh messages
-      fetchMessages();
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
@@ -54,7 +50,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
     );
     
     if (unreadMessages.length > 0) {
-      console.log("Marking messages as read:", unreadMessages.length);
       unreadMessages.forEach(msg => {
         markAsRead(msg.id);
       });
@@ -63,15 +58,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   return (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-grow mb-4 pb-2 pr-4">
-        <div className="space-y-4 p-4">
+        <div className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <Loader className="h-6 w-6 animate-spin" />
@@ -79,7 +72,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
           ) : filteredMessages.length === 0 ? (
             <div className="text-center py-12">
               <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
-                <MessageCircle className="h-8 w-8 text-gray-500" />
+                <Send className="h-8 w-8 text-gray-500" />
               </div>
               <h3 className="text-lg font-medium">No messages yet</h3>
               <p className="text-gray-500 max-w-sm mx-auto mt-1">
@@ -125,6 +118,14 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
               ) : (
                 <Send className="h-4 w-4" />
               )}
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10"
+            >
+              <Paperclip className="h-4 w-4" />
             </Button>
           </div>
         </form>
