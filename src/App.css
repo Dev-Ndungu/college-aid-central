@@ -7,6 +7,71 @@
   text-align: center;
 }
 
+/* Add a subtle gradient overlay for dark mode */
+body.dark {
+  background: linear-gradient(to bottom right, hsl(270, 50%, 12%), hsl(260, 50%, 7%));
+  background-attachment: fixed;
+}
+
+/* Custom button styles */
+.cta-button {
+  background: linear-gradient(to right, #f97316, #c2410c);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Custom card styles */
+.glass-card {
+  background: rgba(60, 20, 90, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Custom animations */
+@keyframes glow {
+  0%, 100% {
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+  }
+}
+
+.glow-text {
+  animation: glow 2s ease-in-out infinite;
+}
+
+/* Additional utility classes */
+.text-gradient {
+  background: linear-gradient(to right, #c4b5fd, #a78bfa);
+  background-clip: text;
+  color: transparent;
+}
+
+/* Custom scrollbar for dark theme */
+body.dark::-webkit-scrollbar {
+  width: 8px;
+}
+
+body.dark::-webkit-scrollbar-track {
+  background: rgba(30, 10, 60, 0.2);
+}
+
+body.dark::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5);
+  border-radius: 4px;
+}
+
+body.dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.7);
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -14,10 +79,10 @@
   transition: filter 300ms;
 }
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em rgba(139, 92, 246, 0.7));
 }
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em rgba(97, 218, 251, 0.7));
 }
 
 @keyframes logo-spin {

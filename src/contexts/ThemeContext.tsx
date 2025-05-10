@@ -11,10 +11,10 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  // Check if there's a saved theme preference
+  // Set default theme to dark to match the requested design
   const savedTheme = typeof window !== 'undefined' 
-    ? localStorage.getItem('theme') as Theme || 'light'
-    : 'light';
+    ? localStorage.getItem('theme') as Theme || 'dark'
+    : 'dark';
     
   const [theme, setTheme] = useState<Theme>(savedTheme);
 
