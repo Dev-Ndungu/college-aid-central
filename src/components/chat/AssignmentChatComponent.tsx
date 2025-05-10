@@ -24,8 +24,8 @@ interface AssignmentWithWriter {
   status: string;
   user_id: string;
   writer_id: string | null;
-  writer: Writer | null;
-  user: User | null;
+  writer: any; // Accept any format from the database
+  user: any; // Accept any format from the database
 }
 
 interface AssignmentChatComponentProps {
@@ -39,63 +39,52 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
   const { userId, userRole } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchAssignment = async () => {
-      if (!assignmentId) return;
+  const fetchAssignment = async () => {
+    if (!assignmentId) return;
 
-      try {
-        setIsLoading(true);
-        setError(null);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        console.log('Fetching assignment with ID:', assignmentId);
-        
-        // Fetch assignment with writer and user details
-        const { data, error } = await supabase
-          .from('assignments')
-          .select(`
-            *,
-            writer:profiles!assignments_writer_id_fkey(id, full_name, email),
-            user:profiles!assignments_user_id_fkey(id, full_name, email)
-          `)
-          .eq('id', assignmentId)
-          .single();
+      console.log('Fetching assignment with ID:', assignmentId);
+      
+      // Fetch assignment with writer and user details
+      const { data, error } = await supabase
+        .from('assignments')
+        .select(`
+          *,
+          writer:profiles!assignments_writer_id_fkey(id, full_name, email),
+          user:profiles!assignments_user_id_fkey(id, full_name, email)
+        `)
+        .eq('id', assignmentId)
+        .single();
 
-        if (error) {
-          console.error('Error fetching assignment:', error);
-          throw error;
-        }
-
-        console.log('Raw assignment data:', data);
-
-        // Fix: Properly handle the writer and user objects which are returned as arrays
-        // Access the first element of the array since we expect just one writer and one user
-        const transformedData: AssignmentWithWriter = {
-          ...data,
-          writer: data.writer && Array.isArray(data.writer) && data.writer.length > 0 ? {
-            id: data.writer[0].id,
-            full_name: data.writer[0].full_name,
-            email: data.writer[0].email,
-            avatar_url: null, // Add missing properties from Writer type
-            writer_bio: null,
-            writer_skills: null
-          } : null,
-          user: data.user && Array.isArray(data.user) && data.user.length > 0 ? {
-            id: data.user[0].id,
-            full_name: data.user[0].full_name,
-            email: data.user[0].email
-          } : null
-        };
-
-        console.log('Transformed assignment data:', transformedData);
-        setAssignment(transformedData);
-      } catch (err: any) {
-        console.error('Error fetching assignment:', err);
-        setError(err.message || 'Failed to fetch assignment');
-      } finally {
-        setIsLoading(false);
+      if (error) {
+        console.error('Error fetching assignment:', error);
+        throw error;
       }
-    };
 
+      console.log('Raw assignment data:', data);
+
+      // Handle the writer and user objects correctly based on the actual structure
+      const transformedData: AssignmentWithWriter = {
+        ...data,
+        // Properly handle the writer and user objects
+        writer: data.writer || null,
+        user: data.user || null
+      };
+
+      console.log('Transformed assignment data:', transformedData);
+      setAssignment(transformedData);
+    } catch (err: any) {
+      console.error('Error fetching assignment:', err);
+      setError(err.message || 'Failed to fetch assignment');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAssignment();
 
     // Set up real-time subscription for assignment updates
@@ -104,20 +93,71 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'assignments', filter: `id=eq.${assignmentId}` }, 
         () => {
+          console.log('Assignment updated, fetching latest data');
           fetchAssignment();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Assignment subscription status:', status);
+      });
+
+    // Set up real-time subscription for messages
+    const messagesSubscription = supabase
+      .channel(`messages-assignment-${assignmentId}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `assignment_id=eq.${assignmentId}` 
+        }, 
+        (payload) => {
+          console.log('Message change detected:', payload);
+          // No need to refetch the whole assignment, just notify the user
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new;
+            // Only show notification for incoming messages (not ones the user sends)
+            if (newMessage.recipient_id === userId) {
+              toast.info('New message received');
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Messages subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up subscriptions');
       supabase.removeChannel(assignmentSubscription);
+      supabase.removeChannel(messagesSubscription);
     };
-  }, [assignmentId]);
+  }, [assignmentId, userId]);
 
   // Determine who the current user should chat with
-  const chatRecipientId = userRole === 'student' 
-    ? assignment?.writer_id 
-    : assignment?.user_id;
+  const getChatRecipientId = () => {
+    if (!assignment) return null;
+    
+    // Handle different structure possibilities
+    let writerData = assignment.writer;
+    let userData = assignment.user;
+    
+    // If writer is an array, get the first element
+    if (Array.isArray(writerData)) {
+      writerData = writerData.length > 0 ? writerData[0] : null;
+    }
+    
+    // If user is an array, get the first element
+    if (Array.isArray(userData)) {
+      userData = userData.length > 0 ? userData[0] : null;
+    }
+    
+    return userRole === 'student' ? 
+      (writerData ? writerData.id : null) : 
+      (userData ? userData.id : null);
+  };
+
+  const chatRecipientId = getChatRecipientId();
 
   if (isLoading) {
     return (
@@ -203,7 +243,7 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
         // Send notification to student about assignment being taken
         const message = `I've taken your assignment "${assignment.title}" and will begin working on it. Let me know if you have any questions!`;
         
-        const { error: messageError } = await supabase
+        const { error: messageError, data: messageData } = await supabase
           .from('messages')
           .insert({
             sender_id: userId,
@@ -211,10 +251,16 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
             content: message,
             assignment_id: assignment.id,
             read: false
-          });
+          })
+          .select();
           
         if (messageError) {
           console.error('Error sending initial message:', messageError);
+          toast.error('Failed to send initial message');
+        } else {
+          console.log('Initial message sent successfully:', messageData);
+          // Force refresh to update the UI
+          fetchAssignment();
         }
         
       } catch (err: any) {
@@ -264,9 +310,27 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
     );
   }
 
-  const chatPartnerName = userRole === 'student' 
-    ? (assignment.writer?.full_name || assignment.writer?.email || 'Writer') 
-    : (assignment.user?.full_name || assignment.user?.email || 'Student');
+  // Get chat partner name safely
+  const getChatPartnerName = () => {
+    if (!assignment) return 'User';
+    
+    let writerData = assignment.writer;
+    let userData = assignment.user;
+    
+    if (Array.isArray(writerData)) {
+      writerData = writerData.length > 0 ? writerData[0] : null;
+    }
+    
+    if (Array.isArray(userData)) {
+      userData = userData.length > 0 ? userData[0] : null;
+    }
+    
+    return userRole === 'student' ? 
+      (writerData ? (writerData.full_name || writerData.email || 'Writer') : 'Writer') : 
+      (userData ? (userData.full_name || userData.email || 'Student') : 'Student');
+  };
+
+  const chatPartnerName = getChatPartnerName();
 
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">

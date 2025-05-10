@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from "sonner";
 
 interface ChatComponentProps {
   recipientId: string;
@@ -36,10 +37,18 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
     
     try {
       setIsSending(true);
-      await sendMessage(newMessage, recipientId, assignmentId);
-      setNewMessage('');
+      console.log(`Sending message to recipient ${recipientId}${assignmentId ? ` for assignment ${assignmentId}` : ''}`);
+      
+      const result = await sendMessage(newMessage, recipientId, assignmentId);
+      if (result) {
+        setNewMessage('');
+        console.log('Message sent successfully:', result);
+      } else {
+        toast.error("Failed to send message");
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Error sending message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -59,6 +68,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
       }
     }
   }, [filteredMessages, userId, recipientId, markAllAsRead]);
+
+  // Fetch messages on component mount and when dependencies change
+  useEffect(() => {
+    console.log("Fetching messages for recipient:", recipientId);
+    fetchMessages();
+  }, [recipientId, assignmentId, fetchMessages]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

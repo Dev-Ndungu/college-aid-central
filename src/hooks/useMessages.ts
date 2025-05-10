@@ -100,24 +100,34 @@ export const useMessages = (assignmentId?: string) => {
       fetchMessages();
       
       // Set up real-time subscription for messages
-      const channelId = assignmentId 
+      const channelName = assignmentId 
         ? `messages-assignment-${assignmentId}` 
         : `messages-user-${userId}`;
       
+      console.log(`Setting up realtime subscription for channel: ${channelName}`);
+      
       const messagesSubscription = supabase
-        .channel(channelId)
+        .channel(channelName)
         .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'messages' }, 
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'messages',
+            filter: assignmentId 
+              ? `assignment_id=eq.${assignmentId}`
+              : `or(sender_id.eq.${userId},recipient_id.eq.${userId})`
+          }, 
           (payload) => {
             console.log('Message change detected:', payload);
             fetchMessages(); // Refetch all messages when there are changes
           }
         )
         .subscribe((status) => {
-          console.log('Realtime subscription status:', status);
+          console.log(`Realtime subscription status for ${channelName}:`, status);
         });
 
       return () => {
+        console.log(`Removing channel: ${channelName}`);
         supabase.removeChannel(messagesSubscription);
       };
     }
@@ -149,7 +159,10 @@ export const useMessages = (assignmentId?: string) => {
           recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role, avatar_url)
         `);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
       
       console.log("Message sent successfully:", data);
       toast.success("Message sent successfully");
@@ -173,6 +186,8 @@ export const useMessages = (assignmentId?: string) => {
         .eq('id', messageId);
 
       if (error) throw error;
+      
+      console.log(`Marked message ${messageId} as read`);
       
       // Update the local state to reflect the change
       setMessages(prevMessages => 
@@ -210,9 +225,11 @@ export const useMessages = (assignmentId?: string) => {
         query = query.eq('assignment_id', assignmentId);
       }
       
-      const { error } = await query;
+      const { error, count } = await query;
       
       if (error) throw error;
+      
+      console.log(`Marked ${count} messages as read`);
       
       // Update local state
       setMessages(prevMessages => 
