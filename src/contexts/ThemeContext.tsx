@@ -11,7 +11,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  // Set default theme to dark to match the requested design
+  // Always default to dark theme to match the requested design
   const savedTheme = typeof window !== 'undefined' 
     ? localStorage.getItem('theme') as Theme || 'dark'
     : 'dark';

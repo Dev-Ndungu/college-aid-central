@@ -7,13 +7,13 @@
   text-align: center;
 }
 
-/* Add a subtle gradient overlay for dark mode */
+/* Add a deep dark purple gradient background for the dark mode */
 body.dark {
   background: linear-gradient(to bottom right, hsl(270, 50%, 12%), hsl(260, 50%, 7%));
   background-attachment: fixed;
 }
 
-/* Custom button styles */
+/* Custom button styles with orange gradient to match the reference image */
 .cta-button {
   background: linear-gradient(to right, #f97316, #c2410c);
   transition: all 0.3s ease;
@@ -25,7 +25,7 @@ body.dark {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* Custom card styles */
+/* Add glass card styles like in the reference image */
 .glass-card {
   background: rgba(60, 20, 90, 0.3);
   backdrop-filter: blur(10px);
@@ -33,7 +33,7 @@ body.dark {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Custom animations */
+/* Custom animations for text elements */
 @keyframes glow {
   0%, 100% {
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
