@@ -8,6 +8,23 @@ DROP POLICY IF EXISTS "Students can create own assignments" ON public.assignment
 -- Enable RLS if not already enabled
 ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 
+-- Add writer_id foreign key if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.constraint_column_usage 
+    WHERE table_name = 'assignments' 
+    AND column_name = 'writer_id'
+    AND constraint_name LIKE '%fkey'
+  ) THEN
+    ALTER TABLE public.assignments 
+    ADD CONSTRAINT assignments_writer_id_fkey 
+    FOREIGN KEY (writer_id) 
+    REFERENCES public.profiles(id);
+  END IF;
+END
+$$;
+
 -- Clear policy for writers to see ALL assignments (not just submitted ones)
 CREATE POLICY "Writers can view all assignments" 
 ON public.assignments 

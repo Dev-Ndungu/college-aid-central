@@ -291,8 +291,8 @@ export const useAssignments = () => {
         .is('writer_id', null) // Only allow taking if no writer has taken it yet
         .select(`
           *,
-          writer:profiles!assignments_writer_id_fkey(id, full_name, email),
-          user:profiles!assignments_user_id_fkey(id, full_name, email)
+          writer:profiles(id, full_name, email),
+          user:profiles(id, full_name, email)
         `);
 
       if (error) throw error;
