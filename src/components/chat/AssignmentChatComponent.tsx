@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,22 +67,22 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
 
         console.log('Raw assignment data:', data);
 
-        // Fix: Properly handle the writer and user objects to match expected types
-        // The issue is that Supabase returns the joined profiles as arrays even when there's only one item
+        // Fix: Properly handle the writer and user objects which are returned as arrays
+        // Access the first element of the array since we expect just one writer and one user
         const transformedData: AssignmentWithWriter = {
           ...data,
-          writer: data.writer ? {
-            id: data.writer.id,
-            full_name: data.writer.full_name,
-            email: data.writer.email,
+          writer: data.writer && Array.isArray(data.writer) && data.writer.length > 0 ? {
+            id: data.writer[0].id,
+            full_name: data.writer[0].full_name,
+            email: data.writer[0].email,
             avatar_url: null, // Add missing properties from Writer type
             writer_bio: null,
             writer_skills: null
           } : null,
-          user: data.user ? {
-            id: data.user.id,
-            full_name: data.user.full_name,
-            email: data.user.email
+          user: data.user && Array.isArray(data.user) && data.user.length > 0 ? {
+            id: data.user[0].id,
+            full_name: data.user[0].full_name,
+            email: data.user[0].email
           } : null
         };
 
