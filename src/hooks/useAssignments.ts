@@ -18,6 +18,7 @@ export type Assignment = {
   updated_at: string | null;
   writer_id?: string | null;
   user_id: string;
+  file_urls: string[] | null;
 };
 
 // Define writer type
@@ -184,6 +185,7 @@ export const useAssignments = () => {
     progress?: number | null;
     due_date?: string | null;
     user_id: string;
+    file_urls?: string[] | null;
   }) => {
     try {
       const { data, error } = await supabase

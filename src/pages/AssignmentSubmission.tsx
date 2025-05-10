@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Upload } from 'lucide-react';
+import { Calendar as CalendarIcon, Upload, X, FileText, File } from 'lucide-react';
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -34,11 +35,103 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+// Comprehensive assignment types based on the provided list
+const assignmentTypes = [
+  { value: 'essay', label: 'Essay' },
+  { value: 'research-paper', label: 'Research Paper' },
+  { value: 'case-study', label: 'Case Study' },
+  { value: 'presentation', label: 'Presentation' },
+  { value: 'discussion-post', label: 'Discussion Post' },
+  { value: 'quiz-exam', label: 'Quiz or Exam' },
+  { value: 'lab-report', label: 'Lab Report' },
+  { value: 'group-project', label: 'Group Project' },
+  { value: 'annotated-bibliography', label: 'Annotated Bibliography' },
+  { value: 'reflective-journal', label: 'Reflective Journal' },
+  { value: 'portfolio', label: 'Portfolio' },
+  { value: 'programming', label: 'Programming Assignment' },
+  { value: 'problem-set', label: 'Problem Set' },
+  { value: 'capstone', label: 'Capstone Project' },
+  { value: 'thesis', label: 'Thesis/Dissertation' },
+  { value: 'other', label: 'Other' }
+];
+
+// Comprehensive subject list based on the provided categories
+const subjects = [
+  // STEM
+  { value: 'computer-science', label: 'Computer Science / IT', category: 'STEM' },
+  { value: 'data-science', label: 'Data Science / AI / Cybersecurity', category: 'STEM' },
+  { value: 'biology', label: 'Biology / Biotechnology', category: 'STEM' },
+  { value: 'physics', label: 'Physics', category: 'STEM' },
+  { value: 'chemistry', label: 'Chemistry', category: 'STEM' },
+  { value: 'mathematics', label: 'Mathematics / Statistics', category: 'STEM' },
+  { value: 'engineering', label: 'Engineering', category: 'STEM' },
+  { value: 'environmental-science', label: 'Environmental Science', category: 'STEM' },
+  
+  // Humanities and Social Sciences
+  { value: 'history', label: 'History', category: 'Humanities' },
+  { value: 'political-science', label: 'Political Science', category: 'Humanities' },
+  { value: 'sociology', label: 'Sociology / Anthropology', category: 'Humanities' },
+  { value: 'psychology', label: 'Psychology', category: 'Humanities' },
+  { value: 'philosophy', label: 'Philosophy / Religious Studies', category: 'Humanities' },
+  { value: 'english', label: 'English Literature / Writing', category: 'Humanities' },
+  { value: 'linguistics', label: 'Linguistics / Communication', category: 'Humanities' },
+  
+  // Business and Economics
+  { value: 'accounting', label: 'Accounting / Finance', category: 'Business' },
+  { value: 'marketing', label: 'Marketing / Advertising', category: 'Business' },
+  { value: 'business', label: 'Business Administration / Management', category: 'Business' },
+  { value: 'entrepreneurship', label: 'Entrepreneurship', category: 'Business' },
+  { value: 'international-business', label: 'International Business', category: 'Business' },
+  { value: 'economics', label: 'Economics', category: 'Business' },
+  
+  // Health and Medicine
+  { value: 'nursing', label: 'Nursing', category: 'Health' },
+  { value: 'public-health', label: 'Public Health', category: 'Health' },
+  { value: 'medicine', label: 'Pre-Med / Medicine / Dental', category: 'Health' },
+  { value: 'physical-therapy', label: 'Physical Therapy / Occupational Therapy', category: 'Health' },
+  { value: 'nutrition', label: 'Nutrition / Kinesiology', category: 'Health' },
+  
+  // Education
+  { value: 'early-education', label: 'Early Childhood Education', category: 'Education' },
+  { value: 'special-education', label: 'Special Education', category: 'Education' },
+  { value: 'curriculum', label: 'Curriculum and Instruction', category: 'Education' },
+  { value: 'education-leadership', label: 'Educational Leadership', category: 'Education' },
+  
+  // Arts and Design
+  { value: 'graphic-design', label: 'Graphic Design / UX/UI', category: 'Arts' },
+  { value: 'fine-arts', label: 'Fine Arts / Studio Art', category: 'Arts' },
+  { value: 'music', label: 'Music / Performing Arts', category: 'Arts' },
+  { value: 'film', label: 'Film / Media Studies', category: 'Arts' },
+  { value: 'fashion', label: 'Fashion Design / Interior Design', category: 'Arts' },
+  
+  // Law and Legal Studies
+  { value: 'pre-law', label: 'Pre-Law', category: 'Law' },
+  { value: 'criminal-justice', label: 'Criminal Justice', category: 'Law' },
+  { value: 'paralegal', label: 'Paralegal Studies', category: 'Law' },
+  
+  // International and Interdisciplinary Studies
+  { value: 'international-relations', label: 'International Relations', category: 'International' },
+  { value: 'global-studies', label: 'Global Studies', category: 'International' },
+  { value: 'gender-studies', label: 'Gender and Ethnic Studies', category: 'International' },
+  { value: 'american-studies', label: 'American Studies', category: 'International' },
+  
+  { value: 'other', label: 'Other', category: 'Other' }
+];
+
+interface FileObject {
+  name: string;
+  size: number;
+  type: string;
+  file: File;
+  url?: string;
+}
+
 const AssignmentSubmission = () => {
   const [date, setDate] = React.useState<Date>();
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = React.useState<FileObject[]>([]);
   const [loading, setLoading] = React.useState(false);
-  const { isAuthenticated, userRole, userEmail } = useAuth();
+  const [uploadProgress, setUploadProgress] = React.useState<{[key: string]: number}>({});
+  const { isAuthenticated, userRole, userEmail, userId } = useAuth();
   const navigate = useNavigate();
   
   // Form state
@@ -57,8 +150,58 @@ const AssignmentSubmission = () => {
   }, [isAuthenticated, userRole, navigate]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setSelectedFile(file);
+    const fileList = e.target.files;
+    if (!fileList) return;
+    
+    // Convert FileList to array and map to our FileObject format
+    const newFiles = Array.from(fileList).map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      file
+    }));
+    
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+    
+    // Reset the input so the same file can be selected again if removed
+    e.target.value = '';
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setSelectedFiles(files => files.filter((_, index) => index !== indexToRemove));
+  };
+
+  const getFileIcon = (fileType: string) => {
+    if (fileType.includes('pdf')) return <FileText className="h-4 w-4" />;
+    if (fileType.includes('image')) return <File className="h-4 w-4" />;
+    return <File className="h-4 w-4" />;
+  };
+
+  const formatFileSize = (sizeInBytes: number) => {
+    if (sizeInBytes < 1024) return `${sizeInBytes} B`;
+    if (sizeInBytes < 1024 * 1024) return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const uploadFileToSupabase = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
+    
+    const { data, error } = await supabase.storage
+      .from('assignment_files')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+      });
+
+    if (error) throw error;
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('assignment_files')
+      .getPublicUrl(data.path);
+      
+    return publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +231,33 @@ const AssignmentSubmission = () => {
         throw new Error("Could not find your user profile. Please log in again.");
       }
 
+      // Upload all files first and collect their URLs
+      const fileUrls: string[] = [];
+      
+      if (selectedFiles.length > 0) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          try {
+            // Update progress state
+            setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
+            
+            // Upload file and get public URL
+            const publicUrl = await uploadFileToSupabase(file.file);
+            fileUrls.push(publicUrl);
+            
+            // Update progress
+            setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
+          } catch (err) {
+            console.error(`Error uploading file ${file.name}:`, err);
+            toast({
+              variant: "destructive",
+              title: "File Upload Error",
+              description: `Failed to upload ${file.name}`
+            });
+          }
+        }
+      }
+
       // Create the assignment in the database
       const { data, error } = await supabase
         .from('assignments')
@@ -97,33 +267,16 @@ const AssignmentSubmission = () => {
             subject,
             description,
             due_date: date ? date.toISOString() : null,
-            user_id: profileData.id, // Use the correct UUID from profiles
-            status: 'submitted', // Changed from 'in-progress' to 'submitted'
-            progress: 0
+            user_id: profileData.id,
+            status: 'submitted',
+            progress: 0,
+            file_urls: fileUrls.length > 0 ? fileUrls : null
           }
         ])
         .select();
 
       if (error) {
         throw error;
-      }
-
-      // Handle file upload if a file was selected
-      if (selectedFile && data[0].id) {
-        const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `${data[0].id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `assignments/${fileName}`;
-
-        // Upload the file to Supabase Storage
-        // Note: You'd need to create a 'assignments' bucket in Supabase Storage
-        // const { error: uploadError } = await supabase.storage
-        //   .from('assignments')
-        //   .upload(filePath, selectedFile);
-
-        // if (uploadError) {
-        //   console.error('Error uploading file:', uploadError);
-        //   // Continue with the process even if the file upload fails
-        // }
       }
 
       // Show success message
@@ -184,14 +337,104 @@ const AssignmentSubmission = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Select subject" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="math">Mathematics</SelectItem>
-                      <SelectItem value="science">Science</SelectItem>
-                      <SelectItem value="history">History</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                      <SelectItem value="engineering">Engineering</SelectItem>
-                      <SelectItem value="computer-science">Computer Science</SelectItem>
+                    <SelectContent className="max-h-[300px]">
+                      {/* Group subjects by category */}
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b">
+                        STEM
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'STEM')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                        Humanities and Social Sciences
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'Humanities')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                        Business and Economics
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'Business')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                        Health and Medicine
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'Health')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                        Education
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'Education')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                        Arts and Design
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'Arts')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                        Law and Legal Studies
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'Law')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
+                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                        International and Interdisciplinary Studies
+                      </div>
+                      {subjects
+                        .filter(s => s.category === 'International')
+                        .map(subject => (
+                          <SelectItem key={subject.value} value={subject.value}>
+                            {subject.label}
+                          </SelectItem>
+                        ))
+                      }
+                      
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -204,13 +447,11 @@ const AssignmentSubmission = () => {
                       <SelectValue placeholder="Select assignment type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="essay">Essay</SelectItem>
-                      <SelectItem value="research">Research Paper</SelectItem>
-                      <SelectItem value="case-study">Case Study</SelectItem>
-                      <SelectItem value="presentation">Presentation</SelectItem>
-                      <SelectItem value="report">Report</SelectItem>
-                      <SelectItem value="problem-set">Problem Set</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {assignmentTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -253,28 +494,54 @@ const AssignmentSubmission = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="file">Upload Files (Optional)</Label>
-                  <div className="border border-dashed rounded-md p-10 text-center">
+                <div className="space-y-4">
+                  <Label>Upload Files</Label>
+                  <div className="border border-dashed rounded-md p-6 text-center">
                     <Input
                       id="file"
                       type="file"
                       className="hidden"
+                      multiple
                       onChange={handleFileChange}
                     />
                     <Label htmlFor="file" className="cursor-pointer flex flex-col items-center gap-2">
                       <Upload className="h-8 w-8 text-gray-400" />
                       <span className="font-medium">Click to upload</span>
                       <span className="text-sm text-gray-500">
-                        PDF, DOC, DOCX, or ZIP (Max 10MB)
+                        PDF, DOC, DOCX, JPG, PNG, or ZIP (Max 10MB)
                       </span>
                     </Label>
-                    {selectedFile && (
-                      <div className="mt-4 text-sm text-green-600 font-medium">
-                        Selected: {selectedFile.name}
-                      </div>
-                    )}
                   </div>
+                  
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium mb-3">Selected Files</h4>
+                      <div className="space-y-2">
+                        {selectedFiles.map((file, index) => (
+                          <div 
+                            key={`${file.name}-${index}`} 
+                            className="flex items-center justify-between bg-gray-50 p-2 rounded-md border"
+                          >
+                            <div className="flex items-center gap-2">
+                              {getFileIcon(file.type)}
+                              <div className="text-sm">
+                                <p className="font-medium truncate max-w-[200px] md:max-w-[300px]">{file.name}</p>
+                                <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                              </div>
+                            </div>
+                            <Button 
+                              type="button"
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => removeFile(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
               

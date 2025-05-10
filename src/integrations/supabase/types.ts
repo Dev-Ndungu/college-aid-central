@@ -15,6 +15,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           due_date: string | null
+          file_urls: string[] | null
           grade: string | null
           id: string
           progress: number | null
@@ -30,6 +31,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          file_urls?: string[] | null
           grade?: string | null
           id?: string
           progress?: number | null
@@ -45,6 +47,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           due_date?: string | null
+          file_urls?: string[] | null
           grade?: string | null
           id?: string
           progress?: number | null
