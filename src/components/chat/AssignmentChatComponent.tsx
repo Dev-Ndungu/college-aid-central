@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,12 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { ChevronLeft, Clock, CheckCircle, Info, MessageCircle } from 'lucide-react';
-
-interface Writer {
-  id: string;
-  full_name: string | null;
-  email: string;
-}
+import { Writer } from '@/hooks/useWriters';
 
 interface User {
   id: string;
@@ -29,8 +23,8 @@ interface AssignmentWithWriter {
   status: string;
   user_id: string;
   writer_id: string | null;
-  writer?: Writer | null;
-  user?: User | null;
+  writer: Writer | null;
+  user: User | null;
 }
 
 interface AssignmentChatComponentProps {
@@ -57,7 +51,11 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
         // Fetch assignment with writer and user details
         const { data, error } = await supabase
           .from('assignments')
-          .select('*, writer:profiles(id, full_name, email), user:profiles(id, full_name, email)')
+          .select(`
+            *,
+            writer:profiles!assignments_writer_id_fkey(id, full_name, email),
+            user:profiles!assignments_user_id_fkey(id, full_name, email)
+          `)
           .eq('id', assignmentId)
           .single();
 
@@ -68,11 +66,23 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
 
         console.log('Raw assignment data:', data);
 
-        // Transform the data to match our expected type
+        // Fix: Properly handle the writer and user objects to match expected types
+        // The issue is that Supabase returns the joined profiles as arrays even when there's only one item
         const transformedData: AssignmentWithWriter = {
           ...data,
-          writer: data.writer || null, 
-          user: data.user || null
+          writer: data.writer ? {
+            id: data.writer.id,
+            full_name: data.writer.full_name,
+            email: data.writer.email,
+            avatar_url: null, // Add missing properties from Writer type
+            writer_bio: null,
+            writer_skills: null
+          } : null,
+          user: data.user ? {
+            id: data.user.id,
+            full_name: data.user.full_name,
+            email: data.user.email
+          } : null
         };
 
         console.log('Transformed assignment data:', transformedData);
