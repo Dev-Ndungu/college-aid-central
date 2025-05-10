@@ -20,6 +20,13 @@ export type Assignment = {
   user_id: string;
 };
 
+// Define writer type
+export type Writer = {
+  id: string;
+  full_name: string | null;
+  email: string;
+};
+
 export const useAssignments = () => {
   const [activeAssignments, setActiveAssignments] = useState<Assignment[]>([]);
   const [completedAssignments, setCompletedAssignments] = useState<Assignment[]>([]);
@@ -293,11 +300,15 @@ export const useAssignments = () => {
       if (data && data.length > 0) {
         const assignment = data[0];
         const studentId = assignment.user_id;
-        const writer = assignment.writer;
+        
+        // Fix the TypeScript error by properly handling the writer object
+        // The issue is that writer is being treated as an array when it should be an object
+        const writer = assignment.writer as unknown as Writer;
         
         // Send initial message to student
         if (studentId && writer) {
           try {
+            // Now this will work correctly since writer is properly typed
             const writerName = writer.full_name || writer.email;
             const message = `Hello! I'm ${writerName} and I've taken your assignment "${assignment.title}". I'll start working on it right away. Feel free to message me if you have any questions or additional information to share.`;
             
@@ -333,7 +344,7 @@ export const useAssignments = () => {
             body: JSON.stringify({
               type: 'assignment_taken',
               assignment: assignment,
-              writer: assignment.writer
+              writer: writer
             }),
           });
         } catch (notifyError) {
