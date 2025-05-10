@@ -17,15 +17,16 @@ interface ChatComponentProps {
 
 const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId }) => {
   const [newMessage, setNewMessage] = useState('');
-  const { messages, isLoading, sendMessage } = useMessages(assignmentId);
+  const { messages, isLoading, sendMessage, markAsRead } = useMessages(assignmentId);
   const [isSending, setIsSending] = useState(false);
-  const { userEmail } = useAuth();
+  const { userEmail, userId } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Filter messages to only show those between the current user and the recipient
-  const filteredMessages = messages.filter(message => 
+  // When assignmentId is provided, it will automatically filter by assignment thanks to useMessages hook
+  const filteredMessages = recipientId ? messages.filter(message => 
     (message.sender_id === recipientId || message.recipient_id === recipientId)
-  );
+  ) : messages;
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +42,19 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
       setIsSending(false);
     }
   };
+
+  // Mark messages as read when they are viewed
+  useEffect(() => {
+    const unreadMessages = filteredMessages.filter(
+      msg => msg.recipient_id === userId && !msg.read
+    );
+    
+    if (unreadMessages.length > 0) {
+      unreadMessages.forEach(msg => {
+        markAsRead(msg.id);
+      });
+    }
+  }, [filteredMessages, userId, markAsRead]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

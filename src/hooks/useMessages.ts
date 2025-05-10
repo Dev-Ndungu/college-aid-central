@@ -138,6 +138,13 @@ export const useMessages = (assignmentId?: string) => {
 
       if (error) throw error;
       
+      // Update the local state to reflect the change
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === messageId ? { ...msg, read: true } : msg
+        )
+      );
+      
       return true;
     } catch (err: any) {
       console.error('Error marking message as read:', err);

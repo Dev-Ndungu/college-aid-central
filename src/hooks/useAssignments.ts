@@ -284,13 +284,44 @@ export const useAssignments = () => {
         .is('writer_id', null) // Only allow taking if no writer has taken it yet
         .select(`
           *,
-          writer:profiles!assignments_writer_id_fkey(id, full_name, email)
+          writer:profiles!assignments_writer_id_fkey(id, full_name, email),
+          user:profiles!assignments_user_id_fkey(id, full_name, email)
         `);
 
       if (error) throw error;
       
       if (data && data.length > 0) {
-        // Send notification to student about assignment being taken
+        const assignment = data[0];
+        const studentId = assignment.user_id;
+        const writer = assignment.writer;
+        
+        // Send initial message to student
+        if (studentId && writer) {
+          try {
+            const writerName = writer.full_name || writer.email;
+            const message = `Hello! I'm ${writerName} and I've taken your assignment "${assignment.title}". I'll start working on it right away. Feel free to message me if you have any questions or additional information to share.`;
+            
+            const { error: messageError } = await supabase
+              .from('messages')
+              .insert({
+                sender_id: userId,
+                recipient_id: studentId,
+                content: message,
+                assignment_id: assignmentId,
+                read: false
+              });
+              
+            if (messageError) {
+              console.error('Error sending initial message:', messageError);
+            } else {
+              console.log('Initial message sent successfully');
+            }
+          } catch (msgErr) {
+            console.error('Error preparing initial message:', msgErr);
+          }
+        }
+        
+        // Notify student about assignment being taken
         try {
           // Use the full URL for the function call
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
@@ -301,8 +332,8 @@ export const useAssignments = () => {
             },
             body: JSON.stringify({
               type: 'assignment_taken',
-              assignment: data[0],
-              writer: data[0].writer
+              assignment: assignment,
+              writer: assignment.writer
             }),
           });
         } catch (notifyError) {
@@ -310,7 +341,7 @@ export const useAssignments = () => {
         }
         
         toast.success("Assignment taken successfully");
-        return data[0];
+        return assignment;
       } else {
         toast.error("This assignment has already been taken by another writer");
         return null;

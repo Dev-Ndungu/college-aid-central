@@ -23,6 +23,8 @@ const WriterDashboard = () => {
       const result = await takeAssignment(assignmentId);
       if (result) {
         toast.success('Assignment taken successfully!');
+        // Navigate to the chat page for this assignment
+        navigate(`/assignment-chat/${assignmentId}`);
       }
     } catch (error) {
       console.error('Error taking assignment:', error);
@@ -94,19 +96,29 @@ const WriterDashboard = () => {
                     </span>
                   </td>
                   <td className="p-3">
-                    <Button 
-                      onClick={() => handleTakeAssignment(assignment.id)}
-                      disabled={processingIds.has(assignment.id)}
-                      size="sm"
-                    >
-                      {processingIds.has(assignment.id) 
-                        ? <span className="flex items-center gap-1">
-                            <span className="animate-spin h-3 w-3 border-2 border-primary-foreground border-t-transparent rounded-full mr-1"></span>
-                            Processing...
-                          </span>
-                        : 'Take Assignment'
-                      }
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleTakeAssignment(assignment.id)}
+                        disabled={processingIds.has(assignment.id)}
+                        size="sm"
+                      >
+                        {processingIds.has(assignment.id) 
+                          ? <span className="flex items-center gap-1">
+                              <span className="animate-spin h-3 w-3 border-2 border-primary-foreground border-t-transparent rounded-full mr-1"></span>
+                              Processing...
+                            </span>
+                          : 'Take Assignment'
+                        }
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
+                      >
+                        <MessageCircle className="mr-1 h-3 w-3" />
+                        View
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -193,7 +205,7 @@ const WriterDashboard = () => {
       </div>
     );
   };
-
+  
   const CompletedAssignments = () => {
     if (completedAssignments.length === 0) {
       return (

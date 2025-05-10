@@ -8,7 +8,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
-import { ChevronLeft, Clock, CheckCircle, Info } from 'lucide-react';
+import { ChevronLeft, Clock, CheckCircle, Info, MessageCircle } from 'lucide-react';
 
 interface Writer {
   id: string;
@@ -60,7 +60,10 @@ const AssignmentChatComponent = () => {
           .eq('id', assignmentId)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching assignment:', error);
+          throw error;
+        }
 
         // Transform the data to match our expected type
         const transformedData: AssignmentWithWriter = {
@@ -146,7 +149,7 @@ const AssignmentChatComponent = () => {
     );
   }
 
-  // Check if the assignment has been taken by a writer
+  // For students - handle case where no writer has taken the assignment
   if (userRole === 'student' && !assignment.writer_id) {
     return (
       <div className="p-6 text-center">
@@ -160,6 +163,88 @@ const AssignmentChatComponent = () => {
           <ChevronLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Button>
+      </div>
+    );
+  }
+
+  // For writers - handle case where they haven't taken the assignment yet
+  if (userRole === 'writer' && !assignment.writer_id) {
+    const handleTakeAssignment = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('assignments')
+          .update({
+            writer_id: userId,
+            status: 'in_progress',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', assignment.id)
+          .select();
+
+        if (error) throw error;
+        
+        toast.success("Assignment taken successfully");
+        
+        // Send notification to student about assignment being taken
+        const message = `I've taken your assignment "${assignment.title}" and will begin working on it. Let me know if you have any questions!`;
+        
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            sender_id: userId,
+            recipient_id: assignment.user_id,
+            content: message,
+            assignment_id: assignment.id,
+            read: false
+          });
+          
+        if (messageError) {
+          console.error('Error sending initial message:', messageError);
+        }
+        
+      } catch (err: any) {
+        console.error('Error taking assignment:', err);
+        toast.error(err.message || "Failed to take assignment");
+      }
+    };
+    
+    return (
+      <div className="container max-w-4xl mx-auto py-6 px-4">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+
+        <Card className="mb-6">
+          <CardHeader className="bg-muted/50">
+            <CardTitle>{assignment.title}</CardTitle>
+            <p className="text-sm text-muted-foreground">Subject: {assignment.subject}</p>
+          </CardHeader>
+          <CardContent className="pt-6">
+            {assignment.description && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium mb-1">Description:</h3>
+                <p className="text-sm whitespace-pre-wrap">{assignment.description}</p>
+              </div>
+            )}
+            
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
+              <h3 className="font-medium text-amber-800 mb-2 flex items-center">
+                <Info className="h-4 w-4 mr-2" />
+                Available Assignment
+              </h3>
+              <p className="text-sm text-amber-800 mb-3">
+                This assignment is available for you to take. Once you take it, you'll be able to chat with the student.
+              </p>
+              <Button 
+                onClick={handleTakeAssignment}
+                className="bg-amber-600 hover:bg-amber-700"
+              >
+                Take Assignment
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
