@@ -46,12 +46,19 @@ export const useMessages = (assignmentId?: string) => {
       console.log("Fetching messages for assignmentId:", assignmentId);
       console.log("Current user ID:", userId);
 
+      // Improved query with explicit join format
       let query = supabase
         .from('messages')
         .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(id, full_name, email, role, avatar_url),
-          recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role, avatar_url)
+          id, 
+          sender_id,
+          recipient_id,
+          content,
+          created_at,
+          read,
+          assignment_id,
+          sender:profiles!messages_sender_id_fkey (id, full_name, email, role, avatar_url),
+          recipient:profiles!messages_recipient_id_fkey (id, full_name, email, role, avatar_url)
         `);
 
       if (assignmentId) {
@@ -72,13 +79,19 @@ export const useMessages = (assignmentId?: string) => {
       
       console.log("Messages data:", data);
       
-      // Properly cast the data to MessageWithProfile[] type
       if (data && Array.isArray(data)) {
-        setMessages(data as unknown as MessageWithProfile[]);
+        // Transform the data to match our expected format
+        const transformedMessages = data.map(msg => ({
+          ...msg,
+          sender: msg.sender || { id: msg.sender_id, full_name: null, email: '', role: '', avatar_url: null },
+          recipient: msg.recipient || { id: msg.recipient_id, full_name: null, email: '', role: '', avatar_url: null }
+        }));
+        
+        setMessages(transformedMessages as MessageWithProfile[]);
         
         // Count unread messages
-        const unread = data.filter(
-          (msg: any) => msg.recipient_id === userId && !msg.read
+        const unread = transformedMessages.filter(
+          msg => msg.recipient_id === userId && !msg.read
         ).length;
         
         setUnreadCount(unread);
@@ -154,9 +167,15 @@ export const useMessages = (assignmentId?: string) => {
         .from('messages')
         .insert(newMessage)
         .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey(id, full_name, email, role, avatar_url),
-          recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role, avatar_url)
+          id, 
+          sender_id,
+          recipient_id,
+          content,
+          created_at,
+          read,
+          assignment_id,
+          sender:profiles!messages_sender_id_fkey (id, full_name, email, role, avatar_url),
+          recipient:profiles!messages_recipient_id_fkey (id, full_name, email, role, avatar_url)
         `);
 
       if (error) {
