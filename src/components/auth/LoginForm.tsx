@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Eye, EyeOff } from "lucide-react";
+import ForgotPasswordForm from "./ForgotPasswordForm";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, signInWithGoogle, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,6 +28,10 @@ const LoginForm = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  if (showForgotPassword) {
+    return <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -48,12 +54,13 @@ const LoginForm = () => {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link
-              to="#"
+            <button 
+              type="button"
               className="text-sm font-medium text-brand-500 hover:text-brand-600"
+              onClick={() => setShowForgotPassword(true)}
             >
               Forgot password?
-            </Link>
+            </button>
           </div>
           <div className="relative">
             <Input
