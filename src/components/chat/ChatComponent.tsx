@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 
 interface ChatComponentProps {
   recipientId: string;
@@ -19,8 +20,10 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
   const [newMessage, setNewMessage] = useState('');
   const { messages, isLoading, sendMessage, markAsRead, fetchMessages } = useMessages(assignmentId);
   const [isSending, setIsSending] = useState(false);
-  const { userEmail, userId } = useAuth();
+  const { userEmail, userId, userRole } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageTimeRef = useRef<string | null>(null);
+  const initialLoadRef = useRef(true);
 
   // Filter messages to only show those between the current user and the recipient
   // When assignmentId is provided, it will automatically filter by assignment thanks to useMessages hook
@@ -60,6 +63,43 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
       });
     }
   }, [filteredMessages, userId, markAsRead]);
+
+  // Check for new messages and show notifications
+  useEffect(() => {
+    // Skip on the initial load
+    if (initialLoadRef.current) {
+      // Set the last message time for future reference
+      if (filteredMessages.length > 0) {
+        lastMessageTimeRef.current = filteredMessages[filteredMessages.length - 1].created_at;
+      }
+      initialLoadRef.current = false;
+      return;
+    }
+
+    // Find new messages that the user has received
+    const newMessages = filteredMessages.filter(msg => 
+      msg.recipient_id === userId && 
+      (!lastMessageTimeRef.current || new Date(msg.created_at) > new Date(lastMessageTimeRef.current))
+    );
+
+    // Show notification for new messages
+    if (newMessages.length > 0) {
+      const lastMessage = newMessages[newMessages.length - 1];
+      
+      // Update the last message time
+      lastMessageTimeRef.current = lastMessage.created_at;
+      
+      // Show notification if the message is from the other person
+      if (lastMessage.sender_id !== userId) {
+        const senderName = lastMessage.sender.full_name || lastMessage.sender.email || 'Someone';
+        toast.success(`New message from ${senderName}`, {
+          description: lastMessage.content.length > 50 
+            ? `${lastMessage.content.substring(0, 50)}...` 
+            : lastMessage.content
+        });
+      }
+    }
+  }, [filteredMessages, userId]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {

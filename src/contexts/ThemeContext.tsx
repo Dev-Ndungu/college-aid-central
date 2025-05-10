@@ -12,11 +12,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   // Always default to dark mode for the purple theme
-  const savedTheme = typeof window !== 'undefined' 
-    ? localStorage.getItem('theme') as Theme || 'dark'
-    : 'dark';
-    
-  const [theme, setTheme] = useState<Theme>(savedTheme);
+  const [theme, setTheme] = useState<Theme>('dark');
 
   // Apply theme to the body element
   useEffect(() => {
@@ -27,7 +23,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    setTheme('dark'); // Always stay in dark mode for consistent purple theme
+    toast.info('This application uses a dark theme for optimal viewing');
   };
 
   return (
