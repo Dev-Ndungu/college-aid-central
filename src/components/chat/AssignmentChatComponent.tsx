@@ -8,7 +8,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { ChevronLeft, Clock, CheckCircle, Info, MessageCircle } from 'lucide-react';
-import { Writer } from '@/hooks/useWriters';
+
+interface Writer {
+  id: string;
+  full_name: string | null;
+  email: string;
+}
 
 interface User {
   id: string;
@@ -24,8 +29,8 @@ interface AssignmentWithWriter {
   status: string;
   user_id: string;
   writer_id: string | null;
-  writer: any; // Accept any format from the database
-  user: any; // Accept any format from the database
+  writer?: Writer | null;
+  user?: User | null;
 }
 
 interface AssignmentChatComponentProps {
@@ -39,58 +44,47 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
   const { userId, userRole } = useAuth();
   const navigate = useNavigate();
 
-  const fetchAssignment = async () => {
-    if (!assignmentId) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      console.log('Fetching assignment with ID:', assignmentId);
-      
-      // Fetch assignment with writer and user details
-      // Use explicit join query format to handle the relationship better
-      const { data, error } = await supabase
-        .from('assignments')
-        .select(`
-          id, 
-          title, 
-          subject, 
-          description, 
-          status, 
-          user_id, 
-          writer_id,
-          profiles!assignments_user_id_fkey (id, full_name, email),
-          profiles!assignments_writer_id_fkey (id, full_name, email)
-        `)
-        .eq('id', assignmentId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching assignment:', error);
-        throw error;
-      }
-
-      console.log('Raw assignment data:', data);
-
-      // Transform the data to match our expected format
-      const transformedData: AssignmentWithWriter = {
-        ...data,
-        user: data.profiles, // User data
-        writer: data.writer_id ? data["profiles!assignments_writer_id_fkey"] : null // Writer data
-      };
-
-      console.log('Transformed assignment data:', transformedData);
-      setAssignment(transformedData);
-    } catch (err: any) {
-      console.error('Error fetching assignment:', err);
-      setError(err.message || 'Failed to fetch assignment');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchAssignment = async () => {
+      if (!assignmentId) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log('Fetching assignment with ID:', assignmentId);
+        
+        // Fetch assignment with writer and user details
+        const { data, error } = await supabase
+          .from('assignments')
+          .select('*, writer:profiles(id, full_name, email), user:profiles(id, full_name, email)')
+          .eq('id', assignmentId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching assignment:', error);
+          throw error;
+        }
+
+        console.log('Raw assignment data:', data);
+
+        // Transform the data to match our expected type
+        const transformedData: AssignmentWithWriter = {
+          ...data,
+          writer: data.writer || null, 
+          user: data.user || null
+        };
+
+        console.log('Transformed assignment data:', transformedData);
+        setAssignment(transformedData);
+      } catch (err: any) {
+        console.error('Error fetching assignment:', err);
+        setError(err.message || 'Failed to fetch assignment');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchAssignment();
 
     // Set up real-time subscription for assignment updates
@@ -99,64 +93,20 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'assignments', filter: `id=eq.${assignmentId}` }, 
         () => {
-          console.log('Assignment updated, fetching latest data');
           fetchAssignment();
         }
       )
-      .subscribe((status) => {
-        console.log('Assignment subscription status:', status);
-      });
-
-    // Set up real-time subscription for messages
-    const messagesSubscription = supabase
-      .channel(`messages-assignment-${assignmentId}`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `assignment_id=eq.${assignmentId}` 
-        }, 
-        (payload) => {
-          console.log('Message change detected:', payload);
-          // No need to refetch the whole assignment, just notify the user
-          if (payload.eventType === 'INSERT') {
-            const newMessage = payload.new;
-            // Only show notification for incoming messages (not ones the user sends)
-            if (newMessage.recipient_id === userId) {
-              toast.info('New message received');
-            }
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Messages subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up subscriptions');
       supabase.removeChannel(assignmentSubscription);
-      supabase.removeChannel(messagesSubscription);
     };
-  }, [assignmentId, userId]);
+  }, [assignmentId]);
 
   // Determine who the current user should chat with
-  const getChatRecipientId = () => {
-    if (!assignment) return null;
-    
-    // If current user is a student, chat with writer (if assigned)
-    if (userRole === 'student') {
-      return assignment.writer_id;
-    } 
-    // If current user is a writer, chat with the student
-    else if (userRole === 'writer') {
-      return assignment.user_id;
-    }
-    
-    return null;
-  };
-
-  const chatRecipientId = getChatRecipientId();
+  const chatRecipientId = userRole === 'student' 
+    ? assignment?.writer_id 
+    : assignment?.user_id;
 
   if (isLoading) {
     return (
@@ -240,28 +190,22 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
         toast.success("Assignment taken successfully");
         
         // Send notification to student about assignment being taken
-        if (userId) {
-          const message = `I've taken your assignment "${assignment.title}" and will begin working on it. Let me know if you have any questions!`;
+        const message = `I've taken your assignment "${assignment.title}" and will begin working on it. Let me know if you have any questions!`;
+        
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            sender_id: userId,
+            recipient_id: assignment.user_id,
+            content: message,
+            assignment_id: assignment.id,
+            read: false
+          });
           
-          const { error: messageError } = await supabase
-            .from('messages')
-            .insert({
-              sender_id: userId,
-              recipient_id: assignment.user_id,
-              content: message,
-              assignment_id: assignment.id,
-              read: false
-            });
-            
-          if (messageError) {
-            console.error('Error sending initial message:', messageError);
-            toast.error('Failed to send initial message');
-          } else {
-            console.log('Initial message sent successfully');
-            // Force refresh to update the UI
-            fetchAssignment();
-          }
+        if (messageError) {
+          console.error('Error sending initial message:', messageError);
         }
+        
       } catch (err: any) {
         console.error('Error taking assignment:', err);
         toast.error(err.message || "Failed to take assignment");
@@ -309,29 +253,9 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
     );
   }
 
-  // Get chat partner name safely
-  const getChatPartnerName = () => {
-    if (!assignment) return 'User';
-    
-    // If current user is a student, show writer name
-    if (userRole === 'student' && assignment.writer) {
-      const writerProfiles = assignment["profiles!assignments_writer_id_fkey"];
-      if (writerProfiles) {
-        return writerProfiles.full_name || writerProfiles.email || 'Writer';
-      }
-    } 
-    // If current user is a writer, show student name
-    else if (userRole === 'writer') {
-      const userProfiles = assignment["profiles!assignments_user_id_fkey"];
-      if (userProfiles) {
-        return userProfiles.full_name || userProfiles.email || 'Student';
-      }
-    }
-    
-    return userRole === 'student' ? 'Writer' : 'Student';
-  };
-
-  const chatPartnerName = getChatPartnerName();
+  const chatPartnerName = userRole === 'student' 
+    ? (assignment.writer?.full_name || assignment.writer?.email || 'Writer') 
+    : (assignment.user?.full_name || assignment.user?.email || 'Student');
 
   return (
     <div className="container max-w-4xl mx-auto py-6 px-4">

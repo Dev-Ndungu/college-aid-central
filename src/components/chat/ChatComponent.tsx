@@ -9,7 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from "sonner";
 
 interface ChatComponentProps {
   recipientId: string;
@@ -18,7 +17,7 @@ interface ChatComponentProps {
 
 const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId }) => {
   const [newMessage, setNewMessage] = useState('');
-  const { messages, isLoading, sendMessage, markAsRead, fetchMessages, markAllAsRead } = useMessages(assignmentId);
+  const { messages, isLoading, sendMessage, markAsRead, fetchMessages } = useMessages(assignmentId);
   const [isSending, setIsSending] = useState(false);
   const { userEmail, userId } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,18 +36,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
     
     try {
       setIsSending(true);
-      console.log(`Sending message to recipient ${recipientId}${assignmentId ? ` for assignment ${assignmentId}` : ''}`);
-      
-      const result = await sendMessage(newMessage, recipientId, assignmentId);
-      if (result) {
-        setNewMessage('');
-        console.log('Message sent successfully:', result);
-      } else {
-        toast.error("Failed to send message");
-      }
+      await sendMessage(newMessage, recipientId, assignmentId);
+      setNewMessage('');
+      // Force refresh messages
+      fetchMessages();
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error('Error sending message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -56,31 +49,24 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
 
   // Mark messages as read when they are viewed
   useEffect(() => {
-    if (filteredMessages.length > 0 && userId) {
-      const unreadMessages = filteredMessages.filter(
-        msg => msg.recipient_id === userId && !msg.read
-      );
-      
-      if (unreadMessages.length > 0) {
-        console.log("Marking messages as read:", unreadMessages.length);
-        // Mark all unread messages from this sender as read
-        markAllAsRead(recipientId);
-      }
+    const unreadMessages = filteredMessages.filter(
+      msg => msg.recipient_id === userId && !msg.read
+    );
+    
+    if (unreadMessages.length > 0) {
+      console.log("Marking messages as read:", unreadMessages.length);
+      unreadMessages.forEach(msg => {
+        markAsRead(msg.id);
+      });
     }
-  }, [filteredMessages, userId, recipientId, markAllAsRead]);
-
-  // Fetch messages on component mount and when dependencies change
-  useEffect(() => {
-    console.log("Fetching messages for recipient:", recipientId);
-    fetchMessages();
-  }, [recipientId, assignmentId, fetchMessages]);
+  }, [filteredMessages, userId, markAsRead]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [filteredMessages]);
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-full">

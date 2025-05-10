@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "sonner";
@@ -33,10 +33,9 @@ export const useMessages = (assignmentId?: string) => {
   const [messages, setMessages] = useState<MessageWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const { isAuthenticated, userRole, userId } = useAuth();
 
-  const fetchMessages = useCallback(async () => {
+  const fetchMessages = async () => {
     if (!isAuthenticated || !userId) return;
 
     try {
@@ -46,19 +45,12 @@ export const useMessages = (assignmentId?: string) => {
       console.log("Fetching messages for assignmentId:", assignmentId);
       console.log("Current user ID:", userId);
 
-      // Improved query with explicit join format
       let query = supabase
         .from('messages')
         .select(`
-          id, 
-          sender_id,
-          recipient_id,
-          content,
-          created_at,
-          read,
-          assignment_id,
-          sender:profiles!messages_sender_id_fkey (id, full_name, email, role, avatar_url),
-          recipient:profiles!messages_recipient_id_fkey (id, full_name, email, role, avatar_url)
+          *,
+          sender:profiles!sender_id(id, full_name, email, role, avatar_url),
+          recipient:profiles!recipient_id(id, full_name, email, role, avatar_url)
         `);
 
       if (assignmentId) {
@@ -79,25 +71,11 @@ export const useMessages = (assignmentId?: string) => {
       
       console.log("Messages data:", data);
       
+      // Properly cast the data to MessageWithProfile[] type
       if (data && Array.isArray(data)) {
-        // Transform the data to match our expected format
-        const transformedMessages = data.map(msg => ({
-          ...msg,
-          sender: msg.sender || { id: msg.sender_id, full_name: null, email: '', role: '', avatar_url: null },
-          recipient: msg.recipient || { id: msg.recipient_id, full_name: null, email: '', role: '', avatar_url: null }
-        }));
-        
-        setMessages(transformedMessages as MessageWithProfile[]);
-        
-        // Count unread messages
-        const unread = transformedMessages.filter(
-          msg => msg.recipient_id === userId && !msg.read
-        ).length;
-        
-        setUnreadCount(unread);
+        setMessages(data as unknown as MessageWithProfile[]);
       } else {
         setMessages([]);
-        setUnreadCount(0);
       }
 
     } catch (err: any) {
@@ -106,45 +84,33 @@ export const useMessages = (assignmentId?: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, userId, assignmentId]);
+  };
 
   useEffect(() => {
     if (isAuthenticated && userId) {
       fetchMessages();
       
       // Set up real-time subscription for messages
-      const channelName = assignmentId 
-        ? `messages-assignment-${assignmentId}` 
-        : `messages-user-${userId}`;
-      
-      console.log(`Setting up realtime subscription for channel: ${channelName}`);
+      const channelId = assignmentId ? `messages-assignment-${assignmentId}` : `messages-user-${userId}`;
       
       const messagesSubscription = supabase
-        .channel(channelName)
+        .channel(channelId)
         .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'messages',
-            filter: assignmentId 
-              ? `assignment_id=eq.${assignmentId}`
-              : `or(sender_id.eq.${userId},recipient_id.eq.${userId})`
-          }, 
+          { event: '*', schema: 'public', table: 'messages' }, 
           (payload) => {
             console.log('Message change detected:', payload);
             fetchMessages(); // Refetch all messages when there are changes
           }
         )
         .subscribe((status) => {
-          console.log(`Realtime subscription status for ${channelName}:`, status);
+          console.log('Realtime subscription status:', status);
         });
 
       return () => {
-        console.log(`Removing channel: ${channelName}`);
         supabase.removeChannel(messagesSubscription);
       };
     }
-  }, [isAuthenticated, userId, assignmentId, fetchMessages]);
+  }, [isAuthenticated, userId, assignmentId]);
 
   const sendMessage = async (content: string, recipientId: string, assignmentId?: string) => {
     if (!userId) {
@@ -167,27 +133,15 @@ export const useMessages = (assignmentId?: string) => {
         .from('messages')
         .insert(newMessage)
         .select(`
-          id, 
-          sender_id,
-          recipient_id,
-          content,
-          created_at,
-          read,
-          assignment_id,
-          sender:profiles!messages_sender_id_fkey (id, full_name, email, role, avatar_url),
-          recipient:profiles!messages_recipient_id_fkey (id, full_name, email, role, avatar_url)
+          *,
+          sender:profiles!sender_id(id, full_name, email, role, avatar_url),
+          recipient:profiles!recipient_id(id, full_name, email, role, avatar_url)
         `);
 
-      if (error) {
-        console.error('Error sending message:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       console.log("Message sent successfully:", data);
       toast.success("Message sent successfully");
-
-      // Force a refresh of messages
-      fetchMessages();
 
       return data[0] as unknown as MessageWithProfile;
     } catch (err: any) {
@@ -206,8 +160,6 @@ export const useMessages = (assignmentId?: string) => {
 
       if (error) throw error;
       
-      console.log(`Marked message ${messageId} as read`);
-      
       // Update the local state to reflect the change
       setMessages(prevMessages => 
         prevMessages.map(msg => 
@@ -215,68 +167,10 @@ export const useMessages = (assignmentId?: string) => {
         )
       );
       
-      // Recalculate unread count
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      
       return true;
     } catch (err: any) {
       console.error('Error marking message as read:', err);
       throw err;
-    }
-  };
-
-  // Mark all messages from a specific user or assignment as read
-  const markAllAsRead = async (senderId?: string) => {
-    if (!userId) return;
-    
-    try {
-      let query = supabase
-        .from('messages')
-        .update({ read: true })
-        .eq('recipient_id', userId)
-        .eq('read', false);
-        
-      if (senderId) {
-        query = query.eq('sender_id', senderId);
-      }
-      
-      if (assignmentId) {
-        query = query.eq('assignment_id', assignmentId);
-      }
-      
-      const { error, count } = await query;
-      
-      if (error) throw error;
-      
-      console.log(`Marked ${count} messages as read`);
-      
-      // Update local state
-      setMessages(prevMessages => 
-        prevMessages.map(msg => 
-          (msg.recipient_id === userId && (!senderId || msg.sender_id === senderId))
-            ? { ...msg, read: true } 
-            : msg
-        )
-      );
-      
-      // Reset unread count if we marked all as read
-      if (!senderId && !assignmentId) {
-        setUnreadCount(0);
-      } else {
-        // Recalculate unread count
-        const unread = messages.filter(
-          msg => msg.recipient_id === userId && !msg.read && 
-            (senderId ? msg.sender_id !== senderId : true) &&
-            (assignmentId ? msg.assignment_id !== assignmentId : true)
-        ).length;
-        
-        setUnreadCount(unread);
-      }
-      
-      return true;
-    } catch (err: any) {
-      console.error('Error marking messages as read:', err);
-      return false;
     }
   };
 
@@ -286,8 +180,6 @@ export const useMessages = (assignmentId?: string) => {
     error,
     sendMessage,
     markAsRead,
-    fetchMessages,
-    markAllAsRead,
-    unreadCount
+    fetchMessages
   };
 };
