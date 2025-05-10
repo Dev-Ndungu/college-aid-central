@@ -8,7 +8,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { ChevronLeft, Clock, CheckCircle, Info, MessageCircle } from 'lucide-react';
-import { Writer } from '@/hooks/useWriters';
+
+interface Writer {
+  id: string;
+  full_name: string | null;
+  email: string;
+}
 
 interface User {
   id: string;
@@ -24,8 +29,8 @@ interface AssignmentWithWriter {
   status: string;
   user_id: string;
   writer_id: string | null;
-  writer: Writer | null;
-  user: User | null;
+  writer?: Writer | null;
+  user?: User | null;
 }
 
 interface AssignmentChatComponentProps {
@@ -52,11 +57,7 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
         // Fetch assignment with writer and user details
         const { data, error } = await supabase
           .from('assignments')
-          .select(`
-            *,
-            writer:profiles!assignments_writer_id_fkey(id, full_name, email),
-            user:profiles!assignments_user_id_fkey(id, full_name, email)
-          `)
+          .select('*, writer:profiles(id, full_name, email), user:profiles(id, full_name, email)')
           .eq('id', assignmentId)
           .single();
 
@@ -67,23 +68,11 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
 
         console.log('Raw assignment data:', data);
 
-        // Fix: Properly handle the writer and user objects which are returned as arrays
-        // Access the first element of the array since we expect just one writer and one user
+        // Transform the data to match our expected type
         const transformedData: AssignmentWithWriter = {
           ...data,
-          writer: data.writer && Array.isArray(data.writer) && data.writer.length > 0 ? {
-            id: data.writer[0].id,
-            full_name: data.writer[0].full_name,
-            email: data.writer[0].email,
-            avatar_url: null, // Add missing properties from Writer type
-            writer_bio: null,
-            writer_skills: null
-          } : null,
-          user: data.user && Array.isArray(data.user) && data.user.length > 0 ? {
-            id: data.user[0].id,
-            full_name: data.user[0].full_name,
-            email: data.user[0].email
-          } : null
+          writer: data.writer || null, 
+          user: data.user || null
         };
 
         console.log('Transformed assignment data:', transformedData);
