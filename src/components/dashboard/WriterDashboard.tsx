@@ -11,7 +11,6 @@ import { BookOpen, CheckCircle, Clock, MessageCircle, Eye } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
-import FileAttachments from '../assignment/FileAttachments';
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
@@ -163,8 +162,8 @@ const WriterDashboard = () => {
 
     return (
       <div className="space-y-4">
-        <div className="bg-brand-500/20 border border-brand-500/30 p-3 rounded-lg text-sm backdrop-blur-sm">
-          <h3 className="font-medium mb-1 text-brand-600">Available Assignments</h3>
+        <div className="bg-gray-100/60 border border-gray-200 p-3 rounded-lg text-sm">
+          <h3 className="font-medium mb-1 text-gray-700">Available Assignments</h3>
           <p className="text-gray-600 dark:text-gray-300 text-xs">
             These assignments have been submitted by students and are available for you to take.
           </p>
@@ -172,34 +171,34 @@ const WriterDashboard = () => {
 
         <div className="overflow-auto">
           <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-muted">
+            <thead className="bg-gray-100/70">
               <tr>
-                <th className="p-3 text-left font-medium text-muted-foreground">Assignment</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Subject</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Actions</th>
+                <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
+                <th className="p-3 text-left font-medium text-gray-600">Subject</th>
+                <th className="p-3 text-left font-medium text-gray-600">Status</th>
+                <th className="p-3 text-left font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-gray-200">
               {availableAssignments.map(assignment => (
-                <tr key={assignment.id} className="border-b border-border">
+                <tr key={assignment.id} className="border-b border-gray-200">
                   <td className="p-3">
-                    <div className="font-medium text-foreground">{assignment.title}</div>
+                    <div className="font-medium text-gray-800">{assignment.title}</div>
                     {assignment.description && (
-                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                         {assignment.description}
                       </div>
                     )}
                     {assignment.file_urls && assignment.file_urls.length > 0 && (
-                      <div className="mt-1 text-xs text-muted-foreground flex items-center">
+                      <div className="mt-1 text-xs text-gray-500 flex items-center">
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
                       </div>
                     )}
                   </td>
-                  <td className="p-3 text-foreground">{assignment.subject}</td>
+                  <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-500/40">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
                       Submitted
                     </span>
                   </td>
@@ -209,7 +208,6 @@ const WriterDashboard = () => {
                         onClick={() => handleTakeAssignment(assignment.id)}
                         disabled={processingIds.has(assignment.id)}
                         size="sm"
-                        className="bg-brand-500 hover:bg-brand-600"
                       >
                         {processingIds.has(assignment.id) 
                           ? <span className="flex items-center gap-1">
@@ -260,42 +258,42 @@ const WriterDashboard = () => {
 
     return (
       <div className="space-y-4">
-        <div className="bg-accent/50 p-3 rounded-lg border border-accent text-sm backdrop-blur-sm">
-          <h3 className="font-medium mb-1 text-accent-foreground">My Active Assignments</h3>
-          <p className="text-muted-foreground text-xs">
+        <div className="bg-gray-100/60 p-3 rounded-lg border border-gray-200 text-sm">
+          <h3 className="font-medium mb-1 text-gray-700">My Active Assignments</h3>
+          <p className="text-gray-600 text-xs">
             These are assignments you've taken and are currently working on.
           </p>
         </div>
 
         <div className="overflow-auto">
           <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-muted">
+            <thead className="bg-gray-100/70">
               <tr>
-                <th className="p-3 text-left font-medium text-muted-foreground">Assignment</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Subject</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Update Progress</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Actions</th>
+                <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
+                <th className="p-3 text-left font-medium text-gray-600">Subject</th>
+                <th className="p-3 text-left font-medium text-gray-600">Status</th>
+                <th className="p-3 text-left font-medium text-gray-600">Update Progress</th>
+                <th className="p-3 text-left font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-gray-200">
               {myAssignments.map(assignment => (
-                <tr key={assignment.id} className="border-b border-border">
+                <tr key={assignment.id} className="border-b border-gray-200">
                   <td className="p-3">
-                    <div className="font-medium text-foreground">{assignment.title}</div>
+                    <div className="font-medium text-gray-800">{assignment.title}</div>
                     {assignment.description && (
-                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                         {assignment.description}
                       </div>
                     )}
                     {assignment.file_urls && assignment.file_urls.length > 0 && (
-                      <div className="mt-1 text-xs text-muted-foreground flex items-center">
+                      <div className="mt-1 text-xs text-gray-500 flex items-center">
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
                       </div>
                     )}
                   </td>
-                  <td className="p-3 text-foreground">{assignment.subject}</td>
+                  <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-sm border ${getStatusBadgeClass(assignment.status)}`}>
                       {getStatusDisplay(assignment.status)}
@@ -308,7 +306,7 @@ const WriterDashboard = () => {
                         onValueChange={(value) => handleStatusUpdate(assignment.id, value)}
                         disabled={updatingProgressIds.has(assignment.id)}
                       >
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-[140px] bg-white">
                           <SelectValue placeholder="Update Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -318,7 +316,7 @@ const WriterDashboard = () => {
                         </SelectContent>
                       </Select>
                       {updatingProgressIds.has(assignment.id) && (
-                        <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                        <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
                       )}
                     </div>
                   </td>
@@ -368,37 +366,37 @@ const WriterDashboard = () => {
 
     return (
       <div className="space-y-4">
-        <div className="bg-green-100 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-700/30 text-sm backdrop-blur-sm">
-          <h3 className="font-medium mb-1 text-green-800 dark:text-green-200">Completed Assignments</h3>
-          <p className="text-green-700 dark:text-green-300/70 text-xs">
+        <div className="bg-gray-100/60 dark:bg-gray-100/20 p-3 rounded-lg border border-gray-200 text-sm">
+          <h3 className="font-medium mb-1 text-gray-700">Completed Assignments</h3>
+          <p className="text-gray-600 dark:text-green-300/70 text-xs">
             These are assignments you've successfully completed.
           </p>
         </div>
 
         <div className="overflow-auto">
           <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-muted">
+            <thead className="bg-gray-100/70">
               <tr>
-                <th className="p-3 text-left font-medium text-muted-foreground">Assignment</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Subject</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Completed Date</th>
-                <th className="p-3 text-left font-medium text-muted-foreground">Actions</th>
+                <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
+                <th className="p-3 text-left font-medium text-gray-600">Subject</th>
+                <th className="p-3 text-left font-medium text-gray-600">Completed Date</th>
+                <th className="p-3 text-left font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-gray-200">
               {completedAssignments.map(assignment => (
-                <tr key={assignment.id} className="border-b border-border">
+                <tr key={assignment.id} className="border-b border-gray-200">
                   <td className="p-3">
-                    <div className="font-medium text-foreground">{assignment.title}</div>
+                    <div className="font-medium text-gray-800">{assignment.title}</div>
                     {assignment.file_urls && assignment.file_urls.length > 0 && (
-                      <div className="mt-1 text-xs text-muted-foreground flex items-center">
+                      <div className="mt-1 text-xs text-gray-500 flex items-center">
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
                       </div>
                     )}
                   </td>
-                  <td className="p-3 text-foreground">{assignment.subject}</td>
-                  <td className="p-3 text-foreground">
+                  <td className="p-3 text-gray-700">{assignment.subject}</td>
+                  <td className="p-3 text-gray-700">
                     {assignment.completed_date ? 
                       new Date(assignment.completed_date).toLocaleDateString() : 
                       'N/A'
@@ -436,10 +434,10 @@ const WriterDashboard = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="available" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-8">
-          <TabsTrigger value="available">Available</TabsTrigger>
-          <TabsTrigger value="active">My Assignments</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+        <TabsList className="grid grid-cols-3 mb-8 bg-gray-100 border border-gray-200">
+          <TabsTrigger value="available" className="data-[state=active]:bg-white">Available</TabsTrigger>
+          <TabsTrigger value="active" className="data-[state=active]:bg-white">My Assignments</TabsTrigger>
+          <TabsTrigger value="completed" className="data-[state=active]:bg-white">Completed</TabsTrigger>
         </TabsList>
         
         <TabsContent value="available" className="w-full">
@@ -450,10 +448,10 @@ const WriterDashboard = () => {
                 Browse assignments submitted by students that are available for you to take.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="pt-0">
               {isLoading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
                 </div>
               ) : (
@@ -471,10 +469,10 @@ const WriterDashboard = () => {
                 Assignments you've taken and are currently working on.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="pt-0">
               {isLoading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
                 </div>
               ) : (
@@ -492,10 +490,10 @@ const WriterDashboard = () => {
                 Assignments you've successfully completed.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent className="pt-0">
               {isLoading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
                 </div>
               ) : (
