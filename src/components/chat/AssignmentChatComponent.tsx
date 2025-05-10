@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ChatComponent from '@/components/chat/ChatComponent';
 import { supabase } from "@/integrations/supabase/client";
-import { useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '../ui/button';
@@ -34,8 +33,11 @@ interface AssignmentWithWriter {
   user?: User | null;
 }
 
-const AssignmentChatComponent = () => {
-  const { assignmentId } = useParams<{ assignmentId: string }>();
+interface AssignmentChatComponentProps {
+  assignmentId?: string;
+}
+
+const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assignmentId }) => {
   const [assignment, setAssignment] = useState<AssignmentWithWriter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +54,7 @@ const AssignmentChatComponent = () => {
 
         console.log('Fetching assignment with ID:', assignmentId);
         
-        // First try with explicit join syntax
+        // Fetch assignment with writer and user details
         const { data, error } = await supabase
           .from('assignments')
           .select('*, writer:profiles(id, full_name, email), user:profiles(id, full_name, email)')

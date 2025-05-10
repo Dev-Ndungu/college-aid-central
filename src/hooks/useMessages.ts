@@ -35,63 +35,82 @@ export const useMessages = (assignmentId?: string) => {
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, userRole, userId } = useAuth();
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  const fetchMessages = async () => {
+    if (!isAuthenticated || !userId) return;
 
-    const fetchMessages = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        let query = supabase
-          .from('messages')
-          .select(`
-            *,
-            sender:profiles!messages_sender_id_fkey(id, full_name, email, role, avatar_url),
-            recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role, avatar_url)
-          `)
-          .order('created_at', { ascending: false });
+      console.log("Fetching messages for assignmentId:", assignmentId);
+      console.log("Current user ID:", userId);
 
-        if (assignmentId) {
-          query = query.eq('assignment_id', assignmentId);
-        }
+      let query = supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles!sender_id(id, full_name, email, role, avatar_url),
+          recipient:profiles!recipient_id(id, full_name, email, role, avatar_url)
+        `);
 
-        const { data, error: messagesError } = await query;
-
-        if (messagesError) throw messagesError;
-        
-        // Properly cast the data to MessageWithProfile[] type
-        if (data && Array.isArray(data)) {
-          setMessages(data as unknown as MessageWithProfile[]);
-        } else {
-          setMessages([]);
-        }
-
-      } catch (err: any) {
-        console.error('Error fetching messages:', err);
-        setError(err.message || 'Failed to fetch messages');
-      } finally {
-        setIsLoading(false);
+      if (assignmentId) {
+        query = query.eq('assignment_id', assignmentId);
+      } else {
+        // If no assignment ID, just get messages involving this user
+        query = query.or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
       }
-    };
 
-    fetchMessages();
-    
-    // Set up real-time subscription for messages
-    const messagesSubscription = supabase
-      .channel('messages-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'messages' }, 
-        () => {
-          fetchMessages(); // Refetch all messages when there are changes
-        }
-      )
-      .subscribe();
+      query = query.order('created_at', { ascending: true });
 
-    return () => {
-      supabase.removeChannel(messagesSubscription);
-    };
-  }, [isAuthenticated, assignmentId]);
+      const { data, error: messagesError } = await query;
+
+      if (messagesError) {
+        console.error('Error in query:', messagesError);
+        throw messagesError;
+      }
+      
+      console.log("Messages data:", data);
+      
+      // Properly cast the data to MessageWithProfile[] type
+      if (data && Array.isArray(data)) {
+        setMessages(data as unknown as MessageWithProfile[]);
+      } else {
+        setMessages([]);
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching messages:', err);
+      setError(err.message || 'Failed to fetch messages');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && userId) {
+      fetchMessages();
+      
+      // Set up real-time subscription for messages
+      const channelId = assignmentId ? `messages-assignment-${assignmentId}` : `messages-user-${userId}`;
+      
+      const messagesSubscription = supabase
+        .channel(channelId)
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'messages' }, 
+          (payload) => {
+            console.log('Message change detected:', payload);
+            fetchMessages(); // Refetch all messages when there are changes
+          }
+        )
+        .subscribe((status) => {
+          console.log('Realtime subscription status:', status);
+        });
+
+      return () => {
+        supabase.removeChannel(messagesSubscription);
+      };
+    }
+  }, [isAuthenticated, userId, assignmentId]);
 
   const sendMessage = async (content: string, recipientId: string, assignmentId?: string) => {
     if (!userId) {
@@ -108,17 +127,20 @@ export const useMessages = (assignmentId?: string) => {
         read: false
       };
       
+      console.log("Sending message:", newMessage);
+      
       const { data, error } = await supabase
         .from('messages')
         .insert(newMessage)
         .select(`
           *,
-          sender:profiles!messages_sender_id_fkey(id, full_name, email, role, avatar_url),
-          recipient:profiles!messages_recipient_id_fkey(id, full_name, email, role, avatar_url)
+          sender:profiles!sender_id(id, full_name, email, role, avatar_url),
+          recipient:profiles!recipient_id(id, full_name, email, role, avatar_url)
         `);
 
       if (error) throw error;
       
+      console.log("Message sent successfully:", data);
       toast.success("Message sent successfully");
 
       return data[0] as unknown as MessageWithProfile;
@@ -157,6 +179,7 @@ export const useMessages = (assignmentId?: string) => {
     isLoading,
     error,
     sendMessage,
-    markAsRead
+    markAsRead,
+    fetchMessages
   };
 };
