@@ -24,30 +24,31 @@ import ResetPassword from '@/pages/ResetPassword';
 
 function App() {
   return (
-    <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/resources" element={<ResourcesPage />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile-completion" element={<ProfileCompletion />} />
-            <Route path="/how-it-works" element={<HowItWorksPage />} />
-            <Route path="/submit-assignment" element={<AssignmentSubmission />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
-            {/* Make sure reset-password route is correctly defined */}
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <Toaster />
-        </AuthProvider>
-      </Router>
-    </ThemeProvider>
+    <React.StrictMode>
+      <ThemeProvider>
+        <Router>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/resources" element={<ResourcesPage />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile-completion" element={<ProfileCompletion />} />
+              <Route path="/how-it-works" element={<HowItWorksPage />} />
+              <Route path="/submit-assignment" element={<AssignmentSubmission />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster />
+          </AuthProvider>
+        </Router>
+      </ThemeProvider>
+    </React.StrictMode>
   );
 }
 
