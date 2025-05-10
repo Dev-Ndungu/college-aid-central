@@ -40,6 +40,7 @@ function App() {
             <Route path="/submit-assignment" element={<AssignmentSubmission />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
+            {/* Make sure reset-password route is correctly defined */}
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

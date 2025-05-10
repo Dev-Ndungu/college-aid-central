@@ -21,11 +21,50 @@ const ResetPassword = () => {
   // Check if we have a valid recovery session when component mounts
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session?.user) {
-        toast.error("Invalid or expired recovery session");
-        // If no valid session, redirect back to login
-        setTimeout(() => navigate('/login'), 2000);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        console.log("Current session state:", data.session ? "Session exists" : "No session");
+        
+        if (!data.session) {
+          // Get the URL hash if present (Supabase may include auth info in the hash)
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token");
+          const type = hashParams.get("type");
+          
+          console.log("URL hash params:", { type, hasAccessToken: !!accessToken });
+          
+          // If we have tokens in the URL but no session, try to set the session
+          if (accessToken && type === "recovery") {
+            console.log("Setting session from recovery parameters");
+            const { error: setSessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || "",
+            });
+            
+            if (setSessionError) {
+              console.error("Error setting session:", setSessionError);
+              toast.error("Invalid or expired recovery link. Please request a new one.");
+              navigate('/login');
+              return;
+            }
+            
+            // Successfully set the session, continue with reset
+            console.log("Session set from recovery parameters");
+            return;
+          } else {
+            console.error("No valid recovery session found");
+            toast.error("Invalid or expired recovery link. Please request a new one.");
+            // If no valid session, redirect back to login
+            navigate('/login');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+        toast.error("An error occurred. Please try again.");
+        navigate('/login');
       }
     };
     

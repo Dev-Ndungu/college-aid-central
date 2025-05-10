@@ -28,6 +28,7 @@ const ForgotPasswordForm = ({ onBack }: ForgotPasswordFormProps) => {
     setIsLoading(true);
     
     try {
+      // Make sure we use the absolute URL for the redirect
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
