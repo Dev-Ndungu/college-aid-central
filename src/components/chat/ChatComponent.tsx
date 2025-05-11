@@ -3,13 +3,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader, Send, MessageCircle } from "lucide-react";
+import { Loader, Send, MessageCircle, CheckCircle2 } from "lucide-react";
 import { useMessages, type MessageWithProfile } from "@/hooks/useMessages";
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
+import OnlineStatus from './OnlineStatus';
+import { usePresence } from '@/hooks/usePresence';
 
 interface ChatComponentProps {
   recipientId: string;
@@ -24,6 +26,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageTimeRef = useRef<string | null>(null);
   const initialLoadRef = useRef(true);
+  const [recipientDetails, setRecipientDetails] = useState<{name: string | null, avatar: string | null}>({
+    name: null,
+    avatar: null
+  });
+  
+  // Initialize presence tracking
+  usePresence();
 
   // Filter messages to only show those between the current user and the recipient
   // When assignmentId is provided, it will automatically filter by assignment thanks to useMessages hook
@@ -32,6 +41,35 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
     : messages.filter(message => 
         (message.sender_id === recipientId || message.recipient_id === recipientId)
       );
+
+  // Fetch recipient details
+  useEffect(() => {
+    const fetchRecipientDetails = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url')
+          .eq('id', recipientId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching recipient details:', error);
+          return;
+        }
+
+        setRecipientDetails({
+          name: data.full_name || null,
+          avatar: data.avatar_url || null
+        });
+      } catch (err) {
+        console.error('Error in fetchRecipientDetails:', err);
+      }
+    };
+
+    if (recipientId) {
+      fetchRecipientDetails();
+    }
+  }, [recipientId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +148,11 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ recipientId, assignmentId
 
   return (
     <div className="flex flex-col h-full">
+      {recipientId && (
+        <div className="px-4 py-2 border-b">
+          <OnlineStatus userId={recipientId} userName={recipientDetails.name} />
+        </div>
+      )}
       <ScrollArea className="flex-grow mb-4 pb-2 pr-4">
         <div className="space-y-4 p-4">
           {isLoading ? (
@@ -221,9 +264,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           `}>
             <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
           </div>
-          <p className={`text-xs text-gray-400 mt-1 ${isCurrentUserMessage ? 'text-right' : 'text-left'}`}>
-            {messageTime}
-          </p>
+          <div className={`flex items-center gap-1 mt-1 ${isCurrentUserMessage ? 'justify-end' : ''}`}>
+            <p className="text-xs text-gray-400">
+              {messageTime}
+            </p>
+            {isCurrentUserMessage && message.read && (
+              <CheckCircle2 className="h-3 w-3 text-green-400" />
+            )}
+          </div>
         </div>
       </div>
     </div>

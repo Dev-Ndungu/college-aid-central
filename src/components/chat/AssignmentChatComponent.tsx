@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,8 @@ import { toast } from 'sonner';
 import { Button } from '../ui/button';
 import { ChevronLeft, Clock, CheckCircle, Info, MessageCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import OnlineStatus from './OnlineStatus';
+import { usePresence } from '@/hooks/usePresence';
 
 interface Writer {
   id: string;
@@ -46,6 +47,9 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
   const [isUpdating, setIsUpdating] = useState(false);
   const { userId, userRole } = useAuth();
   const navigate = useNavigate();
+  
+  // Initialize presence tracking
+  usePresence();
 
   useEffect(() => {
     const fetchAssignment = async () => {
@@ -321,8 +325,12 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
   }
 
   const chatPartnerName = userRole === 'student' 
-    ? (assignment.writer?.full_name || assignment.writer?.email || 'Writer') 
-    : (assignment.user?.full_name || assignment.user?.email || 'Student');
+    ? (assignment?.writer?.full_name || assignment?.writer?.email || 'Writer') 
+    : (assignment?.user?.full_name || assignment?.user?.email || 'Student');
+
+  const chatPartnerId = userRole === 'student' 
+    ? assignment?.writer_id 
+    : assignment?.user_id;
 
   // Status badge styling helper
   const getStatusBadgeClass = (status: string) => {
@@ -413,7 +421,10 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
       <Card className="h-[600px] flex flex-col bg-background/50 backdrop-blur-sm border-purple-800/30">
         <CardHeader className="bg-purple-900/20">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">Chat with {chatPartnerName}</CardTitle>
+            <div className="flex flex-col">
+              <CardTitle className="text-lg">Chat with {chatPartnerName}</CardTitle>
+              {chatPartnerId && <OnlineStatus userId={chatPartnerId} userName={chatPartnerName} />}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-grow overflow-hidden">
