@@ -11,10 +11,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import UserAvatar from '@/components/profile/UserAvatar';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { LayoutDashboard, Menu } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 const Navbar = () => {
   const { isAuthenticated, signOut, userRole } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   return (
     <header className="bg-white shadow-sm sticky top-0 z-10">
@@ -28,38 +36,77 @@ const Navbar = () => {
           <span className="text-2xl font-bold text-[#0d2241]">The Writers Hub</span>
         </Link>
         
-        <nav>
-          <ul className="flex items-center space-x-6">
-            <li>
-              <Link to="/" className="hover:text-primary transition-colors">
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link to="/how-it-works" className="hover:text-primary transition-colors">
-                How it Works
-              </Link>
-            </li>
-            <li>
-              <Link to="/resources" className="hover:text-primary transition-colors">
-                Resources
-              </Link>
-            </li>
-            <li>
-              <Link to="/contact" className="hover:text-primary transition-colors">
-                Contact
-              </Link>
-            </li>
-          </ul>
-        </nav>
+        {!isMobile ? (
+          <nav>
+            <ul className="flex items-center space-x-6">
+              <li>
+                <Link to="/" className="hover:text-primary transition-colors">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/how-it-works" className="hover:text-primary transition-colors">
+                  How it Works
+                </Link>
+              </li>
+              <li>
+                <Link to="/resources" className="hover:text-primary transition-colors">
+                  Resources
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-primary transition-colors">
+                  Contact
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        ) : (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <div className="flex flex-col gap-6 mt-6">
+                <Link to="/" className="text-lg font-medium hover:text-primary transition-colors">
+                  Home
+                </Link>
+                <Link to="/how-it-works" className="text-lg font-medium hover:text-primary transition-colors">
+                  How it Works
+                </Link>
+                <Link to="/resources" className="text-lg font-medium hover:text-primary transition-colors">
+                  Resources
+                </Link>
+                <Link to="/contact" className="text-lg font-medium hover:text-primary transition-colors">
+                  Contact
+                </Link>
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
         
-        <div>
+        <div className="flex items-center gap-2">
           {isAuthenticated ? (
-            <div className="flex items-center gap-4">
-              {/* Messages button */}
-              <Link to="/messages">
-                <Button variant="outline" size="sm">Messages</Button>
-              </Link>
+            <div className="flex items-center gap-2">
+              {/* Dashboard button - always visible */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex items-center gap-1" 
+                onClick={() => navigate('/dashboard')}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                {!isMobile && <span>Dashboard</span>}
+              </Button>
+              
+              {/* Messages button - only on desktop */}
+              {!isMobile && (
+                <Link to="/messages">
+                  <Button variant="outline" size="sm">Messages</Button>
+                </Link>
+              )}
               
               {/* User dropdown with avatar */}
               <DropdownMenu>
@@ -69,9 +116,14 @@ const Navbar = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
-                    Dashboard
-                  </DropdownMenuItem>
+                  {isMobile && (
+                    <>
+                      <DropdownMenuItem onClick={() => navigate('/messages')}>
+                        Messages
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     Profile
                   </DropdownMenuItem>
