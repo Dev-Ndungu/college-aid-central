@@ -19,8 +19,13 @@ const Navbar = () => {
   return (
     <header className="bg-white shadow-sm sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold text-primary">
-          College-Aid-Central
+        <Link to="/" className="flex items-center gap-2">
+          <img 
+            src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" 
+            alt="The Writers Hub Logo" 
+            className="h-10 w-auto"
+          />
+          <span className="text-2xl font-bold text-[#0d2241]">The Writers Hub</span>
         </Link>
         
         <nav>
