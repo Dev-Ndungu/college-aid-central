@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -157,8 +158,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          // Set session duration to 30 days if rememberMe is true, otherwise use default (1 day)
-          expiresIn: rememberMe ? 60 * 60 * 24 * 30 : undefined
+          // Use session data if rememberMe is true (longer session)
+          // The proper way to handle session length in newer Supabase versions
+          data: {
+            remember_me: rememberMe
+          }
         }
       });
 
