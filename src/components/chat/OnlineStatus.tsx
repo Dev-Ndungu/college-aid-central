@@ -3,16 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { UserPresence } from '@/integrations/supabase/client-with-types';
 
 interface OnlineStatusProps {
   userId: string | null;
   userName: string | null;
 }
-
-type UserPresence = {
-  online: boolean;
-  last_seen: string;
-};
 
 const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, userName }) => {
   const [userStatus, setUserStatus] = useState<UserPresence | null>(null);
@@ -25,6 +21,7 @@ const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, userName }) => {
     // Function to fetch user's last seen and online status
     const fetchUserStatus = async () => {
       try {
+        // We have to use any here since the types don't include user_presence yet
         const { data, error } = await supabase
           .from('user_presence')
           .select('online, last_seen')
@@ -37,7 +34,7 @@ const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, userName }) => {
         }
         
         if (data) {
-          setUserStatus(data);
+          setUserStatus(data as UserPresence);
         }
       } catch (err) {
         console.error('Error in fetchUserStatus:', err);

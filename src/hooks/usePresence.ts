@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
+import { UserPresence } from '@/integrations/supabase/client-with-types';
 
 /**
  * Hook to manage user's online presence
@@ -18,6 +19,7 @@ export const usePresence = () => {
       try {
         const timestamp = new Date().toISOString();
         
+        // We can't use strongly typed query here since the types don't include user_presence yet
         const { error } = await supabase
           .from('user_presence')
           .upsert({

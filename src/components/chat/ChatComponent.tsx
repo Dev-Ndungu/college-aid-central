@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import OnlineStatus from './OnlineStatus';
 import { usePresence } from '@/hooks/usePresence';
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatComponentProps {
   recipientId: string;
