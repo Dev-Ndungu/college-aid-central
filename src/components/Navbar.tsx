@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
 import {
@@ -23,6 +23,11 @@ const Navbar = () => {
   const { isAuthenticated, signOut, userRole } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const location = useLocation();
+  
+  // Check if we're on the login or signup page
+  const isLoginPage = location.pathname === '/login';
+  const isSignupPage = location.pathname === '/signup';
   
   return (
     <header className="bg-white shadow-sm sticky top-0 z-10">
@@ -135,14 +140,16 @@ const Navbar = () => {
               </DropdownMenu>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link to="/login">
-                <Button variant="outline" size="sm">Sign In</Button>
-              </Link>
-              <Link to="/signup">
-                <Button size="sm">Sign Up</Button>
-              </Link>
-            </div>
+            !isLoginPage && !isSignupPage && (
+              <div className="flex items-center gap-2">
+                <Link to="/login">
+                  <Button variant="outline" size="sm">Sign In</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button size="sm">Sign Up</Button>
+                </Link>
+              </div>
+            )
           )}
         </div>
       </div>

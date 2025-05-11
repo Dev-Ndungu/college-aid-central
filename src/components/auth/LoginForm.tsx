@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,25 +8,47 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Eye, EyeOff } from "lucide-react";
 import ForgotPasswordForm from "./ForgotPasswordForm";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X } from "lucide-react";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { signIn, signInWithGoogle, isLoading } = useAuth();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signIn(email, password);
+    try {
+      setErrorMessage(null);
+      await signIn(email, password, rememberMe);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setErrorMessage(error.message || "Failed to sign in. Please check your credentials and try again.");
+    }
   };
 
   const handleGoogleSignIn = async () => {
-    await signInWithGoogle();
+    try {
+      setErrorMessage(null);
+      await signInWithGoogle();
+    } catch (error: any) {
+      console.error("Google sign in error:", error);
+      setErrorMessage(error.message || "Failed to sign in with Google. Please try again.");
+    }
   };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const dismissError = () => {
+    setErrorMessage(null);
   };
 
   if (showForgotPassword) {
@@ -35,6 +57,15 @@ const LoginForm = () => {
 
   return (
     <div className="space-y-6">
+      {errorMessage && (
+        <Alert variant="destructive" className="relative">
+          <X 
+            className="h-4 w-4 cursor-pointer absolute right-2 top-2" 
+            onClick={dismissError}
+          />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -86,6 +117,19 @@ const LoginForm = () => {
               )}
             </button>
           </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="remember-me" 
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked === true)}
+          />
+          <label
+            htmlFor="remember-me"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Remember me
+          </label>
         </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Signing in..." : "Sign In"}

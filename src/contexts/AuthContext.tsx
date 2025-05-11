@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +17,7 @@ type AuthContextType = {
   userRole: 'student' | 'writer' | null;
   userAvatar: string | null;
   userId: string | null; // Added userId property
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
@@ -151,12 +150,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe = false) => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
+        options: {
+          // Set session duration to 30 days if rememberMe is true, otherwise use default (1 day)
+          expiresIn: rememberMe ? 60 * 60 * 24 * 30 : undefined
+        }
       });
 
       if (error) {
@@ -418,7 +421,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userEmail,
     userRole,
     userAvatar,
-    userId, // Include userId in the context value
+    userId,
     signIn,
     signInWithGoogle,
     signUp,
