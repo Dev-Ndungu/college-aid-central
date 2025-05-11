@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -157,13 +156,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          // Use session data if rememberMe is true (longer session)
-          // The proper way to handle session length in newer Supabase versions
-          data: {
-            remember_me: rememberMe
-          }
-        }
       });
 
       if (error) {
@@ -171,6 +163,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
+        // Store the rememberMe preference in localStorage if the user chooses to be remembered
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('rememberMe');
+        }
+        
         // Get user role
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
