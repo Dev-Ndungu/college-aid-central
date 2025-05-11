@@ -2,9 +2,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, Phone } from 'lucide-react';
 
 const Hero = () => {
+  const whatsappNumber = "0797280930";
+  const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+  
   return (
     <section className="hero bg-gradient-to-br from-gray-50 to-white">
       <div className="container mx-auto px-4">
@@ -22,6 +25,11 @@ const Hero = () => {
               </Button>
               <Button size="lg" variant="outline" className="border-[#0d2241] text-[#0d2241] hover:bg-[#0d2241]/10" asChild>
                 <Link to="/how-it-works">How It Works</Link>
+              </Button>
+              <Button size="lg" variant="secondary" className="bg-green-600 hover:bg-green-700 text-white" asChild>
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <Phone className="mr-2 h-4 w-4" /> Get in Touch
+                </a>
               </Button>
             </div>
 
