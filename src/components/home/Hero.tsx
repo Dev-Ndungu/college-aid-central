@@ -1,12 +1,73 @@
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle, Phone } from 'lucide-react';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const Hero = () => {
   const whatsappNumber = "0797280930";
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+  
+  // Academic-themed images for the carousel
+  const carouselImages = [
+    {
+      src: "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+      alt: "Person writing in a notebook",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+      alt: "Student studying at library",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+      alt: "Studying with textbooks and laptop",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+      alt: "Taking notes during research",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+      alt: "Student working on assignment",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+      alt: "Books and writing materials",
+    },
+  ];
+  
+  // Auto-rotate carousel slides
+  const [api, setApi] = useState<any>(null);
+  
+  const onSelect = useCallback(() => {
+    if (!api) return;
+  }, [api]);
+  
+  // Auto-rotation effect for the carousel
+  useEffect(() => {
+    if (!api) return;
+    
+    // Set up the onSelect event to track the selected slide
+    api.on("select", onSelect);
+    
+    // Auto-rotate slides every 3 seconds
+    const autoplayInterval = setInterval(() => {
+      api.scrollNext();
+    }, 3000);
+    
+    // Cleanup function to remove event listeners and clear interval
+    return () => {
+      api.off("select", onSelect);
+      clearInterval(autoplayInterval);
+    };
+  }, [api, onSelect]);
   
   return (
     <section className="hero bg-gradient-to-br from-gray-50 to-white">
@@ -55,11 +116,34 @@ const Hero = () => {
 
           <div className="hidden md:block">
             <div className="relative">
-              <img 
-                src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80" 
-                alt="Student studying" 
-                className="rounded-lg shadow-lg w-full max-w-md mx-auto animate-fade-in"
-              />
+              <Carousel
+                setApi={setApi}
+                className="w-full max-w-md mx-auto"
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+              >
+                <CarouselContent>
+                  {carouselImages.map((image, index) => (
+                    <CarouselItem key={index}>
+                      <div className="relative">
+                        <img 
+                          src={image.src} 
+                          alt={image.alt} 
+                          className="rounded-lg shadow-lg w-full aspect-[4/3] object-cover animate-fade-in"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 rounded-b-lg">
+                          <p className="text-sm font-medium">{image.alt}</p>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-2 bg-white/80 hover:bg-white" />
+                <CarouselNext className="right-2 bg-white/80 hover:bg-white" />
+              </Carousel>
+              
               <img 
                 src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png"
                 alt="The Writers Hub Logo"
