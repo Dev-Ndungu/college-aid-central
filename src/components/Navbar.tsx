@@ -23,7 +23,7 @@ const Navbar = () => {
           <img 
             src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" 
             alt="The Writers Hub Logo" 
-            className="h-12 w-auto rounded-full p-0.5 shadow-sm"
+            className="h-12 w-12 rounded-lg p-0.5 shadow-sm"
           />
           <span className="text-2xl font-bold text-[#0d2241]">The Writers Hub</span>
         </Link>
