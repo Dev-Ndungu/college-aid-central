@@ -2,139 +2,106 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle, Phone } from 'lucide-react';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 const Hero = () => {
   const whatsappNumber = "0797280930";
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
-  
+
   // Academic-themed images for the carousel - expanded to 20 images
-  const carouselImages = [
-    {
-      src: "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Person writing in a notebook",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Student studying at library",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Studying with textbooks and laptop",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Taking notes during research",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Student working on assignment",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Books and writing materials",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Coding and academic research",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Student preparing for exams",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Programming and academic projects",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Creative thinking and problem solving",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Group study session",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Research and writing",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1483058712412-4245e9b90334?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Digital learning resources",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Online studying with laptop",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Technology and education",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Computer programming assignment",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Remote learning and productivity",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1473091534298-04dcbce3278c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Note-taking and organization",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Software development learning",
-    },
-    {
-      src: "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      alt: "Modern technology in education",
-    },
-  ];
-  
+  const carouselImages = [{
+    src: "https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Person writing in a notebook"
+  }, {
+    src: "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Student studying at library"
+  }, {
+    src: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Studying with textbooks and laptop"
+  }, {
+    src: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Taking notes during research"
+  }, {
+    src: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Student working on assignment"
+  }, {
+    src: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Books and writing materials"
+  }, {
+    src: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Coding and academic research"
+  }, {
+    src: "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Student preparing for exams"
+  }, {
+    src: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Programming and academic projects"
+  }, {
+    src: "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Creative thinking and problem solving"
+  }, {
+    src: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Group study session"
+  }, {
+    src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Research and writing"
+  }, {
+    src: "https://images.unsplash.com/photo-1483058712412-4245e9b90334?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Digital learning resources"
+  }, {
+    src: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Online studying with laptop"
+  }, {
+    src: "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Technology and education"
+  }, {
+    src: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Computer programming assignment"
+  }, {
+    src: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Remote learning and productivity"
+  }, {
+    src: "https://images.unsplash.com/photo-1473091534298-04dcbce3278c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Note-taking and organization"
+  }, {
+    src: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Software development learning"
+  }, {
+    src: "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+    alt: "Modern technology in education"
+  }];
+
   // Auto-rotate carousel slides
   const [api, setApi] = useState<any>(null);
-  
   const onSelect = useCallback(() => {
     if (!api) return;
   }, [api]);
-  
+
   // Auto-rotation effect for the carousel
   useEffect(() => {
     if (!api) return;
-    
+
     // Set up the onSelect event to track the selected slide
     api.on("select", onSelect);
-    
+
     // Auto-rotate slides every 3 seconds
     const autoplayInterval = setInterval(() => {
       api.scrollNext();
     }, 3000);
-    
+
     // Cleanup function to remove event listeners and clear interval
     return () => {
       api.off("select", onSelect);
       clearInterval(autoplayInterval);
     };
   }, [api, onSelect]);
-  
-  return (
-    <section className="hero bg-gradient-to-br from-gray-50 to-white">
+  return <section className="hero bg-gradient-to-br from-gray-50 to-white">
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="animate-fade-in">
             <h1 className="font-bold mb-4">
-              Expert Help for Your <span className="gradient-text">Academic Writing</span>
+              Expert Help for Your <span className="gradient-text">College &amp; Uni Academic Writing</span>
             </h1>
-            <p className="text-lg text-gray-600 mb-8">
-              Get professional assistance with your assignments, track your progress, and access valuable educational resources to improve your grades and reduce stress.
-            </p>
+            <p className="text-lg text-gray-600 mb-8">Get professional assistance with your assignments, track your progress, and access valuable educational resources to improve your grades and reduce stress all at affordable prices !</p>
             <div className="flex flex-wrap gap-4">
               <Button className="bg-[#0d2241] hover:bg-[#193764]" size="lg" asChild>
                 <Link to="/signup">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Link>
@@ -171,45 +138,29 @@ const Hero = () => {
 
           <div className="hidden md:block">
             <div className="relative">
-              <Carousel
-                setApi={setApi}
-                className="w-full max-w-md mx-auto"
-                opts={{
-                  align: "start",
-                  loop: true,
-                }}
-              >
+              <Carousel setApi={setApi} className="w-full max-w-md mx-auto" opts={{
+              align: "start",
+              loop: true
+            }}>
                 <CarouselContent>
-                  {carouselImages.map((image, index) => (
-                    <CarouselItem key={index}>
+                  {carouselImages.map((image, index) => <CarouselItem key={index}>
                       <div className="relative">
-                        <img 
-                          src={image.src} 
-                          alt={image.alt} 
-                          className="rounded-lg shadow-lg w-full aspect-[4/3] object-cover animate-fade-in"
-                        />
+                        <img src={image.src} alt={image.alt} className="rounded-lg shadow-lg w-full aspect-[4/3] object-cover animate-fade-in" />
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 rounded-b-lg">
                           <p className="text-sm font-medium">{image.alt}</p>
                         </div>
                       </div>
-                    </CarouselItem>
-                  ))}
+                    </CarouselItem>)}
                 </CarouselContent>
                 <CarouselPrevious className="left-2 bg-white/80 hover:bg-white" />
                 <CarouselNext className="right-2 bg-white/80 hover:bg-white" />
               </Carousel>
               
-              <img 
-                src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png"
-                alt="The Writers Hub Logo"
-                className="absolute -bottom-6 -right-6 w-24 h-24 bg-white rounded-full p-2 shadow-lg"
-              />
+              <img src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" alt="The Writers Hub Logo" className="absolute -bottom-6 -right-6 w-24 h-24 bg-white rounded-full p-2 shadow-lg" />
             </div>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default Hero;
