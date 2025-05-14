@@ -181,19 +181,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserRole(profile?.role as 'student' | 'writer' | null);
         }
         
-        toast({
-          title: "Success",
-          description: "You have successfully signed in.",
-        });
-        
+        toast.success("You have successfully signed in.");
         navigate('/dashboard');
       }
     } catch (error: any) {
       console.error('Error signing in:', error);
-      toast({
-        title: "Sign In Failed",
-        description: error.message || "An error occurred during sign in.",
-      });
+      toast.error(error.message || "An error occurred during sign in.");
       throw error;
     } finally {
       setIsLoading(false);
@@ -237,10 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // The OAuth flow will handle the redirect
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
-      toast({
-        title: "Google Sign In Failed",
-        description: error.message || "An error occurred during Google sign in.",
-      });
+      toast.error(error.message || "An error occurred during Google sign in.");
       setIsLoading(false);
       throw error;
     }
@@ -287,18 +277,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.user) {
         console.log("User created successfully:", data.user.id);
-        toast({
-          title: "Success",
-          description: "Your account has been created. Please check your email for verification.",
-        });
+        toast.success("Your account has been created. Please check your email for verification.");
         return;
       }
     } catch (error: any) {
       console.error('Error signing up:', error);
-      toast({
-        title: "Sign Up Failed",
-        description: error.message || "An error occurred during sign up.",
-      });
+      toast.error(error.message || "An error occurred during sign up.");
       throw error;
     } finally {
       setIsLoading(false);
@@ -333,17 +317,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserAvatar(profile.avatar_url);
       }
       
-      toast({
-        title: "Success",
-        description: "Your profile has been updated.",
-      });
+      toast.success("Your profile has been updated.");
       
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "An error occurred during profile update.",
-      });
+      toast.error(error.message || "An error occurred during profile update.");
       throw error;
     } finally {
       setIsLoading(false);
@@ -370,17 +348,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update local state
       setUserAvatar(avatarUrl);
       
-      toast({
-        title: "Success",
-        description: "Your avatar has been updated.",
-      });
+      toast.success("Your avatar has been updated.");
       
     } catch (error: any) {
       console.error('Error updating avatar:', error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "An error occurred during avatar update.",
-      });
+      toast.error(error.message || "An error occurred during avatar update.");
       throw error;
     } finally {
       setIsLoading(false);
@@ -401,18 +373,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserRole(null);
       setUserAvatar(null);
       
-      toast({
-        title: "Success",
-        description: "You have successfully signed out.",
-      });
-      
+      toast.success("You have successfully signed out.");
       navigate('/');
     } catch (error: any) {
       console.error('Error signing out:', error);
-      toast({
-        title: "Sign Out Failed",
-        description: error.message || "An error occurred during sign out.",
-      });
+      toast.error(error.message || "An error occurred during sign out.");
       throw error;
     } finally {
       setIsLoading(false);

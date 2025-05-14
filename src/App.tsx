@@ -26,7 +26,7 @@ function App() {
   return (
     <React.StrictMode>
       <ThemeProvider>
-        <Router basename="/">
+        <Router>
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Index />} />
