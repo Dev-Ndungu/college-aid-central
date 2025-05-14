@@ -23,13 +23,13 @@ const Footer = () => {
               Helping college students succeed with their assignments and academic goals.
             </p>
             <div className="flex space-x-4">
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">
+              <a href="https://www.facebook.com/assignmenthub" className="text-white hover:text-gray-300 transition-colors" aria-label="Facebook">
                 <Facebook size={20} />
               </a>
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">
+              <a href="https://twitter.com/assignmenthub" className="text-white hover:text-gray-300 transition-colors" aria-label="Twitter">
                 <Twitter size={20} />
               </a>
-              <a href="#" className="text-white hover:text-gray-300 transition-colors">
+              <a href="https://www.instagram.com/assignmenthub" className="text-white hover:text-gray-300 transition-colors" aria-label="Instagram">
                 <Instagram size={20} />
               </a>
             </div>
@@ -66,8 +66,8 @@ const Footer = () => {
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
                 <Mail size={16} />
-                <a href="mailto:info@theassignmenthub.com" className="text-gray-200 hover:text-white transition-colors">
-                  info@theassignmenthub.com
+                <a href="mailto:info@assignmenthub.org" className="text-gray-200 hover:text-white transition-colors">
+                  info@assignmenthub.org
                 </a>
               </li>
               <li className="flex items-center gap-2">

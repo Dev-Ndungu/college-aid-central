@@ -16,6 +16,12 @@ const Index = () => {
         <title>Assignment Hub ✒️ - Expert Academic Writing Help for College & University</title>
         <meta name="description" content="Get professional academic writing assistance with essays, research papers, and assignments. 100% original content, affordable prices, 24/7 support." />
         <meta name="keywords" content="academic writing, essay help, research paper, dissertation, assignment help, college writing" />
+        <link rel="canonical" href="https://www.assignmenthub.org/" />
+        <meta property="og:url" content="https://www.assignmenthub.org/" />
+        <meta property="og:site_name" content="Assignment Hub" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Assignment Hub - Expert Academic Writing Help" />
+        <meta property="og:description" content="Professional academic writing assistance for college and university students." />
       </Helmet>
       <div className="min-h-screen flex flex-col" itemScope itemType="https://schema.org/WebPage">
         <header>
