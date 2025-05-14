@@ -365,7 +365,7 @@ const SignupForm = () => {
           onClick={handleGoogleSignIn}
           disabled={isLoading}
         >
-          {isLoading && selectedRole === "google" ? (
+          {isLoading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
