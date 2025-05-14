@@ -203,9 +203,28 @@ export const useAssignments = () => {
     file_urls?: string[] | null;
   }) => {
     try {
+      // First, get the user's profile information
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, email, phone_number')
+        .eq('id', assignmentData.user_id)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+      }
+      
+      // Add student contact info to assignment data
+      const enhancedAssignmentData = {
+        ...assignmentData,
+        student_name: userProfile?.full_name || null,
+        student_email: userProfile?.email || null,
+        student_phone: userProfile?.phone_number || null
+      };
+      
       const { data, error } = await supabase
         .from('assignments')
-        .insert([assignmentData])
+        .insert([enhancedAssignmentData])
         .select();
 
       if (error) throw error;

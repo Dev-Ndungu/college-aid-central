@@ -215,15 +215,15 @@ const WriterDashboard = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.user?.full_name || 'Anonymous Student'}
+                        {assignment.student_name || 'Anonymous Student'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
-                        {assignment.user?.email || 'No email provided'}
+                        {assignment.student_email || 'No email provided'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Phone className="h-3 w-3 mr-1" />
-                        {assignment.user?.phone_number || 'No phone provided'}
+                        {assignment.student_phone || 'No phone provided'}
                       </div>
                     </div>
                   </td>
@@ -338,15 +338,15 @@ const WriterDashboard = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.user?.full_name || 'Anonymous Student'}
+                        {assignment.student_name || 'Anonymous Student'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
-                        {assignment.user?.email || 'No email provided'}
+                        {assignment.student_email || 'No email provided'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Phone className="h-3 w-3 mr-1" />
-                        {assignment.user?.phone_number || 'No phone provided'}
+                        {assignment.student_phone || 'No phone provided'}
                       </div>
                     </div>
                   </td>
@@ -466,15 +466,15 @@ const WriterDashboard = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.user?.full_name || 'Anonymous Student'}
+                        {assignment.student_name || 'Anonymous Student'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
-                        {assignment.user?.email || 'No email provided'}
+                        {assignment.student_email || 'No email provided'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Phone className="h-3 w-3 mr-1" />
-                        {assignment.user?.phone_number || 'No phone provided'}
+                        {assignment.student_phone || 'No phone provided'}
                       </div>
                     </div>
                   </td>

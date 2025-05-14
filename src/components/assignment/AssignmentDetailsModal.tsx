@@ -46,10 +46,10 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
     return format(new Date(dateString), 'MMM d, yyyy h:mm a');
   };
 
-  // Determine student display name and email
-  const studentName = assignment.user?.full_name || 'Anonymous Student';
-  const studentEmail = assignment.user?.email || 'No email provided';
-  const studentPhone = assignment.user?.phone_number || 'No phone number provided';
+  // Use student information directly from assignment
+  const studentName = assignment.student_name || 'Anonymous Student';
+  const studentEmail = assignment.student_email || 'No email provided';
+  const studentPhone = assignment.student_phone || 'No phone number provided';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

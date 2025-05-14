@@ -20,6 +20,9 @@ export type Database = {
           id: string
           progress: number | null
           status: string
+          student_email: string | null
+          student_name: string | null
+          student_phone: string | null
           subject: string
           title: string
           updated_at: string | null
@@ -36,6 +39,9 @@ export type Database = {
           id?: string
           progress?: number | null
           status?: string
+          student_email?: string | null
+          student_name?: string | null
+          student_phone?: string | null
           subject: string
           title: string
           updated_at?: string | null
@@ -52,6 +58,9 @@ export type Database = {
           id?: string
           progress?: number | null
           status?: string
+          student_email?: string | null
+          student_name?: string | null
+          student_phone?: string | null
           subject?: string
           title?: string
           updated_at?: string | null
