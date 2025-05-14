@@ -1,4 +1,10 @@
 
-import { useToast, toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
-export { useToast, toast };
+// Re-export the toast function
+export { toast };
+
+// Create a useToast hook that returns the toast function
+export function useToast() {
+  return { toast };
+}
