@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Assignment } from '@/hooks/useAssignments';
 import FileAttachments from './FileAttachments';
-import { Calendar, Clock, BookOpen, User } from 'lucide-react';
+import { Calendar, Clock, BookOpen, User, Circle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
@@ -45,6 +45,10 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
     if (!dateString) return 'Not specified';
     return format(new Date(dateString), 'MMM d, yyyy h:mm a');
   };
+
+  // Determine student display name and email
+  const studentName = assignment.user?.full_name || 'Anonymous Student';
+  const studentEmail = assignment.user?.email || 'No email provided';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -83,23 +87,21 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
             )}
           </div>
           
-          {/* Student information */}
-          {assignment.user && (
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-              <h3 className="font-medium text-base mb-2 flex items-center">
-                <User className="h-4 w-4 mr-2 text-blue-500" />
-                Student Information
-              </h3>
-              <div className="space-y-1">
-                <p className="text-sm">
-                  <span className="font-medium">Name:</span> {assignment.user.full_name || 'Not provided'}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Email:</span> {assignment.user.email}
-                </p>
-              </div>
+          {/* Student information - enhanced display */}
+          <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+            <h3 className="font-medium text-base mb-2 flex items-center">
+              <User className="h-4 w-4 mr-2 text-blue-500" />
+              Student Information
+            </h3>
+            <div className="space-y-1">
+              <p className="text-sm">
+                <span className="font-medium">Name:</span> {studentName}
+              </p>
+              <p className="text-sm">
+                <span className="font-medium">Email:</span> {studentEmail}
+              </p>
             </div>
-          )}
+          </div>
           
           <div>
             <h3 className="font-medium text-base mb-2">Description</h3>
