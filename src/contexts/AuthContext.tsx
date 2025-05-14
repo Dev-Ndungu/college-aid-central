@@ -265,14 +265,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       
       console.log("Signup metadata:", metadata);
-      console.log("Redirect URL:", `${window.location.origin}/profile-completion`);
+      
+      // Use window.location.origin for the correct production or development URL
+      const redirectUrl = `${window.location.origin}/profile-completion`;
+      console.log("Redirect URL:", redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: metadata,
-          emailRedirectTo: `${window.location.origin}/profile-completion`
+          emailRedirectTo: redirectUrl
         }
       });
 
