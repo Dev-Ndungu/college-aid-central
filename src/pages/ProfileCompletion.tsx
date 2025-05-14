@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Building, GraduationCap, Loader, Phone, User } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { toast } from "sonner";
 
 const studentFormSchema = z.object({
   fullName: z.string().min(2, "Please enter your name"),
@@ -48,8 +49,9 @@ type StudentFormData = z.infer<typeof studentFormSchema>;
 type WriterFormData = z.infer<typeof writerFormSchema>;
 
 const ProfileCompletion = () => {
-  const { isAuthenticated, isLoading: authLoading, userEmail, userRole } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, userEmail, userRole, userId } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profileExists, setProfileExists] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -77,11 +79,56 @@ const ProfileCompletion = () => {
     // If user is not authenticated, redirect to login
     if (!authLoading && !isAuthenticated) {
       navigate('/login');
+      return;
     }
-  }, [isAuthenticated, authLoading, navigate]);
+    
+    // Check if user's profile is already complete
+    const checkProfileCompletion = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', userId)
+          .single();
+          
+        if (error) {
+          console.error("Error checking profile:", error);
+          return;
+        }
+        
+        // If profile already has a name, it's considered complete
+        if (data && data.full_name) {
+          setProfileExists(true);
+          // Redirect to dashboard if profile is already complete
+          navigate('/dashboard');
+        } else {
+          // Fetch Google account data if available
+          if (isAuthenticated && userId) {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user && user.app_metadata?.provider === 'google') {
+              const userData = user.user_metadata;
+              
+              if (userRole === 'student') {
+                studentForm.setValue('fullName', userData.full_name || userData.name || "");
+              } else {
+                writerForm.setValue('fullName', userData.full_name || userData.name || "");
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error checking profile completion:", error);
+      }
+    };
+    
+    checkProfileCompletion();
+  }, [isAuthenticated, authLoading, navigate, userId, userRole, studentForm, writerForm]);
 
   const onSubmitStudent = async (data: StudentFormData) => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !userId) return;
     
     try {
       setIsSubmitting(true);
@@ -96,7 +143,7 @@ const ProfileCompletion = () => {
           gender: data.gender,
           phone_number: data.phoneNumber || null,
         })
-        .eq('email', userEmail);
+        .eq('id', userId);
 
       if (error) {
         throw error;
@@ -122,7 +169,7 @@ const ProfileCompletion = () => {
   };
 
   const onSubmitWriter = async (data: WriterFormData) => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !userId) return;
     
     try {
       setIsSubmitting(true);
@@ -135,7 +182,7 @@ const ProfileCompletion = () => {
           gender: data.gender,
           phone_number: data.phoneNumber || null,
         })
-        .eq('email', userEmail);
+        .eq('id', userId);
 
       if (error) {
         throw error;
@@ -168,6 +215,11 @@ const ProfileCompletion = () => {
     );
   }
 
+  // If profile already exists, we shouldn't show this page at all
+  if (profileExists) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -178,6 +230,11 @@ const ProfileCompletion = () => {
             <p className="mt-2 text-gray-600">
               Please provide some additional information to complete your profile
             </p>
+            {userEmail && (
+              <p className="mt-2 text-sm text-gray-500">
+                Signed in as: {userEmail}
+              </p>
+            )}
           </div>
 
           {userRole === 'student' ? (

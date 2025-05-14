@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -54,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Get user role and avatar from profiles table
             const { data: profile, error } = await supabase
               .from('profiles')
-              .select('role, avatar_url')
+              .select('role, avatar_url, full_name')
               .eq('id', session.user.id)
               .single();
               
@@ -75,6 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     .eq('id', session.user.id);
                   
                   setUserAvatar(avatarUrl);
+                }
+              }
+              
+              // If this is a new login (on event = 'SIGNED_IN'), decide where to redirect
+              if (event === 'SIGNED_IN') {
+                // Check if the profile is complete based on the presence of full_name
+                const isProfileComplete = !!profile?.full_name;
+                
+                if (isProfileComplete) {
+                  // If profile is complete, navigate to dashboard
+                  navigate('/dashboard');
+                } else {
+                  // If profile is incomplete, navigate to profile completion
+                  navigate('/profile-completion');
                 }
               }
             }
@@ -148,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string, rememberMe = false) => {
     try {

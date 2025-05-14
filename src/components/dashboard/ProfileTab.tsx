@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,7 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building, GraduationCap, Save, User, Phone, Trash2 } from 'lucide-react';
+import { Building, GraduationCap, Mail, Save, User, Phone, Trash2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const formSchemaStudent = z.object({
@@ -333,6 +332,12 @@ const ProfileTab = () => {
           <p className="text-sm text-muted-foreground mt-2">
             Click to upload or change your profile picture
           </p>
+          {userEmail && (
+            <div className="flex items-center mt-2 text-sm text-gray-500">
+              <Mail className="h-4 w-4 mr-1" />
+              <span>{userEmail}</span>
+            </div>
+          )}
         </div>
       
         {userRole === 'student' ? (
