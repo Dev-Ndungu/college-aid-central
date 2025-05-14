@@ -1,40 +1,141 @@
 
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <!-- Homepage -->
   <url>
     <loc>https://www.assignmenthub.org/</loc>
     <lastmod>2025-05-14</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://www.assignmenthub.org/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png</image:loc>
+      <image:title>Assignment Hub Logo</image:title>
+      <image:caption>Professional Academic Writing Services</image:caption>
+    </image:image>
   </url>
+  
+  <!-- How It Works Page -->
   <url>
     <loc>https://www.assignmenthub.org/how-it-works</loc>
     <lastmod>2025-05-14</lastmod>
-    <changefreq>monthly</changefreq>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+  
+  <!-- Contact Page -->
   <url>
     <loc>https://www.assignmenthub.org/contact</loc>
     <lastmod>2025-05-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+  
+  <!-- Resources Page -->
   <url>
     <loc>https://www.assignmenthub.org/resources</loc>
     <lastmod>2025-05-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
+  
+  <!-- Services Pages -->
+  <url>
+    <loc>https://www.assignmenthub.org/services/essay-writing</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/services/research-papers</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/services/dissertations</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/services/coursework-help</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Subject-specific Pages -->
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/business</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/nursing</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/computer-science</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/psychology</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Authentication Pages -->
   <url>
     <loc>https://www.assignmenthub.org/login</loc>
     <lastmod>2025-05-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
+  
   <url>
     <loc>https://www.assignmenthub.org/signup</loc>
     <lastmod>2025-05-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+  </url>
+  
+  <!-- Blog Posts (Examples) -->
+  <url>
+    <loc>https://www.assignmenthub.org/blog/how-to-write-a-research-paper</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/blog/apa-vs-mla-formatting</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/blog/time-management-tips-for-students</loc>
+    <lastmod>2025-05-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

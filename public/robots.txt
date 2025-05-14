@@ -10,6 +10,14 @@ Disallow: /messages/
 Disallow: /assignment-chat/
 Disallow: /reset-password
 
+# Site sections specifically allowed
+Allow: /blog/
+Allow: /resources/
+Allow: /services/
+Allow: /subjects/
+Allow: /how-it-works
+Allow: /contact
+
 # Allow specific bots with more permissions
 User-agent: Googlebot
 Allow: /
@@ -26,6 +34,9 @@ Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
+
+# Crawler directives
+Crawl-delay: 10
 
 # Sitemap location
 Sitemap: https://www.assignmenthub.org/sitemap.xml
