@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
-import { maskSensitiveInfo } from '@/lib/utils';
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
@@ -216,15 +215,15 @@ const WriterDashboard = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.student_name ? maskSensitiveInfo(assignment.student_name, 1, 1) : 'Anonymous Student'}
+                        {assignment.student_name || 'Anonymous Student'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
-                        {assignment.student_email ? maskSensitiveInfo(assignment.student_email, 2, 4) : 'No email provided'}
+                        {assignment.student_email || 'No email provided'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Phone className="h-3 w-3 mr-1" />
-                        {assignment.student_phone ? maskSensitiveInfo(assignment.student_phone, 0, 2) : 'No phone provided'}
+                        {assignment.student_phone || 'No phone provided'}
                       </div>
                     </div>
                   </td>
@@ -339,15 +338,15 @@ const WriterDashboard = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.student_name ? maskSensitiveInfo(assignment.student_name, 1, 1) : 'Anonymous Student'}
+                        {assignment.student_name || 'Anonymous Student'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
-                        {assignment.student_email ? maskSensitiveInfo(assignment.student_email, 2, 4) : 'No email provided'}
+                        {assignment.student_email || 'No email provided'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Phone className="h-3 w-3 mr-1" />
-                        {assignment.student_phone ? maskSensitiveInfo(assignment.student_phone, 0, 2) : 'No phone provided'}
+                        {assignment.student_phone || 'No phone provided'}
                       </div>
                     </div>
                   </td>
@@ -467,15 +466,15 @@ const WriterDashboard = () => {
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.student_name ? maskSensitiveInfo(assignment.student_name, 1, 1) : 'Anonymous Student'}
+                        {assignment.student_name || 'Anonymous Student'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
-                        {assignment.student_email ? maskSensitiveInfo(assignment.student_email, 2, 4) : 'No email provided'}
+                        {assignment.student_email || 'No email provided'}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Phone className="h-3 w-3 mr-1" />
-                        {assignment.student_phone ? maskSensitiveInfo(assignment.student_phone, 0, 2) : 'No phone provided'}
+                        {assignment.student_phone || 'No phone provided'}
                       </div>
                     </div>
                   </td>
