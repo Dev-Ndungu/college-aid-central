@@ -2,7 +2,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type UserProfile = {
   full_name?: string | null;
@@ -17,7 +17,7 @@ type AuthContextType = {
   userEmail: string | null;
   userRole: 'student' | 'writer' | null;
   userAvatar: string | null;
-  userId: string | null; // Added userId property
+  userId: string | null; 
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
@@ -34,9 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<'student' | 'writer' | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null); // Added userId state
+  const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   // Store the selected role for Google sign-in
   const [googleSignupRole, setGoogleSignupRole] = useState<'student' | 'writer'>('student');
@@ -192,7 +191,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Error signing in:', error);
       toast({
-        variant: "destructive",
         title: "Sign In Failed",
         description: error.message || "An error occurred during sign in.",
       });
@@ -240,7 +238,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
       toast({
-        variant: "destructive",
         title: "Google Sign In Failed",
         description: error.message || "An error occurred during Google sign in.",
       });
@@ -299,7 +296,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Error signing up:', error);
       toast({
-        variant: "destructive",
         title: "Sign Up Failed",
         description: error.message || "An error occurred during sign up.",
       });
@@ -345,7 +341,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast({
-        variant: "destructive",
         title: "Update Failed",
         description: error.message || "An error occurred during profile update.",
       });
@@ -383,7 +378,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Error updating avatar:', error);
       toast({
-        variant: "destructive",
         title: "Update Failed",
         description: error.message || "An error occurred during avatar update.",
       });
@@ -416,7 +410,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.error('Error signing out:', error);
       toast({
-        variant: "destructive",
         title: "Sign Out Failed",
         description: error.message || "An error occurred during sign out.",
       });
