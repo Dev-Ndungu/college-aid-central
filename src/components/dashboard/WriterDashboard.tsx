@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,10 +6,11 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, MessageCircle, Eye } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
+import { format, formatRelative } from 'date-fns';
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
@@ -19,6 +19,18 @@ const WriterDashboard = () => {
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const { userId } = useAuth();
   const navigate = useNavigate();
+
+  // Format date helper
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+  };
+
+  // Format relative date helper
+  const formatRelativeDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return formatRelative(new Date(dateString), new Date());
+  };
 
   const handleTakeAssignment = async (assignmentId: string) => {
     // Add this assignment to processing state
@@ -175,6 +187,8 @@ const WriterDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
                 <th className="p-3 text-left font-medium text-gray-600">Subject</th>
+                <th className="p-3 text-left font-medium text-gray-600">Student</th>
+                <th className="p-3 text-left font-medium text-gray-600">Posted</th>
                 <th className="p-3 text-left font-medium text-gray-600">Status</th>
                 <th className="p-3 text-left font-medium text-gray-600">Actions</th>
               </tr>
@@ -197,6 +211,24 @@ const WriterDashboard = () => {
                     )}
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
+                  <td className="p-3">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        {assignment.user?.full_name || 'Anonymous Student'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {assignment.user?.email || 'No email provided'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600 text-xs">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span title={formatDate(assignment.created_at)}>
+                        {formatRelativeDate(assignment.created_at)}
+                      </span>
+                    </div>
+                  </td>
                   <td className="p-3">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
                       Submitted
@@ -271,6 +303,8 @@ const WriterDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
                 <th className="p-3 text-left font-medium text-gray-600">Subject</th>
+                <th className="p-3 text-left font-medium text-gray-600">Student</th>
+                <th className="p-3 text-left font-medium text-gray-600">Posted</th>
                 <th className="p-3 text-left font-medium text-gray-600">Status</th>
                 <th className="p-3 text-left font-medium text-gray-600">Update Progress</th>
                 <th className="p-3 text-left font-medium text-gray-600">Actions</th>
@@ -294,6 +328,24 @@ const WriterDashboard = () => {
                     )}
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
+                  <td className="p-3">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        {assignment.user?.full_name || 'Anonymous Student'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {assignment.user?.email || 'No email provided'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600 text-xs">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span title={formatDate(assignment.created_at)}>
+                        {formatRelativeDate(assignment.created_at)}
+                      </span>
+                    </div>
+                  </td>
                   <td className="p-3">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-sm border ${getStatusBadgeClass(assignment.status)}`}>
                       {getStatusDisplay(assignment.status)}
@@ -379,6 +431,8 @@ const WriterDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
                 <th className="p-3 text-left font-medium text-gray-600">Subject</th>
+                <th className="p-3 text-left font-medium text-gray-600">Student</th>
+                <th className="p-3 text-left font-medium text-gray-600">Posted</th>
                 <th className="p-3 text-left font-medium text-gray-600">Completed Date</th>
                 <th className="p-3 text-left font-medium text-gray-600">Actions</th>
               </tr>
@@ -396,9 +450,27 @@ const WriterDashboard = () => {
                     )}
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
+                  <td className="p-3">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">
+                        {assignment.user?.full_name || 'Anonymous Student'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {assignment.user?.email || 'No email provided'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="p-3 text-gray-600 text-xs">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span title={formatDate(assignment.created_at)}>
+                        {formatRelativeDate(assignment.created_at)}
+                      </span>
+                    </div>
+                  </td>
                   <td className="p-3 text-gray-700">
                     {assignment.completed_date ? 
-                      new Date(assignment.completed_date).toLocaleDateString() : 
+                      formatDate(assignment.completed_date) : 
                       'N/A'
                     }
                   </td>

@@ -11,6 +11,7 @@ import { Assignment } from '@/hooks/useAssignments';
 import FileAttachments from './FileAttachments';
 import { Calendar, Clock, BookOpen, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 interface AssignmentDetailsModalProps {
   assignment: Assignment | null;
@@ -42,13 +43,7 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not specified';
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return format(new Date(dateString), 'MMM d, yyyy h:mm a');
   };
 
   return (
@@ -87,6 +82,24 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
               </div>
             )}
           </div>
+          
+          {/* Student information */}
+          {assignment.user && (
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
+              <h3 className="font-medium text-base mb-2 flex items-center">
+                <User className="h-4 w-4 mr-2 text-blue-500" />
+                Student Information
+              </h3>
+              <div className="space-y-1">
+                <p className="text-sm">
+                  <span className="font-medium">Name:</span> {assignment.user.full_name || 'Not provided'}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Email:</span> {assignment.user.email}
+                </p>
+              </div>
+            </div>
+          )}
           
           <div>
             <h3 className="font-medium text-base mb-2">Description</h3>

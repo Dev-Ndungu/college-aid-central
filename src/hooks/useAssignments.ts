@@ -19,6 +19,10 @@ export type Assignment = {
   writer_id?: string | null;
   user_id: string;
   file_urls: string[] | null;
+  user?: {
+    full_name: string | null;
+    email: string;
+  } | null;
 };
 
 // Define writer type
@@ -86,9 +90,13 @@ export const useAssignments = () => {
         console.log('Fetching assignments for writer with ID:', userId);
         
         // First, fetch all available assignments (status='submitted', writer_id=null)
+        // Include user information
         const { data: availableAssignments, error: availableError } = await supabase
           .from('assignments')
-          .select('*')
+          .select(`
+            *,
+            user:profiles(full_name, email)
+          `)
           .eq('status', 'submitted')
           .is('writer_id', null);
           
@@ -104,7 +112,10 @@ export const useAssignments = () => {
         // Get assignments assigned to this writer
         const { data: assignedToWriter, error: assignedError } = await supabase
           .from('assignments')
-          .select('*')
+          .select(`
+            *,
+            user:profiles(full_name, email)
+          `)
           .eq('writer_id', userId)
           .neq('status', 'completed');
           
@@ -127,7 +138,10 @@ export const useAssignments = () => {
         // Get completed assignments for this writer
         const { data: completed, error: completedError } = await supabase
           .from('assignments')
-          .select('*')
+          .select(`
+            *,
+            user:profiles(full_name, email)
+          `)
           .eq('writer_id', userId)
           .eq('status', 'completed')
           .order('completed_date', { ascending: false });
@@ -391,6 +405,6 @@ export const useAssignments = () => {
     updateAssignment,
     deleteAssignment,
     takeAssignment,
-    fetchAssignments // Export this to allow manual refresh
+    fetchAssignments
   };
 };
