@@ -21,6 +21,7 @@ import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import WriterDashboard from '@/components/dashboard/WriterDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { maskSensitiveInfo } from '@/lib/utils';
 
 const Dashboard = () => {
   const { isAuthenticated, userEmail, userRole, isLoading } = useAuth();
