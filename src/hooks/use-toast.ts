@@ -11,4 +11,3 @@ export function useToast() {
 
 // Re-export the toast function for direct usage
 export { toast };
-

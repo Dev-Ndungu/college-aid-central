@@ -22,7 +22,12 @@ export default defineConfig(({ mode }) => ({
     dedupe: ['date-fns', 'react-day-picker']
   },
   optimizeDeps: {
-    include: ['date-fns', 'react-day-picker']
+    include: ['date-fns', 'react-day-picker'],
+    esbuildOptions: {
+      // Force react-day-picker and date-fns to be processed correctly
+      mainFields: ['module', 'main'],
+      resolveExtensions: ['.js', '.jsx', '.ts', '.tsx']
+    }
   },
   // Add proper base configuration for production
   base: '/',
