@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail } from "lucide-react";
-import { ArrowLeft } from "lucide-react";
+import { Mail, CheckCircle, X, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 interface ForgotPasswordFormProps {
   onBack: () => void;
@@ -16,6 +19,57 @@ const ForgotPasswordForm = ({ onBack }: ForgotPasswordFormProps) => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+
+  const resetPassword = async (attemptNumber: number): Promise<boolean> => {
+    try {
+      // Clear any previous error messages
+      setErrorMessage(null);
+      
+      // Calculate exponential backoff delay for retries
+      if (attemptNumber > 0) {
+        const backoffDelay = Math.min(2 ** attemptNumber * 1000, 10000); // Max 10 seconds
+        await delay(backoffDelay);
+      }
+      
+      // Make sure we use the absolute URL for the redirect
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return true;
+    } catch (error: any) {
+      console.error(`Password reset attempt ${attemptNumber + 1} failed:`, error);
+      
+      // Check if it's a timeout error or network error that we should retry
+      const isRetryableError = 
+        error.message?.includes("timeout") || 
+        error.message?.includes("network") || 
+        error.name === "AuthRetryableFetchError" ||
+        error.status === 504;
+      
+      // If we can retry and haven't exceeded max retries
+      if (isRetryableError && attemptNumber < MAX_RETRIES - 1) {
+        setErrorMessage(`Request timed out. Retrying (${attemptNumber + 1}/${MAX_RETRIES})...`);
+        setRetryCount(attemptNumber + 1);
+        return false; // Signal that we should retry
+      } else {
+        // This is either a non-retryable error or we've exceeded max retries
+        if (isRetryableError) {
+          setErrorMessage("Server is taking too long to respond. Please try again later.");
+        } else {
+          setErrorMessage(error.message || "Failed to send password reset email");
+        }
+        return true; // Signal that we should stop retrying
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,25 +80,29 @@ const ForgotPasswordForm = ({ onBack }: ForgotPasswordFormProps) => {
     }
     
     setIsLoading(true);
+    setRetryCount(0);
     
-    try {
-      // Make sure we use the absolute URL for the redirect
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+    let shouldStop = false;
+    let attemptNumber = 0;
+    
+    while (!shouldStop && attemptNumber < MAX_RETRIES) {
+      const result = await resetPassword(attemptNumber);
       
-      if (error) {
-        throw error;
+      if (result) {
+        // If successful or non-retryable error
+        shouldStop = true;
+        
+        // If no error message was set, it was successful
+        if (!errorMessage) {
+          setIsSubmitted(true);
+          toast.success("Password reset link sent to your email");
+        }
       }
       
-      setIsSubmitted(true);
-      toast.success("Password reset link sent to your email");
-    } catch (error: any) {
-      console.error("Password reset error:", error);
-      toast.error(error.message || "Failed to send password reset email");
-    } finally {
-      setIsLoading(false);
+      attemptNumber++;
     }
+    
+    setIsLoading(false);
   };
 
   if (isSubmitted) {
@@ -77,6 +135,16 @@ const ForgotPasswordForm = ({ onBack }: ForgotPasswordFormProps) => {
         </p>
       </div>
       
+      {errorMessage && (
+        <Alert variant="destructive" className="relative">
+          <X 
+            className="h-4 w-4 cursor-pointer absolute right-2 top-2" 
+            onClick={() => setErrorMessage(null)}
+          />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -95,7 +163,14 @@ const ForgotPasswordForm = ({ onBack }: ForgotPasswordFormProps) => {
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Sending..." : "Send Reset Link"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {retryCount > 0 ? `Retrying (${retryCount}/${MAX_RETRIES})...` : "Sending..."}
+            </>
+          ) : (
+            "Send Reset Link"
+          )}
         </Button>
       </form>
       

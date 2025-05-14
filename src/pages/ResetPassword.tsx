@@ -9,19 +9,29 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Lock } from 'lucide-react';
+import { Lock, Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isProcessingSession, setIsProcessingSession] = useState(true);
+  const [sessionStatus, setSessionStatus] = useState<'valid' | 'invalid' | 'checking'>('checking');
   const navigate = useNavigate();
+  const MAX_RETRIES = 3;
 
   // Check if we have a valid recovery session when component mounts
   useEffect(() => {
     const checkSession = async () => {
       try {
+        setSessionStatus('checking');
         const { data, error } = await supabase.auth.getSession();
         
         console.log("Current session state:", data.session ? "Session exists" : "No session");
@@ -38,38 +48,114 @@ const ResetPassword = () => {
           // If we have tokens in the URL but no session, try to set the session
           if (accessToken && type === "recovery") {
             console.log("Setting session from recovery parameters");
-            const { error: setSessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || "",
-            });
             
-            if (setSessionError) {
-              console.error("Error setting session:", setSessionError);
+            // Try to set the session multiple times if needed
+            let sessionSet = false;
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            while (!sessionSet && attempts < maxAttempts) {
+              try {
+                const { error: setSessionError } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken || "",
+                });
+                
+                if (setSessionError) {
+                  console.error(`Error setting session (attempt ${attempts + 1}):`, setSessionError);
+                  await delay(2000); // Wait before retrying
+                } else {
+                  console.log("Session set successfully from recovery parameters");
+                  sessionSet = true;
+                  setSessionStatus('valid');
+                }
+              } catch (err) {
+                console.error(`Session setting attempt ${attempts + 1} failed:`, err);
+                await delay(2000); // Wait before retrying
+              }
+              
+              attempts++;
+            }
+            
+            if (!sessionSet) {
+              console.error("Failed to set session after multiple attempts");
               toast.error("Invalid or expired recovery link. Please request a new one.");
-              navigate('/login');
+              setSessionStatus('invalid');
+              setTimeout(() => navigate('/login'), 3000);
               return;
             }
             
-            // Successfully set the session, continue with reset
-            console.log("Session set from recovery parameters");
             return;
           } else {
             console.error("No valid recovery session found");
             toast.error("Invalid or expired recovery link. Please request a new one.");
+            setSessionStatus('invalid');
             // If no valid session, redirect back to login
-            navigate('/login');
+            setTimeout(() => navigate('/login'), 3000);
             return;
           }
+        } else {
+          setSessionStatus('valid');
         }
       } catch (error) {
         console.error("Error checking session:", error);
         toast.error("An error occurred. Please try again.");
-        navigate('/login');
+        setSessionStatus('invalid');
+        setTimeout(() => navigate('/login'), 3000);
+      } finally {
+        setIsProcessingSession(false);
       }
     };
     
     checkSession();
   }, [navigate]);
+
+  const updatePassword = async (attemptNumber: number): Promise<boolean> => {
+    try {
+      // Clear previous error
+      setErrorMessage(null);
+      
+      // Apply exponential backoff for retries
+      if (attemptNumber > 0) {
+        const backoffDelay = Math.min(2 ** attemptNumber * 1000, 10000); // Max 10 seconds
+        await delay(backoffDelay);
+      }
+      
+      const { error } = await supabase.auth.updateUser({ 
+        password: password 
+      });
+
+      if (error) {
+        throw error;
+      }
+      
+      return true;
+    } catch (error: any) {
+      console.error(`Password update attempt ${attemptNumber + 1} failed:`, error);
+      
+      // Check if it's a timeout error or network error that we should retry
+      const isRetryableError = 
+        error.message?.includes("timeout") || 
+        error.message?.includes("network") || 
+        error.name === "AuthRetryableFetchError" ||
+        error.status === 504;
+      
+      // If we can retry and haven't exceeded max retries
+      if (isRetryableError && attemptNumber < MAX_RETRIES - 1) {
+        setErrorMessage(`Request timed out. Retrying (${attemptNumber + 1}/${MAX_RETRIES})...`);
+        setRetryCount(attemptNumber + 1);
+        return false; // Signal that we should retry
+      } else {
+        // This is either a non-retryable error or we've exceeded max retries
+        if (isRetryableError) {
+          setErrorMessage("Server is taking too long to respond. Please try again later.");
+        } else {
+          setErrorMessage(error.message || "Failed to reset password");
+        }
+        return true; // Signal that we should stop retrying
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,26 +171,68 @@ const ResetPassword = () => {
     }
 
     setIsLoading(true);
-
-    try {
-      const { error } = await supabase.auth.updateUser({ 
-        password: password 
-      });
-
-      if (error) {
-        throw error;
+    setRetryCount(0);
+    
+    let shouldStop = false;
+    let attemptNumber = 0;
+    
+    while (!shouldStop && attemptNumber < MAX_RETRIES) {
+      const result = await updatePassword(attemptNumber);
+      
+      if (result) {
+        // If successful or non-retryable error
+        shouldStop = true;
+        
+        // If no error message was set, it was successful
+        if (!errorMessage) {
+          setIsComplete(true);
+          toast.success("Password updated successfully");
+          setTimeout(() => navigate('/login'), 3000);
+        }
       }
-
-      setIsComplete(true);
-      toast.success("Password updated successfully");
-      setTimeout(() => navigate('/login'), 3000);
-    } catch (error: any) {
-      console.error("Reset password error:", error);
-      toast.error(error.message || "Failed to reset password");
-    } finally {
-      setIsLoading(false);
+      
+      attemptNumber++;
     }
+    
+    setIsLoading(false);
   };
+
+  // Render a loading state while we're checking the session
+  if (isProcessingSession) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <Card className="w-full max-w-md space-y-8 p-8 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+            <h2 className="text-2xl font-bold">Verifying your recovery link...</h2>
+            <p className="text-gray-600">Please wait while we process your request.</p>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Render an error state if the session is invalid
+  if (sessionStatus === 'invalid') {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <Card className="w-full max-w-md space-y-8 p-8 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+            <h2 className="text-2xl font-bold">Invalid Recovery Link</h2>
+            <p className="text-gray-600">This recovery link is invalid or has expired. Please request a new password reset link.</p>
+            <Button onClick={() => navigate('/login')} className="mt-4">
+              Return to Login
+            </Button>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -119,6 +247,13 @@ const ResetPassword = () => {
                 : "Please enter your new password"}
             </p>
           </div>
+
+          {errorMessage && !isComplete && (
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
 
           {!isComplete && (
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,7 +293,12 @@ const ResetPassword = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Updating..." : "Reset Password"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {retryCount > 0 ? `Retrying (${retryCount}/${MAX_RETRIES})...` : "Updating..."}
+                  </>
+                ) : "Reset Password"}
               </Button>
             </form>
           )}
