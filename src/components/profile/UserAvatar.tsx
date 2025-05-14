@@ -118,17 +118,15 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         // Update local state
         await updateUserAvatar(publicURL.publicUrl);
         
-        toast({
-          title: "Avatar updated",
-          description: "Your profile avatar has been updated successfully.",
+        toast("Avatar updated", {
+          description: "Your profile avatar has been updated successfully."
         });
       }
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      toast({
-        variant: "destructive",
-        title: "Upload failed",
+      toast("Upload failed", {
         description: error.message || "An error occurred during avatar upload.",
+        variant: "destructive"
       });
     } finally {
       setIsUploading(false);

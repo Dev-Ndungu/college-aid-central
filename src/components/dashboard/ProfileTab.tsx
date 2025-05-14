@@ -202,16 +202,14 @@ const ProfileTab = () => {
         throw error;
       }
 
-      toast({
-        title: "Success",
-        description: "Your profile has been updated successfully.",
+      toast("Success", {
+        description: "Your profile has been updated successfully."
       });
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Update failed",
+      toast("Update failed", {
         description: error.message || "An error occurred while updating your profile.",
+        variant: "destructive"
       });
     } finally {
       setIsSaving(false);
@@ -240,16 +238,14 @@ const ProfileTab = () => {
         throw error;
       }
 
-      toast({
-        title: "Success",
-        description: "Your profile has been updated successfully.",
+      toast("Success", {
+        description: "Your profile has been updated successfully."
       });
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Update failed",
+      toast("Update failed", {
         description: error.message || "An error occurred while updating your profile.",
+        variant: "destructive"
       });
     } finally {
       setIsSaving(false);
@@ -275,16 +271,14 @@ const ProfileTab = () => {
       // Then sign out
       await signOut();
       
-      toast({
-        title: "Account Deleted",
-        description: "Your account and profile have been deleted successfully.",
+      toast("Account Deleted", {
+        description: "Your account and profile have been deleted successfully."
       });
     } catch (error: any) {
       console.error("Error deleting profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Delete failed",
+      toast("Delete failed", {
         description: error.message || "An error occurred while deleting your profile.",
+        variant: "destructive"
       });
       setIsDeleting(false);
     }

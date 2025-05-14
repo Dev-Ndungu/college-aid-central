@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
@@ -7,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
@@ -29,7 +28,6 @@ import {
 } from "@/components/ui/select";
 import { Building, GraduationCap, Loader, Phone, User } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from "sonner";
 
 const studentFormSchema = z.object({
   fullName: z.string().min(2, "Please enter your name"),
@@ -149,19 +147,17 @@ const ProfileCompletion = () => {
         throw error;
       }
 
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully completed.",
+      toast("Profile updated", {
+        description: "Your profile has been successfully completed."
       });
 
       // Redirect to dashboard after successful completion
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Update failed",
+      toast("Update failed", {
         description: error.message || "An error occurred while updating your profile.",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -188,19 +184,17 @@ const ProfileCompletion = () => {
         throw error;
       }
 
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully completed.",
+      toast("Profile updated", {
+        description: "Your profile has been successfully completed."
       });
 
       // Redirect to dashboard after successful completion
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast({
-        variant: "destructive",
-        title: "Update failed",
+      toast("Update failed", {
         description: error.message || "An error occurred while updating your profile.",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);

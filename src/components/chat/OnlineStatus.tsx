@@ -54,9 +54,8 @@ const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, userName }) => {
           
           // Show toast notification when user comes online
           if (newStatus.online && !userStatus?.online) {
-            toast({
-              title: `${displayName} is now online`,
-              description: "They can respond to your messages in real-time.",
+            toast(`${displayName} is now online`, {
+              description: "They can respond to your messages in real-time."
             });
           }
         }
