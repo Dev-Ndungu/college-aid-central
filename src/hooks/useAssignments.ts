@@ -22,6 +22,7 @@ export type Assignment = {
   user?: {
     full_name: string | null;
     email: string;
+    phone_number?: string | null;
   } | null;
 };
 
@@ -90,12 +91,12 @@ export const useAssignments = () => {
         console.log('Fetching assignments for writer with ID:', userId);
         
         // First, fetch all available assignments (status='submitted', writer_id=null)
-        // Include user information
+        // Include user information with expanded fields
         const { data: availableAssignments, error: availableError } = await supabase
           .from('assignments')
           .select(`
             *,
-            user:profiles(full_name, email)
+            user:profiles(full_name, email, phone_number)
           `)
           .eq('status', 'submitted')
           .is('writer_id', null);
@@ -114,7 +115,7 @@ export const useAssignments = () => {
           .from('assignments')
           .select(`
             *,
-            user:profiles(full_name, email)
+            user:profiles(full_name, email, phone_number)
           `)
           .eq('writer_id', userId)
           .neq('status', 'completed');
@@ -140,7 +141,7 @@ export const useAssignments = () => {
           .from('assignments')
           .select(`
             *,
-            user:profiles(full_name, email)
+            user:profiles(full_name, email, phone_number)
           `)
           .eq('writer_id', userId)
           .eq('status', 'completed')
