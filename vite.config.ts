@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ['date-fns', 'react-day-picker']
+  },
+  optimizeDeps: {
+    include: ['date-fns', 'react-day-picker']
   },
   // Add proper base configuration for production
   base: '/',

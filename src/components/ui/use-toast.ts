@@ -1,8 +1,6 @@
 
-import { toast } from "sonner";
-
-// Re-export the toast function for direct usage
-export { toast };
+// Re-export from sonner
+export { toast } from "sonner";
 
 // Create a useToast hook that returns the toast function
 export function useToast() {
