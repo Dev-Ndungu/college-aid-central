@@ -35,10 +35,10 @@ const Navbar = () => {
         <Link to="/" className="flex items-center gap-2">
           <img 
             src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" 
-            alt="The Writers Hub Logo" 
+            alt="The Assignment Hub Logo" 
             className="h-12 w-12 rounded-lg p-0.5 shadow-sm"
           />
-          <span className="text-2xl font-bold text-[#0d2241]">The Writers Hub</span>
+          <span className="text-2xl font-bold text-[#0d2241]">The Assignment Hub</span>
         </Link>
         
         {!isMobile ? (

@@ -14,10 +14,10 @@ const Footer = () => {
             <Link to="/" className="flex items-center gap-2 mb-4">
               <img 
                 src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" 
-                alt="The Writers Hub Logo" 
+                alt="The Assignment Hub Logo" 
                 className="h-10 w-auto bg-white rounded-full p-1"
               />
-              <span className="text-2xl font-bold">The Writers Hub</span>
+              <span className="text-2xl font-bold">The Assignment Hub</span>
             </Link>
             <p className="text-gray-200 mb-4">
               Helping college students succeed with their assignments and academic goals.
@@ -66,8 +66,8 @@ const Footer = () => {
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
                 <Mail size={16} />
-                <a href="mailto:info@thewritershub.com" className="text-gray-200 hover:text-white transition-colors">
-                  info@thewritershub.com
+                <a href="mailto:info@theassignmenthub.com" className="text-gray-200 hover:text-white transition-colors">
+                  info@theassignmenthub.com
                 </a>
               </li>
               <li className="flex items-center gap-2">
@@ -82,7 +82,7 @@ const Footer = () => {
 
         <div className="border-t border-gray-700 mt-8 pt-8 text-center">
           <p className="text-gray-300">
-            &copy; {currentYear} The Writers Hub. All rights reserved.
+            &copy; {currentYear} The Assignment Hub. All rights reserved.
           </p>
         </div>
       </div>

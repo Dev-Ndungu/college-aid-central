@@ -13,7 +13,7 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>The Writers Hub - Expert Academic Writing Help for College & University</title>
+        <title>The Assignment Hub - Expert Academic Writing Help for College & University</title>
         <meta name="description" content="Get professional academic writing assistance with essays, research papers, and assignments. 100% original content, affordable prices, 24/7 support." />
         <meta name="keywords" content="academic writing, essay help, research paper, dissertation, assignment help, college writing" />
       </Helmet>
