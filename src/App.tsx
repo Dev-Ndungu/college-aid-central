@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
@@ -26,8 +26,8 @@ function App() {
   return (
     <React.StrictMode>
       <ThemeProvider>
-        <Router>
-          <AuthProvider>
+        <AuthProvider>
+          <Router basename="/">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -45,8 +45,8 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
-          </AuthProvider>
-        </Router>
+          </Router>
+        </AuthProvider>
       </ThemeProvider>
     </React.StrictMode>
   );
