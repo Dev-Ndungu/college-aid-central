@@ -202,15 +202,10 @@ const ProfileTab = () => {
         throw error;
       }
 
-      toast("Success", {
-        description: "Your profile has been updated successfully."
-      });
+      toast("Your profile has been updated successfully.");
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast("Update failed", {
-        description: error.message || "An error occurred while updating your profile.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "An error occurred while updating your profile.");
     } finally {
       setIsSaving(false);
     }
@@ -238,15 +233,10 @@ const ProfileTab = () => {
         throw error;
       }
 
-      toast("Success", {
-        description: "Your profile has been updated successfully."
-      });
+      toast("Your profile has been updated successfully.");
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast("Update failed", {
-        description: error.message || "An error occurred while updating your profile.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "An error occurred while updating your profile.");
     } finally {
       setIsSaving(false);
     }
@@ -271,15 +261,10 @@ const ProfileTab = () => {
       // Then sign out
       await signOut();
       
-      toast("Account Deleted", {
-        description: "Your account and profile have been deleted successfully."
-      });
+      toast("Your account and profile have been deleted successfully.");
     } catch (error: any) {
       console.error("Error deleting profile:", error);
-      toast("Delete failed", {
-        description: error.message || "An error occurred while deleting your profile.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "An error occurred while deleting your profile.");
       setIsDeleting(false);
     }
   };

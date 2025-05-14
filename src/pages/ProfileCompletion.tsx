@@ -147,18 +147,13 @@ const ProfileCompletion = () => {
         throw error;
       }
 
-      toast("Profile updated", {
-        description: "Your profile has been successfully completed."
-      });
+      toast("Your profile has been successfully completed.");
 
       // Redirect to dashboard after successful completion
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast("Update failed", {
-        description: error.message || "An error occurred while updating your profile.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "An error occurred while updating your profile.");
     } finally {
       setIsSubmitting(false);
     }
@@ -184,18 +179,13 @@ const ProfileCompletion = () => {
         throw error;
       }
 
-      toast("Profile updated", {
-        description: "Your profile has been successfully completed."
-      });
+      toast("Your profile has been successfully completed.");
 
       // Redirect to dashboard after successful completion
       navigate('/dashboard');
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      toast("Update failed", {
-        description: error.message || "An error occurred while updating your profile.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "An error occurred while updating your profile.");
     } finally {
       setIsSubmitting(false);
     }

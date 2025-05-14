@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -211,11 +210,7 @@ const AssignmentSubmission = () => {
     try {
       // Get the current user from profiles
       if (!userEmail) {
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: "User email not available. Please log in again."
-        });
+        toast.error("User email not available. Please log in again.");
         navigate('/login');
         return;
       }
@@ -249,11 +244,7 @@ const AssignmentSubmission = () => {
             setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
           } catch (err) {
             console.error(`Error uploading file ${file.name}:`, err);
-            toast({
-              variant: "destructive",
-              title: "File Upload Error",
-              description: `Failed to upload ${file.name}`
-            });
+            toast.error(`Failed to upload ${file.name}`);
           }
         }
       }
@@ -280,20 +271,13 @@ const AssignmentSubmission = () => {
       }
 
       // Show success message
-      toast({
-        title: "Assignment Submitted",
-        description: "Your assignment has been successfully submitted and is now available for writers to view."
-      });
+      toast("Your assignment has been successfully submitted and is now available for writers to view.");
 
       // Redirect to dashboard
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Error submitting assignment:', error);
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: error.message || "An error occurred while submitting your assignment."
-      });
+      toast.error(error.message || "An error occurred while submitting your assignment.");
     } finally {
       setLoading(false);
     }
