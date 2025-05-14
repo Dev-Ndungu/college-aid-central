@@ -12,6 +12,8 @@ import FileAttachments from './FileAttachments';
 import { Calendar, Clock, BookOpen, User, Circle, Mail, Phone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { maskSensitiveInfo } from '@/lib/utils';
 
 interface AssignmentDetailsModalProps {
   assignment: Assignment | null;
@@ -24,9 +26,14 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { userId } = useAuth();
+  
   if (!assignment) {
     return null;
   }
+
+  // Check if current user is the assigned writer
+  const isAssignedWriter = assignment.writer_id === userId;
 
   const getStatusBadgeClass = (status: string) => {
     switch(status) {
@@ -46,10 +53,18 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
     return format(new Date(dateString), 'MMM d, yyyy h:mm a');
   };
 
-  // Use student information directly from assignment
-  const studentName = assignment.student_name || 'Anonymous Student';
-  const studentEmail = assignment.student_email || 'No email provided';
-  const studentPhone = assignment.student_phone || 'No phone number provided';
+  // Get student information with appropriate masking when needed
+  const studentName = isAssignedWriter 
+    ? (assignment.student_name || 'Anonymous Student')
+    : maskSensitiveInfo(assignment.student_name || 'Anonymous Student', 1, 1);
+    
+  const studentEmail = isAssignedWriter
+    ? (assignment.student_email || 'No email provided')
+    : maskSensitiveInfo(assignment.student_email || 'No email provided', 2, 4);
+    
+  const studentPhone = isAssignedWriter
+    ? (assignment.student_phone || 'No phone number provided')
+    : maskSensitiveInfo(assignment.student_phone || 'No phone number provided', 0, 2);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -88,11 +103,21 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
             )}
           </div>
           
-          {/* Enhanced student information display */}
+          {/* Enhanced student information display with conditional full/masked data */}
           <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
             <h3 className="font-medium text-base mb-3 flex items-center">
               <User className="h-4 w-4 mr-2 text-blue-500" />
               Student Information
+              {!isAssignedWriter && (
+                <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                  Masked for privacy
+                </span>
+              )}
+              {isAssignedWriter && (
+                <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                  Full details visible
+                </span>
+              )}
             </h3>
             <div className="space-y-2">
               <div className="flex items-center">

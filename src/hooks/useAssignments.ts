@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -294,37 +295,6 @@ export const useAssignments = () => {
           } catch (notifyError) {
             console.error('Error sending assignment taken notification:', notifyError);
           }
-        }
-      }
-      
-      // Send notification about assignment updates if the writer is updating the assignment
-      // and it's not just being taken (that's handled separately)
-      if (userRole === 'writer' && !updates.writer_id) {
-        try {
-          // Get assignment details
-          const { data: assignmentData, error: assignmentError } = await supabase
-            .from('assignments')
-            .select('*')
-            .eq('id', id)
-            .single();
-            
-          if (!assignmentError && assignmentData) {
-            // Use the full URL for the function call
-            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              },
-              body: JSON.stringify({
-                type: 'assignment_updated',
-                assignment: assignmentData,
-                updates: updates
-              }),
-            });
-          }
-        } catch (notifyError) {
-          console.error('Error sending assignment update notification:', notifyError);
         }
       }
       

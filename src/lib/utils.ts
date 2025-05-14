@@ -7,21 +7,23 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Utility to safely get environment variables with type checking
+ * Masks sensitive information by showing only parts of it
+ * @param value The string to mask
+ * @param showFirst Number of characters to show at the beginning
+ * @param showLast Number of characters to show at the end
+ * @returns Masked string
  */
-export function getEnv(key: string, defaultValue: string = ''): string {
-  return import.meta.env[`VITE_${key}`] || defaultValue;
-}
-
-/**
- * Format a date string into a readable format
- */
-export function formatDate(dateString: string | null): string {
-  if (!dateString) return 'Not specified';
+export function maskSensitiveInfo(
+  value: string | null | undefined, 
+  showFirst = 2, 
+  showLast = 2
+): string {
+  if (!value) return "Not provided";
+  if (value.length <= showFirst + showLast) return value;
   
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const firstPart = value.substring(0, showFirst);
+  const lastPart = value.substring(value.length - showLast);
+  const middlePart = '*'.repeat(Math.min(5, value.length - (showFirst + showLast)));
+  
+  return `${firstPart}${middlePart}${lastPart}`;
 }
