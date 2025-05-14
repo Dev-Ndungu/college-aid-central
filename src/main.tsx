@@ -17,10 +17,14 @@ meta.name = 'description';
 meta.content = 'Assignment Hub - Get expert assistance with your assignments';
 document.head.appendChild(meta);
 
-// Create base tag to help with routing
+// Create base tag to help with routing - properly configured for SPAs
 const baseTag = document.createElement('base');
 baseTag.href = '/';
 document.head.prepend(baseTag);
 
 // Render the app
-createRoot(rootElement).render(<App />);
+createRoot(rootElement).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
