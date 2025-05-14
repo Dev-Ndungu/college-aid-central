@@ -7,5 +7,5 @@ import './index.css';
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error('Root element not found');
 
-document.title = "The Assignment Hub";
+document.title = "Assignment Hub ✒️";
 createRoot(rootElement).render(<App />);
