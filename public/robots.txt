@@ -1,6 +1,6 @@
 
-# The Writers Hub Robots.txt
-# Website: https://thewritershub.com
+# The Assignment Hub Robots.txt
+# Website: https://www.assignmenthub.org
 
 User-agent: *
 Allow: /
@@ -28,4 +28,4 @@ User-agent: facebookexternalhit
 Allow: /
 
 # Sitemap location
-Sitemap: https://thewritershub.com/sitemap.xml
+Sitemap: https://www.assignmenthub.org/sitemap.xml
