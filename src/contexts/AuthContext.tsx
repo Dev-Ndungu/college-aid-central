@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -209,16 +210,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const selectedRole = localStorage.getItem('googleSignupRole') || 'student';
       console.log("Starting Google sign-in with role:", selectedRole);
       
-      // Use the current deployed URL or fallback to current origin
-      const baseUrl = "https://www.assignmenthub.org" || window.location.origin;
-      const redirectTo = `${baseUrl}/profile-completion`;
-      console.log("Redirect URL for Google auth:", redirectTo);
+      // Define the Supabase callback URL (this is what should be registered in Google Cloud Console)
+      const supabaseCallbackUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co/auth/v1/callback";
+      console.log("Supabase callback URL:", supabaseCallbackUrl);
       
-      // Store the role in the queryParams object instead of data
+      // The final destination after authentication
+      const finalRedirectUrl = "https://www.assignmenthub.org/profile-completion";
+      console.log("Final redirect destination:", finalRedirectUrl);
+      
+      // Store the role in the queryParams object
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectTo,
+          redirectTo: finalRedirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
