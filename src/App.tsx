@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
@@ -26,7 +26,7 @@ function App() {
   return (
     <React.StrictMode>
       <ThemeProvider>
-        <Router basename="/">
+        <Router>
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Index />} />

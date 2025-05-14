@@ -17,9 +17,9 @@ meta.name = 'description';
 meta.content = 'Assignment Hub - Get expert assistance with your assignments';
 document.head.appendChild(meta);
 
-// Create base tag to help with routing - properly configured for SPAs
+// Create base tag to help with routing - configured for hash router
 const baseTag = document.createElement('base');
-baseTag.href = '/';
+baseTag.href = window.location.pathname || '/';
 document.head.prepend(baseTag);
 
 // Render the app
