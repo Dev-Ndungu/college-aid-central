@@ -8,8 +8,8 @@ export { toast };
 export function useToast() {
   return {
     toast: {
-      // Adapt the interface to match what's used in the app
-      (props: { title?: string; description?: string; variant?: "default" | "destructive" }) {
+      // Method for regular toast notifications
+      toast(props: { title?: string; description?: string; variant?: "default" | "destructive" }) {
         const { title, description, variant } = props;
         
         if (variant === "destructive") {
@@ -22,10 +22,13 @@ export function useToast() {
           description
         });
       },
+      // Expose other toast methods
       error: toast.error,
       success: toast.success,
       info: toast.info,
       warning: toast.warning
-    }
+    },
+    // For compatibility with shadcn/ui Toast component
+    toasts: []
   };
 }

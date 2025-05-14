@@ -4,7 +4,7 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/toaster';
 
 // Import routes
 import Index from '@/pages/Index';
