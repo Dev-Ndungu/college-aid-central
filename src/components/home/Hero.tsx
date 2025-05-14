@@ -156,7 +156,7 @@ const Hero = () => {
                 <CarouselNext className="right-2 bg-white/80 hover:bg-white" />
               </Carousel>
               
-              <img src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" alt="The Writers Hub Logo" className="absolute -bottom-6 -right-6 w-24 h-24 bg-white rounded-full p-2 shadow-lg" />
+              <img src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" alt="The Assignment Hub Logo" className="absolute -bottom-6 -right-6 w-24 h-24 bg-white rounded-full p-2 shadow-lg" />
             </div>
           </div>
         </div>
