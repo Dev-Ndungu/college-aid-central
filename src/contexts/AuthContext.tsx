@@ -209,8 +209,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const selectedRole = localStorage.getItem('googleSignupRole') || 'student';
       console.log("Starting Google sign-in with role:", selectedRole);
       
-      // Use the current full origin
-      const redirectTo = `${window.location.origin}/profile-completion`;
+      // Use the current deployed URL or fallback to current origin
+      const baseUrl = "https://www.assignmenthub.org" || window.location.origin;
+      const redirectTo = `${baseUrl}/profile-completion`;
       console.log("Redirect URL for Google auth:", redirectTo);
       
       // Store the role in the queryParams object instead of data
