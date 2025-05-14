@@ -1,8 +1,25 @@
+
+# The Writers Hub Robots.txt
+# Website: https://thewritershub.com
+
+User-agent: *
+Allow: /
+Disallow: /profile/
+Disallow: /dashboard/
+Disallow: /messages/
+Disallow: /assignment-chat/
+Disallow: /reset-password
+
+# Allow specific bots with more permissions
 User-agent: Googlebot
 Allow: /
+Disallow: /profile/
+Disallow: /dashboard/private/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /profile/
+Disallow: /dashboard/private/
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +27,5 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+# Sitemap location
+Sitemap: https://thewritershub.com/sitemap.xml
