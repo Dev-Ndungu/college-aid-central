@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from "sonner";
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card } from '@/components/ui/card';
@@ -50,8 +51,9 @@ const ProfileCompletion = () => {
   const { isAuthenticated, isLoading: authLoading, userEmail, userRole, userId } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileExists, setProfileExists] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const location = useLocation();
 
   const studentForm = useForm<StudentFormData>({
     resolver: zodResolver(studentFormSchema),
@@ -73,57 +75,103 @@ const ProfileCompletion = () => {
     },
   });
 
+  // Handle authentication and profile checking
   useEffect(() => {
-    // If user is not authenticated, redirect to login
-    if (!authLoading && !isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    
-    // Check if user's profile is already complete
-    const checkProfileCompletion = async () => {
-      if (!userId) return;
-      
+    const checkAuthAndProfile = async () => {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', userId)
-          .single();
+        console.log("Checking auth state on profile completion page");
+        
+        // If we have URL parameters that might be from OAuth, try to exchange them
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const queryParams = new URLSearchParams(window.location.search);
+        
+        const hasAuthParams = hashParams.has('access_token') || 
+                              queryParams.has('code') || 
+                              queryParams.has('token') ||
+                              queryParams.has('error');
+                              
+        if (hasAuthParams) {
+          console.log("Found auth parameters in URL, checking session");
           
-        if (error) {
-          console.error("Error checking profile:", error);
+          // Get the session
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Error getting session:", error);
+            toast.error("Authentication failed. Please try logging in again.");
+            navigate('/login');
+            return;
+          }
+          
+          if (!data.session) {
+            console.log("No session found after OAuth redirect");
+            toast.error("Authentication failed. Please try logging in again.");
+            navigate('/login');
+            return;
+          }
+
+          console.log("Session found after OAuth redirect:", data.session.user.id);
+          // Continue with profile check
+        }
+        
+        // If user is not authenticated and we've checked auth, redirect to login
+        if (!authLoading && !isAuthenticated) {
+          console.log("User not authenticated, redirecting to login");
+          navigate('/login');
           return;
         }
         
-        // If profile already has a name, it's considered complete
-        if (data && data.full_name) {
-          setProfileExists(true);
-          // Redirect to dashboard if profile is already complete
-          navigate('/dashboard');
-        } else {
-          // Fetch Google account data if available
-          if (isAuthenticated && userId) {
-            const { data: { user } } = await supabase.auth.getUser();
+        // Check if user's profile is already complete
+        if (userId) {
+          console.log("Checking profile completion for user:", userId);
+          
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('full_name, role')
+            .eq('id', userId)
+            .single();
             
-            if (user && user.app_metadata?.provider === 'google') {
-              const userData = user.user_metadata;
-              
-              if (userRole === 'student') {
-                studentForm.setValue('fullName', userData.full_name || userData.name || "");
-              } else {
-                writerForm.setValue('fullName', userData.full_name || userData.name || "");
-              }
+          if (error) {
+            console.error("Error checking profile:", error);
+            return;
+          }
+          
+          // If profile already has a name, it's considered complete
+          if (data && data.full_name) {
+            console.log("Profile already complete, redirecting to dashboard");
+            setProfileExists(true);
+            // Redirect to dashboard if profile is already complete
+            navigate('/dashboard');
+            return;
+          }
+          
+          // If we have a user but their profile isn't complete, pre-fill form with Google data if available
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user && user.app_metadata?.provider === 'google') {
+            console.log("Filling form with Google user data");
+            const userData = user.user_metadata;
+            
+            // Determine the role - either from profile or from localStorage
+            const role = data?.role || localStorage.getItem('googleSignupRole') || 'student';
+            console.log("Determined user role:", role);
+            
+            if (role === 'student') {
+              studentForm.setValue('fullName', userData.full_name || userData.name || "");
+            } else {
+              writerForm.setValue('fullName', userData.full_name || userData.name || "");
             }
           }
         }
       } catch (error) {
-        console.error("Error checking profile completion:", error);
+        console.error("Error checking auth and profile:", error);
+      } finally {
+        setIsCheckingAuth(false);
       }
     };
     
-    checkProfileCompletion();
-  }, [isAuthenticated, authLoading, navigate, userId, userRole, studentForm, writerForm]);
+    checkAuthAndProfile();
+  }, [isAuthenticated, authLoading, navigate, userId, studentForm, writerForm]);
 
   const onSubmitStudent = async (data: StudentFormData) => {
     if (!isAuthenticated || !userId) return;
@@ -147,7 +195,7 @@ const ProfileCompletion = () => {
         throw error;
       }
 
-      toast("Your profile has been successfully completed.");
+      toast.success("Your profile has been successfully completed.");
 
       // Redirect to dashboard after successful completion
       navigate('/dashboard');
@@ -179,7 +227,7 @@ const ProfileCompletion = () => {
         throw error;
       }
 
-      toast("Your profile has been successfully completed.");
+      toast.success("Your profile has been successfully completed.");
 
       // Redirect to dashboard after successful completion
       navigate('/dashboard');
@@ -191,10 +239,11 @@ const ProfileCompletion = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Verifying your account...</span>
       </div>
     );
   }

@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
+      
       if (session) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email);
@@ -214,12 +217,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const selectedRole = localStorage.getItem('googleSignupRole') || 'student';
       console.log("Starting Google sign-in with role:", selectedRole);
       
-      // Define the Supabase callback URL (this is what should be registered in Google Cloud Console)
-      const supabaseCallbackUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co/auth/v1/callback";
-      console.log("Supabase callback URL:", supabaseCallbackUrl);
+      // Get the current URL origin to use for redirects
+      const origin = window.location.origin;
+      console.log("Current origin for redirect:", origin);
       
-      // The final destination after authentication
-      const finalRedirectUrl = "https://www.assignmenthub.org/profile-completion";
+      // The final destination after authentication - we'll go to the profile-completion page
+      // This is important as we need to ensure we're redirecting to a route that exists in our app
+      const finalRedirectUrl = `${origin}/profile-completion`;
       console.log("Final redirect destination:", finalRedirectUrl);
       
       // Store the role in the queryParams object

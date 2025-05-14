@@ -1,26 +1,45 @@
 
 import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Home, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { toast } from 'sonner';
 
 const NotFound = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const goBack = () => {
     navigate(-1);
   };
 
-  // Auto-redirect to homepage after 5 seconds
+  // Attempt to handle auth redirects that may have failed
   useEffect(() => {
+    const currentUrl = window.location.href;
+    
+    // Check if the URL contains auth-related parameters that might indicate a failed redirect
+    const isAuthRedirect = currentUrl.includes('access_token=') || 
+                          currentUrl.includes('code=') || 
+                          currentUrl.includes('token=') ||
+                          currentUrl.includes('profile-completion');
+
+    if (isAuthRedirect) {
+      console.log("Detected possible failed auth redirect, redirecting to profile-completion");
+      toast.info("Redirecting you to complete your profile...");
+      // Redirect to profile completion page which will handle the auth state
+      navigate('/profile-completion', { replace: true });
+      return;
+    }
+
+    // Auto-redirect to homepage after 5 seconds for regular 404s
     const timer = setTimeout(() => {
       navigate('/', { replace: true });
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, location]);
 
   return (
     <div className="min-h-screen flex flex-col">
