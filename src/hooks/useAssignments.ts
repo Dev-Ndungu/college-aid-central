@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +30,15 @@ export type Writer = {
   id: string;
   full_name: string | null;
   email: string;
+};
+
+/**
+ * Helper function to get environment variables
+ * @param key Environment variable key
+ * @returns The value or empty string if not found
+ */
+const getEnv = (key: string): string => {
+  return import.meta.env[key] || '';
 };
 
 export const useAssignments = () => {
@@ -256,6 +264,13 @@ export const useAssignments = () => {
 
   const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
     try {
+      // Store the fields that are being updated for the email notification
+      const relevantUpdates = {
+        progress: updates.progress,
+        status: updates.status,
+        completed_date: updates.completed_date
+      };
+      
       const { data, error } = await supabase
         .from('assignments')
         .update(updates)
@@ -292,6 +307,33 @@ export const useAssignments = () => {
           } catch (notifyError) {
             console.error('Error sending assignment taken notification:', notifyError);
           }
+        }
+      }
+      
+      // If a writer is updating the assignment (progress, status, or completion)
+      if (userRole === 'writer' && 
+          (updates.progress !== undefined || 
+           updates.status !== undefined || 
+           updates.completed_date !== undefined)) {
+        
+        // Send update notification to the student
+        try {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              type: 'assignment_updated',
+              assignment: data[0],
+              updatedFields: relevantUpdates
+            }),
+          });
+          
+          console.log('Assignment update notification sent to student');
+        } catch (notifyError) {
+          console.error('Error sending assignment update notification:', notifyError);
         }
       }
       

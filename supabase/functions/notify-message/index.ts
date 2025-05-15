@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { formatDate } from "./utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,6 +11,11 @@ const corsHeaders = {
 
 // Initialize Resend client with the API key
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+
+// Email configuration
+const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'admin@assignmenthub.org';
+const EMAIL_FROM = `College Aid Central <${ADMIN_EMAIL}>`;
+const PLATFORM_NAME = 'College Aid Central';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -59,6 +65,7 @@ serve(async (req) => {
           <ul>
             <li><strong>Title:</strong> ${assignment.title}</li>
             <li><strong>Subject:</strong> ${assignment.subject}</li>
+            <li><strong>Date Taken:</strong> ${formatDate(new Date())}</li>
           </ul>
           
           <div style="margin: 30px 0; text-align: center;">
@@ -71,7 +78,7 @@ serve(async (req) => {
           <p>Login to track the progress of your assignment.</p>
           
           <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from College Aid Central. Please do not reply directly to this email.
+            This is an automated message from ${PLATFORM_NAME}. Please do not reply directly to this email.
           </p>
         </div>
       `;
@@ -81,7 +88,7 @@ serve(async (req) => {
       try {
         // Send email using Resend
         const { data, error } = await resend.emails.send({
-          from: 'College Aid Central <onboarding@resend.dev>',
+          from: EMAIL_FROM,
           to: [student.email],
           subject: emailSubject,
           html: emailBody,
@@ -98,7 +105,7 @@ serve(async (req) => {
       
     } 
     else if (payload.type === 'assignment_submitted') {
-      // This is a new assignment notification for writers
+      // This is a new assignment notification for writers and admin
       const { assignment } = payload;
       
       // Get all writers
@@ -118,6 +125,65 @@ serve(async (req) => {
         );
       }
 
+      // Get student info
+      const { data: student, error: studentError } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', assignment.user_id)
+        .single();
+
+      if (studentError) {
+        console.error('Error fetching student:', studentError);
+      }
+
+      const studentName = student?.full_name || student?.email || 'A student';
+
+      // First, send notification to the admin
+      const adminEmailSubject = `New Assignment Submitted: "${assignment.title}"`;
+      const adminEmailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4338ca;">New Assignment Submission</h2>
+          <p>${studentName} has submitted a new assignment:</p>
+          
+          <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">${assignment.title}</h3>
+            <p><strong>Subject:</strong> ${assignment.subject}</p>
+            <p><strong>Description:</strong> ${assignment.description || 'No description provided.'}</p>
+            <p><strong>Submission Date:</strong> ${formatDate(new Date())}</p>
+          </div>
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${supabaseUrl.replace('.supabase.co', '')}/dashboard" 
+               style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+              View Assignment Details
+            </a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            This is an automated message from ${PLATFORM_NAME}. Please do not reply directly to this email.
+          </p>
+        </div>
+      `;
+      
+      try {
+        // Send email to admin
+        const { data, error } = await resend.emails.send({
+          from: EMAIL_FROM,
+          to: [ADMIN_EMAIL],
+          subject: adminEmailSubject,
+          html: adminEmailBody,
+        });
+
+        if (error) {
+          console.error('Error sending admin notification email:', error);
+        } else {
+          console.log('Admin notification email sent successfully:', data);
+        }
+      } catch (emailError) {
+        console.error('Exception sending admin notification email:', emailError);
+      }
+
+      // Then send notifications to all writers
       const emailSubject = `New Assignment Available: "${assignment.title}"`;
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -128,6 +194,7 @@ serve(async (req) => {
             <h3 style="margin-top: 0;">${assignment.title}</h3>
             <p><strong>Subject:</strong> ${assignment.subject}</p>
             <p><strong>Description:</strong> ${assignment.description || 'No description provided.'}</p>
+            <p><strong>Submission Date:</strong> ${formatDate(new Date())}</p>
           </div>
           
           <div style="margin: 30px 0; text-align: center;">
@@ -140,7 +207,7 @@ serve(async (req) => {
           <p>Login to view more details and take this assignment.</p>
           
           <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from College Aid Central. Please do not reply directly to this email.
+            This is an automated message from ${PLATFORM_NAME}. Please do not reply directly to this email.
           </p>
         </div>
       `;
@@ -152,7 +219,7 @@ serve(async (req) => {
         try {
           // Send email using Resend
           const { data, error } = await resend.emails.send({
-            from: 'College Aid Central <onboarding@resend.dev>',
+            from: EMAIL_FROM,
             to: [writer.email],
             subject: emailSubject,
             html: emailBody,
@@ -166,6 +233,98 @@ serve(async (req) => {
         } catch (emailError) {
           console.error(`Exception sending email to writer ${writer.email}:`, emailError);
         }
+      }
+    }
+    else if (payload.type === 'assignment_updated') {
+      // This is an assignment update notification for the student
+      const { assignment, updatedFields } = payload;
+      
+      // Get the student details
+      const { data: student, error: studentError } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', assignment.user_id)
+        .single();
+
+      if (studentError || !student) {
+        console.error('Error fetching student:', studentError);
+        return new Response(
+          JSON.stringify({ error: 'Student not found' }),
+          { 
+            status: 404, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      }
+      
+      // Get writer details
+      const { data: writer, error: writerError } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', assignment.writer_id)
+        .single();
+        
+      const writerName = writer?.full_name || writer?.email || 'Your writer';
+
+      const emailSubject = `Your assignment "${assignment.title}" has been updated`;
+      let updateDescription = "";
+      
+      // Create description of updates based on what fields changed
+      if (updatedFields.progress !== undefined) {
+        updateDescription += `<li><strong>Progress:</strong> Updated to ${updatedFields.progress}%</li>`;
+      }
+      
+      if (updatedFields.status) {
+        updateDescription += `<li><strong>Status:</strong> Changed to "${updatedFields.status}"</li>`;
+      }
+      
+      if (updatedFields.completed_date) {
+        updateDescription += `<li><strong>Completed:</strong> Assignment marked as completed</li>`;
+      }
+      
+      const emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4338ca;">Assignment Update</h2>
+          <p>${writerName} has updated your assignment <strong>"${assignment.title}"</strong>.</p>
+          
+          <h3>Updates:</h3>
+          <ul>
+            ${updateDescription || '<li>Assignment details have been updated</li>'}
+          </ul>
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${supabaseUrl.replace('.supabase.co', '')}/assignment-chat/${assignment.id}" 
+               style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+              View Assignment Details
+            </a>
+          </div>
+          
+          <p>Login to track the progress of your assignment.</p>
+          
+          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            This is an automated message from ${PLATFORM_NAME}. Please do not reply directly to this email.
+          </p>
+        </div>
+      `;
+      
+      console.log('Sending assignment update email to student:', student.email);
+      
+      try {
+        // Send email using Resend
+        const { data, error } = await resend.emails.send({
+          from: EMAIL_FROM,
+          to: [student.email],
+          subject: emailSubject,
+          html: emailBody,
+        });
+
+        if (error) {
+          console.error('Error sending assignment update email:', error);
+        } else {
+          console.log('Assignment update email sent successfully:', data);
+        }
+      } catch (emailError) {
+        console.error('Exception sending assignment update email:', emailError);
       }
     }
     else {
@@ -238,7 +397,7 @@ serve(async (req) => {
             </div>
             
             <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-              This is an automated message from College Aid Central. Please do not reply directly to this email.
+              This is an automated message from ${PLATFORM_NAME}. Please do not reply directly to this email.
             </p>
           </div>
         `;
@@ -246,7 +405,7 @@ serve(async (req) => {
         try {
           // Send email using Resend
           const { data, error } = await resend.emails.send({
-            from: 'College Aid Central <onboarding@resend.dev>',
+            from: EMAIL_FROM,
             to: [recipient.email],
             subject: emailSubject,
             html: emailBody,
@@ -282,3 +441,4 @@ serve(async (req) => {
     );
   }
 });
+
