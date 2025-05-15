@@ -18,29 +18,53 @@ const PLATFORM_NAME = 'College Aid Central';
 const ZOHO_USERNAME = ADMIN_EMAIL;
 const ZOHO_PASSWORD = Deno.env.get('ZOHO_PASSWORD') || 'WaxJzGNeYBHT'; // Using the provided key
 
-// Configure SMTP client
-const smtpClient = new SmtpClient();
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let smtpClient = new SmtpClient();
+  
   try {
-    // Configure SMTP connection
-    await smtpClient.connectTLS({
-      hostname: "smtp.zoho.com",
-      port: 587,
-      username: ZOHO_USERNAME,
-      password: ZOHO_PASSWORD,
-    });
-
+    // Parse the request payload first to identify what we're doing
+    const payload = await req.json();
+    console.log("Received notification request with type:", payload.type);
+    
+    // Configure Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const payload = await req.json();
+    // Connect to SMTP with improved error handling
+    try {
+      console.log("Attempting to connect to SMTP server...");
+      await smtpClient.connectTLS({
+        hostname: "smtp.zoho.com",
+        port: 587,
+        username: ZOHO_USERNAME,
+        password: ZOHO_PASSWORD,
+      });
+      console.log("SMTP connection successful");
+    } catch (smtpError) {
+      console.error("SMTP connection error:", smtpError);
+      return new Response(
+        JSON.stringify({ 
+          error: "SMTP connection failed", 
+          details: smtpError.message,
+          config: {
+            hostname: "smtp.zoho.com",
+            port: 587,
+            username: ZOHO_USERNAME,
+            password: "****" // Hiding the password in logs
+          }
+        }),
+        { 
+          status: 500, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        }
+      );
+    }
     
     // Handle different types of notifications
     if (payload.type === 'assignment_taken') {
@@ -109,6 +133,7 @@ serve(async (req) => {
         console.log('Email sent successfully to student');
       } catch (emailError) {
         console.error('Exception sending email:', emailError);
+        throw emailError; // Re-throw to be caught by outer try-catch
       }
       
     } 
@@ -174,6 +199,7 @@ serve(async (req) => {
       `;
       
       try {
+        console.log(`Sending admin notification to: ${ADMIN_EMAIL}`);
         // Send email to admin
         await smtpClient.send({
           from: EMAIL_FROM,
@@ -399,6 +425,7 @@ serve(async (req) => {
         `;
         
         try {
+          console.log(`Sending email notification to writer: ${recipient.email}`);
           // Send email using Zoho SMTP
           await smtpClient.send({
             from: EMAIL_FROM,
@@ -415,7 +442,12 @@ serve(async (req) => {
     }
 
     // Close SMTP connection
-    await smtpClient.close();
+    try {
+      await smtpClient.close();
+      console.log("SMTP connection closed successfully");
+    } catch (closeError) {
+      console.error("Error closing SMTP connection:", closeError);
+    }
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -436,7 +468,10 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack
+      }),
       { 
         status: 500, 
         headers: { 'Content-Type': 'application/json', ...corsHeaders } 
