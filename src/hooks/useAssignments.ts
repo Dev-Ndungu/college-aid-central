@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -202,55 +201,88 @@ export const useAssignments = () => {
     status?: string;
     progress?: number | null;
     due_date?: string | null;
-    user_id: string;
+    user_id?: string;
     file_urls?: string[] | null;
+    student_name?: string | null;
+    student_email?: string | null;
+    student_phone?: string | null;
   }) => {
     try {
-      // First, get the user's profile information
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name, email, phone_number')
-        .eq('id', assignmentData.user_id)
-        .single();
-      
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-      }
-      
-      // Add student contact info to assignment data
-      const enhancedAssignmentData = {
-        ...assignmentData,
-        student_name: userProfile?.full_name || null,
-        student_email: userProfile?.email || null,
-        student_phone: userProfile?.phone_number || null
-      };
-      
-      const { data, error } = await supabase
-        .from('assignments')
-        .insert([enhancedAssignmentData])
-        .select();
+      // Check if user is authenticated
+      if (isAuthenticated && userId) {
+        // Logged-in user flow - First, get the user's profile information
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('full_name, email, phone_number')
+          .eq('id', userId)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+        }
+        
+        // Add student contact info to assignment data
+        const enhancedAssignmentData = {
+          ...assignmentData,
+          user_id: userId,
+          student_name: userProfile?.full_name || assignmentData.student_name,
+          student_email: userProfile?.email || assignmentData.student_email,
+          student_phone: userProfile?.phone_number || assignmentData.student_phone
+        };
+        
+        const { data, error } = await supabase
+          .from('assignments')
+          .insert([enhancedAssignmentData])
+          .select();
 
-      if (error) throw error;
-      
-      // Send notification to writers about new assignment
-      try {
-        // Use the full URL for the function call
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+        if (error) throw error;
+      } 
+      else {
+        // Anonymous user flow - Direct insert using REST API to bypass RLS
+        // We'll use the standard Fetch API with the Supabase REST endpoint
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/assignments`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Prefer': 'return=representation'
           },
           body: JSON.stringify({
-            type: 'assignment_submitted',
-            assignment: data[0]
-          }),
+            ...assignmentData,
+            status: assignmentData.status || 'submitted'
+          })
         });
-      } catch (notifyError) {
-        console.error('Error sending assignment submission notification:', notifyError);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error with anonymous submission:', errorText);
+          throw new Error(`Failed to submit anonymous assignment: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Anonymous submission successful:', data);
+
+        // Send notification to writers about new assignment
+        try {
+          // Use the full URL for the function call
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              type: 'assignment_submitted',
+              assignment: data[0]
+            }),
+          });
+        } catch (notifyError) {
+          console.error('Error sending assignment submission notification:', notifyError);
+        }
+        
+        return data[0];
       }
       
-      return data[0];
     } catch (err: any) {
       console.error('Error creating assignment:', err);
       throw err;
