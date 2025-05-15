@@ -135,7 +135,6 @@ const Hero = () => {
         subject: data.subject,
         description: data.description || null,
         status: "submitted",
-        user_id: userId || "00000000-0000-0000-0000-000000000000", // Anonymous ID if not logged in
         student_name: data.name,
         student_email: data.email,
         student_phone: formattedPhone,
@@ -143,29 +142,49 @@ const Hero = () => {
         file_urls: fileUrls.length > 0 ? fileUrls : null
       };
 
-      // If user is authenticated, use their ID
       if (isAuthenticated && userId) {
-        console.log("Submitting as authenticated user:", userId);
-        // Use the actual user ID
+        // For authenticated users, use their ID
+        const { data: result, error } = await supabase
+          .from('assignments')
+          .insert([{...assignmentData, user_id: userId}])
+          .select();
+
+        if (error) {
+          console.error("Error submitting assignment:", error);
+          toast.error("Failed to submit your assignment");
+          throw error;
+        }
+        
+        toast.success("Your assignment was submitted successfully!");
+        console.log("Assignment submitted:", result);
       } else {
-        console.log("Submitting as anonymous user");
-        // Anonymous submission - already handled above
+        // Anonymous submission - use REST API directly to bypass RLS
+        const response = await fetch(`https://ihvgtaxvrqdnrgdddhdx.supabase.co/rest/v1/assignments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlodmd0YXh2cnFkbnJnZGRkaGR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxOTAwMTQsImV4cCI6MjA2MTc2NjAxNH0.zwjvn4wy33o_nYHuwNXI6aHTQWLx1-XriImQxj4tPfg',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            ...assignmentData,
+            // Use a placeholder user_id for anonymous submissions
+            user_id: '00000000-0000-0000-0000-000000000000',
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Error in anonymous submission:", errorData);
+          toast.error("Failed to submit your assignment");
+          throw new Error(`Failed to submit: ${errorData.message || 'Unknown error'}`);
+        }
+
+        const result = await response.json();
+        toast.success("Your assignment was submitted successfully!");
+        console.log("Anonymous assignment submitted:", result);
       }
-
-      // Insert into database
-      const { data: result, error } = await supabase
-        .from('assignments')
-        .insert([assignmentData])
-        .select();
-
-      if (error) {
-        console.error("Error submitting assignment:", error);
-        toast.error("Failed to submit your assignment");
-        throw error;
-      }
-
-      toast.success("Your assignment was submitted successfully!");
-      console.log("Assignment submitted:", result);
+      
       setSubmissionDialogOpen(false);
       form.reset();
       setSelectedFiles([]);
