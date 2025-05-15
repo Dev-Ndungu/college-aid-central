@@ -19,6 +19,9 @@ export type Assignment = {
   writer_id?: string | null;
   user_id: string;
   file_urls: string[] | null;
+  student_name: string | null;
+  student_email: string | null;
+  student_phone: string | null;
   user?: {
     full_name: string | null;
     email: string;
