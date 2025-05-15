@@ -28,6 +28,11 @@ BEGIN
 END
 $$;
 
+-- Fix any potential issues with status values to ensure consistency
+UPDATE public.assignments 
+SET status = 'submitted' 
+WHERE status = 'in-progress' AND writer_id IS NULL;
+
 -- Create comprehensive policies with clear descriptions
 
 -- Writers: View all assignments (both available and assigned to them)
@@ -57,7 +62,7 @@ WITH CHECK (
   auth.uid() = user_id
 );
 
--- Writers: Update assignments (they can only update ones they're assigned to or take available ones)
+-- Writers: Update assignments properly
 CREATE POLICY "Writers can update assignments" 
 ON public.assignments 
 FOR UPDATE 
@@ -75,3 +80,4 @@ USING (
 
 -- Create index to speed up queries
 CREATE INDEX IF NOT EXISTS idx_assignments_status_writer ON public.assignments(status, writer_id);
+
