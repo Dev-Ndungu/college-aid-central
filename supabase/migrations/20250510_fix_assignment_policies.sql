@@ -2,7 +2,10 @@
 -- Drop conflicting policies if they exist
 DROP POLICY IF EXISTS "Writers can view all submitted assignments" ON public.assignments;
 DROP POLICY IF EXISTS "Writers can update assigned assignments" ON public.assignments;
+DROP POLICY IF EXISTS "Writers can update assignments" ON public.assignments;
+DROP POLICY IF EXISTS "Students can view own assignments only" ON public.assignments;
 DROP POLICY IF EXISTS "Students can view own assignments" ON public.assignments;
+DROP POLICY IF EXISTS "Students can create assignments" ON public.assignments;
 DROP POLICY IF EXISTS "Students can create own assignments" ON public.assignments;
 
 -- Enable RLS if not already enabled
@@ -25,7 +28,9 @@ BEGIN
 END
 $$;
 
--- Clear policy for writers to see ALL assignments (not just submitted ones)
+-- Create comprehensive policies with clear descriptions
+
+-- Writers: View all assignments (both available and assigned to them)
 CREATE POLICY "Writers can view all assignments" 
 ON public.assignments 
 FOR SELECT 
@@ -34,33 +39,39 @@ USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'writer')
 );
 
--- Policy for students: can only see their own assignments
-CREATE POLICY "Students can view own assignments only" 
+-- Students: View only their own assignments
+CREATE POLICY "Students can view own assignments" 
 ON public.assignments 
 FOR SELECT 
 TO authenticated
-USING (auth.uid() = user_id);
+USING (
+  auth.uid() = user_id
+);
 
--- Policy for students: can create their own assignments
-CREATE POLICY "Students can create assignments" 
+-- Students: Create their own assignments
+CREATE POLICY "Students can create own assignments" 
 ON public.assignments 
 FOR INSERT 
 TO authenticated
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (
+  auth.uid() = user_id
+);
 
--- Policy for writers: can update assignments they are assigned to
+-- Writers: Update assignments (they can only update ones they're assigned to or take available ones)
 CREATE POLICY "Writers can update assignments" 
 ON public.assignments 
 FOR UPDATE 
 TO authenticated
 USING (
-  -- Writers can update if they're assigned or if it's available to take
-  (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'writer')) AND
+  -- Writers can only update if they are a writer AND either:
+  -- 1. They're assigned to this assignment already OR
+  -- 2. The assignment is submitted and available to take (no writer assigned yet)
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'writer') AND
   (
-    (writer_id = auth.uid()) OR 
+    writer_id = auth.uid() OR 
     (status = 'submitted' AND writer_id IS NULL)
   )
 );
 
--- Create index to speed up queries on status and writer_id
+-- Create index to speed up queries
 CREATE INDEX IF NOT EXISTS idx_assignments_status_writer ON public.assignments(status, writer_id);
