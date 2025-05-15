@@ -1,16 +1,74 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileText, Download, File, Image, FileArchive } from 'lucide-react';
+import { FileText, Download, File, Image, FileArchive, Upload } from 'lucide-react';
 
 interface FileAttachmentsProps {
   fileUrls: string[] | null;
   preview?: boolean;
+  files?: File[];
+  setFiles?: React.Dispatch<React.SetStateAction<File[]>>;
+  setFileUrls?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-const FileAttachments: React.FC<FileAttachmentsProps> = ({ fileUrls, preview = false }) => {
+const FileAttachments: React.FC<FileAttachmentsProps> = ({ 
+  fileUrls, 
+  preview = false, 
+  files,
+  setFiles,
+  setFileUrls 
+}) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && setFiles && setFileUrls) {
+      const newFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const isUploadMode = setFiles !== undefined && setFileUrls !== undefined;
+
   if (!fileUrls || fileUrls.length === 0) {
-    return null;
+    if (!isUploadMode) return null;
+    
+    return (
+      <div className="mt-4">
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            type="button"
+            onClick={() => document.getElementById('file-upload')?.click()}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Files
+          </Button>
+          <input
+            id="file-upload"
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <span className="text-sm text-muted-foreground">
+            {files && files.length > 0 ? `${files.length} file(s) selected` : 'No files selected'}
+          </span>
+        </div>
+        {files && files.length > 0 && (
+          <div className="mt-2">
+            <p className="text-sm font-medium mb-2">Selected files:</p>
+            <div className="grid grid-cols-1 gap-2">
+              {files.map((file, index) => (
+                <div key={index} className="text-sm flex items-center space-x-2">
+                  <File className="h-4 w-4 text-gray-500" />
+                  <span>{file.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   const getFileIcon = (url: string) => {
@@ -85,6 +143,26 @@ const FileAttachments: React.FC<FileAttachmentsProps> = ({ fileUrls, preview = f
             </Card>
           ))}
         </div>
+        {isUploadMode && (
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              type="button"
+              onClick={() => document.getElementById('file-upload')?.click()}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Add More Files
+            </Button>
+            <input
+              id="file-upload"
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -143,9 +221,28 @@ const FileAttachments: React.FC<FileAttachmentsProps> = ({ fileUrls, preview = f
                 </div>
               </div>
             </Card>
-          )
+          );
         })}
       </div>
+      {isUploadMode && (
+        <div className="mt-4">
+          <Button 
+            variant="outline" 
+            type="button"
+            onClick={() => document.getElementById('file-upload')?.click()}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Add More Files
+          </Button>
+          <input
+            id="file-upload"
+            type="file"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </div>
+      )}
     </div>
   );
 };
