@@ -1,5 +1,5 @@
 
-// Re-export from the proper location
+// Re-export from sonner
 import { toast } from "sonner";
 
 // Create a useToast hook that returns the toast function

@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 import { formatDate } from "./utils.ts";
 
 const corsHeaders = {
@@ -9,13 +9,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize Resend client with the API key
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
-
 // Email configuration
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL') || 'admin@assignmenthub.org';
 const EMAIL_FROM = `College Aid Central <${ADMIN_EMAIL}>`;
 const PLATFORM_NAME = 'College Aid Central';
+
+// Zoho SMTP configuration
+const ZOHO_USERNAME = ADMIN_EMAIL;
+const ZOHO_PASSWORD = Deno.env.get('ZOHO_PASSWORD') || 'WaxJzGNeYBHT'; // Using the provided key
+
+// Configure SMTP client
+const smtpClient = new SmtpClient();
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -24,6 +28,14 @@ serve(async (req) => {
   }
 
   try {
+    // Configure SMTP connection
+    await smtpClient.connectTLS({
+      hostname: "smtp.zoho.com",
+      port: 587,
+      username: ZOHO_USERNAME,
+      password: ZOHO_PASSWORD,
+    });
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -86,21 +98,17 @@ serve(async (req) => {
       console.log('Sending email to student:', student.email);
       
       try {
-        // Send email using Resend
-        const { data, error } = await resend.emails.send({
+        // Send email using Zoho SMTP
+        await smtpClient.send({
           from: EMAIL_FROM,
-          to: [student.email],
+          to: student.email,
           subject: emailSubject,
           html: emailBody,
         });
-
-        if (error) {
-          console.error('Error sending email with Resend:', error);
-        } else {
-          console.log('Email sent successfully with Resend:', data);
-        }
+        
+        console.log('Email sent successfully to student');
       } catch (emailError) {
-        console.error('Exception sending email with Resend:', emailError);
+        console.error('Exception sending email:', emailError);
       }
       
     } 
@@ -167,18 +175,14 @@ serve(async (req) => {
       
       try {
         // Send email to admin
-        const { data, error } = await resend.emails.send({
+        await smtpClient.send({
           from: EMAIL_FROM,
-          to: [ADMIN_EMAIL],
+          to: ADMIN_EMAIL,
           subject: adminEmailSubject,
           html: adminEmailBody,
         });
 
-        if (error) {
-          console.error('Error sending admin notification email:', error);
-        } else {
-          console.log('Admin notification email sent successfully:', data);
-        }
+        console.log('Admin notification email sent successfully');
       } catch (emailError) {
         console.error('Exception sending admin notification email:', emailError);
       }
@@ -217,19 +221,15 @@ serve(async (req) => {
         console.log(`Sending email to writer ${writer.email} about new assignment`);
         
         try {
-          // Send email using Resend
-          const { data, error } = await resend.emails.send({
+          // Send email using Zoho SMTP
+          await smtpClient.send({
             from: EMAIL_FROM,
-            to: [writer.email],
+            to: writer.email,
             subject: emailSubject,
             html: emailBody,
           });
 
-          if (error) {
-            console.error(`Error sending email to writer ${writer.email}:`, error);
-          } else {
-            console.log(`Email sent successfully to writer ${writer.email}:`, data);
-          }
+          console.log(`Email sent successfully to writer ${writer.email}`);
         } catch (emailError) {
           console.error(`Exception sending email to writer ${writer.email}:`, emailError);
         }
@@ -310,19 +310,15 @@ serve(async (req) => {
       console.log('Sending assignment update email to student:', student.email);
       
       try {
-        // Send email using Resend
-        const { data, error } = await resend.emails.send({
+        // Send email using Zoho SMTP
+        await smtpClient.send({
           from: EMAIL_FROM,
-          to: [student.email],
+          to: student.email,
           subject: emailSubject,
           html: emailBody,
         });
 
-        if (error) {
-          console.error('Error sending assignment update email:', error);
-        } else {
-          console.log('Assignment update email sent successfully:', data);
-        }
+        console.log('Assignment update email sent successfully');
       } catch (emailError) {
         console.error('Exception sending assignment update email:', emailError);
       }
@@ -403,24 +399,23 @@ serve(async (req) => {
         `;
         
         try {
-          // Send email using Resend
-          const { data, error } = await resend.emails.send({
+          // Send email using Zoho SMTP
+          await smtpClient.send({
             from: EMAIL_FROM,
-            to: [recipient.email],
+            to: recipient.email,
             subject: emailSubject,
             html: emailBody,
           });
 
-          if (error) {
-            console.error('Error sending message notification email:', error);
-          } else {
-            console.log('Message notification email sent successfully:', data);
-          }
+          console.log('Message notification email sent successfully');
         } catch (emailError) {
           console.error('Exception sending message notification email:', emailError);
         }
       }
     }
+
+    // Close SMTP connection
+    await smtpClient.close();
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -432,6 +427,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error processing notification:', error);
+    
+    // Try to close SMTP connection in case of error
+    try {
+      await smtpClient.close();
+    } catch (closeError) {
+      console.error('Error closing SMTP connection:', closeError);
+    }
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
@@ -441,4 +444,3 @@ serve(async (req) => {
     );
   }
 });
-
