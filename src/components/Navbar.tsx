@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserAvatar from '@/components/profile/UserAvatar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LayoutDashboard, Menu } from 'lucide-react';
+import { Menu, LayoutDashboard } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -69,8 +69,8 @@ const Navbar = () => {
         ) : (
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
+              <Button variant="ghost" size="icon" className="p-1">
+                <Menu className="h-8 w-8" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
@@ -87,6 +87,16 @@ const Navbar = () => {
                 <Link to="/contact" className="text-lg font-medium hover:text-primary transition-colors">
                   Contact
                 </Link>
+                {!isAuthenticated && (
+                  <>
+                    <Link to="/login" className="text-lg font-medium hover:text-primary transition-colors">
+                      Sign In
+                    </Link>
+                    <Link to="/signup" className="text-lg font-medium hover:text-primary transition-colors">
+                      Sign Up
+                    </Link>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>
@@ -95,16 +105,18 @@ const Navbar = () => {
         <div className="flex items-center gap-2">
           {isAuthenticated ? (
             <div className="flex items-center gap-2">
-              {/* Dashboard button - always visible */}
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-1" 
-                onClick={() => navigate('/dashboard')}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                {!isMobile && <span>Dashboard</span>}
-              </Button>
+              {/* Dashboard button - always visible on desktop, hidden on mobile */}
+              {!isMobile && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="flex items-center gap-1" 
+                  onClick={() => navigate('/dashboard')}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span>Dashboard</span>
+                </Button>
+              )}
               
               {/* Messages button - only on desktop */}
               {!isMobile && (
@@ -117,12 +129,15 @@ const Navbar = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative p-0" aria-label="User menu">
-                    <UserAvatar size="sm" />
+                    <UserAvatar />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {isMobile && (
                     <>
+                      <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                        Dashboard
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => navigate('/messages')}>
                         Messages
                       </DropdownMenuItem>
@@ -140,7 +155,7 @@ const Navbar = () => {
               </DropdownMenu>
             </div>
           ) : (
-            !isLoginPage && !isSignupPage && (
+            !isLoginPage && !isSignupPage && !isMobile && (
               <div className="flex items-center gap-2">
                 <Link to="/login">
                   <Button variant="outline" size="sm">Sign In</Button>
