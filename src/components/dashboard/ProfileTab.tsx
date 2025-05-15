@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 const ProfileTab = () => {
-  const { userId, userRole, user } = useAuth();
+  const { userId, userRole, userEmail } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [schoolInstitution, setSchoolInstitution] = useState('');
@@ -23,13 +24,6 @@ const ProfileTab = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setFullName(user.full_name || '');
-      setPhone(user.phone_number || '');
-    }
-  }, [user]);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -49,7 +43,14 @@ const ProfileTab = () => {
           setInstitutionType(data.institution_type || '');
           setGender(data.gender || '');
           setWriterBio(data.writer_bio || '');
-          setWriterSkills(data.writer_skills || '');
+          // Handle writer_skills that might be a string or string[]
+          if (data.writer_skills) {
+            if (Array.isArray(data.writer_skills)) {
+              setWriterSkills(data.writer_skills.join(', '));
+            } else {
+              setWriterSkills(data.writer_skills);
+            }
+          }
           setAvatarUrl(data.avatar_url || null);
         }
       }
@@ -64,8 +65,17 @@ const ProfileTab = () => {
     try {
       setIsUpdating(true);
       
-      const { error } = await supabase.from('profiles').upsert({
+      if (!userId || !userEmail) {
+        toast.error('User information not available');
+        return;
+      }
+      
+      // Convert writer skills to array if it's a string
+      const skillsArray = writerSkills.split(',').map(skill => skill.trim()).filter(Boolean);
+      
+      const { error } = await supabase.from('profiles').update({
         id: userId,
+        email: userEmail, // Required field from the error message
         full_name: fullName,
         phone_number: phone,
         institution: schoolInstitution,
@@ -74,9 +84,9 @@ const ProfileTab = () => {
         updated_at: new Date().toISOString(),
         ...(userRole === 'writer' && {
           writer_bio: writerBio,
-          writer_skills: writerSkills
+          writer_skills: skillsArray
         })
-      });
+      }).eq('id', userId);
       
       if (error) throw error;
       

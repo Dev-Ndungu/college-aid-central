@@ -10,16 +10,28 @@ interface OnlineStatusProps {
   userId: string;
   showLabel?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  userName?: string; // Add userName as an optional prop
 }
 
-const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, showLabel = true, size = 'md' }) => {
-  const { isOnline, lastSeen } = usePresence(userId);
+const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, showLabel = true, size = 'md', userName }) => {
+  const presence = usePresence(userId);
   const [name, setName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Extract isOnline and lastSeen from presence
+  const isOnline = presence?.isOnline || false;
+  const lastSeen = presence?.lastSeen || null;
 
   useEffect(() => {
     const fetchUserName = async () => {
       if (!userId) return;
+      
+      // Use passed userName if available
+      if (userName) {
+        setName(userName);
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
@@ -43,7 +55,7 @@ const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, showLabel = true, s
     };
     
     fetchUserName();
-  }, [userId]);
+  }, [userId, userName]);
 
   const getStatusDisplay = () => {
     if (loading) return 'Loading...';

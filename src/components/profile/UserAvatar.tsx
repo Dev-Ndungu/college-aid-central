@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,20 +10,49 @@ import { Edit, Upload } from 'lucide-react';
 
 interface UserAvatarProps {
   className?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-const UserAvatar: React.FC<UserAvatarProps> = ({ className }) => {
+const UserAvatar: React.FC<UserAvatarProps> = ({ className, size = 'lg' }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const { userId, user } = useAuth();
+  const { userId, userEmail } = useAuth();
+  const [userData, setUserData] = useState<{
+    email?: string;
+    avatar_url?: string;
+  } | null>(null);
 
+  // Fetch user data from profiles table
   useEffect(() => {
-    if (user?.user_metadata?.avatar_url) {
-      setAvatarUrl(user.user_metadata.avatar_url);
-    } else {
-      downloadAvatar();
-    }
-  }, [user]);
+    const fetchUserData = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('email, avatar_url')
+          .eq('id', userId)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          return;
+        }
+        
+        setUserData(data);
+        
+        if (data?.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        } else {
+          downloadAvatar();
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    fetchUserData();
+  }, [userId]);
 
   const downloadAvatar = async () => {
     try {
@@ -123,48 +153,54 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ className }) => {
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     handleAvatarUpload(event);
   };
+  
+  // Set avatar size based on prop
+  const avatarSizeClass = size === 'sm' ? 'h-8 w-8' : size === 'md' ? 'h-12 w-12' : 'h-32 w-32';
+  const shouldShowUpload = size === 'lg'; // Only show upload UI for large avatars
 
   return (
-    <div className={`flex flex-col items-center space-y-4 ${className}`}>
-      <Avatar className="h-32 w-32">
+    <div className={`flex flex-col items-center ${shouldShowUpload ? 'space-y-4' : ''} ${className}`}>
+      <Avatar className={avatarSizeClass}>
         {avatarUrl ? (
           <AvatarImage src={avatarUrl} alt="Avatar" referrerPolicy="no-referrer" />
         ) : (
           <AvatarFallback>
-            {user?.email ? user.email[0].toUpperCase() : 'N/A'}
+            {userData?.email ? userData.email[0].toUpperCase() : userEmail ? userEmail[0].toUpperCase() : 'N/A'}
           </AvatarFallback>
         )}
       </Avatar>
-      <div className="space-y-2 text-center">
-        <Label htmlFor="avatar-upload" className="cursor-pointer">
-          <Button asChild variant="secondary" disabled={uploading}>
-            <label htmlFor="avatar-upload" className="cursor-pointer">
-              {uploading ? (
-                <>
-                  <span className="animate-spin mr-2">⏳</span>
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Change Avatar
-                </>
-              )}
-            </label>
-          </Button>
-        </Label>
-        <input
-          type="file"
-          id="avatar-upload"
-          className="hidden"
-          accept="image/*"
-          onChange={handleAvatarChange}
-          disabled={uploading}
-        />
-        <p className="text-sm text-muted-foreground">
-          Click to upload a new avatar (Max 3MB)
-        </p>
-      </div>
+      {shouldShowUpload && (
+        <div className="space-y-2 text-center">
+          <Label htmlFor="avatar-upload" className="cursor-pointer">
+            <Button asChild variant="secondary" disabled={uploading}>
+              <label htmlFor="avatar-upload" className="cursor-pointer">
+                {uploading ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Change Avatar
+                  </>
+                )}
+              </label>
+            </Button>
+          </Label>
+          <input
+            type="file"
+            id="avatar-upload"
+            className="hidden"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            disabled={uploading}
+          />
+          <p className="text-sm text-muted-foreground">
+            Click to upload a new avatar (Max 3MB)
+          </p>
+        </div>
+      )}
     </div>
   );
 };
