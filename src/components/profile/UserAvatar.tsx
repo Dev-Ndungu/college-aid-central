@@ -1,175 +1,170 @@
 import React, { useState, useEffect } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { User, Upload, RefreshCw } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Edit, Upload } from 'lucide-react';
 
 interface UserAvatarProps {
-  size?: "sm" | "md" | "lg";
-  showUploadButton?: boolean;
   className?: string;
 }
 
-const UserAvatar: React.FC<UserAvatarProps> = ({ 
-  size = "md", 
-  showUploadButton = false,
-  className = ""
-}) => {
-  const { userAvatar, userEmail, updateUserAvatar, userId } = useAuth();
-  const [isUploading, setIsUploading] = useState(false);
-  const { toast } = useToast();
-
-  // Determine size class based on size prop
-  const sizeClass = {
-    sm: "h-8 w-8",
-    md: "h-10 w-10",
-    lg: "h-20 w-20"
-  }[size];
+const UserAvatar: React.FC<UserAvatarProps> = ({ className }) => {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const { userId, user } = useAuth();
 
   useEffect(() => {
-    // This will check if we have an avatar from Google sign-in
-    if (!userAvatar && userId) {
-      const checkGoogleAvatar = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('id', userId)
-            .single();
-            
-          if (error) {
-            console.error("Error fetching avatar:", error);
-            return;
-          }
-          
-          if (data?.avatar_url) {
-            updateUserAvatar(data.avatar_url);
-          }
-        } catch (err) {
-          console.error("Failed to check for Google avatar:", err);
-        }
-      };
-      
-      checkGoogleAvatar();
+    if (user?.user_metadata?.avatar_url) {
+      setAvatarUrl(user.user_metadata.avatar_url);
+    } else {
+      downloadAvatar();
     }
-  }, [userId, userAvatar, updateUserAvatar]);
+  }, [user]);
 
-  const getInitials = () => {
-    if (!userEmail) return "U";
-    
-    const parts = userEmail.split('@')[0].split(/[._-]/);
-    if (parts.length > 1) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    
-    return userEmail.substring(0, 2).toUpperCase();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
-
+  const downloadAvatar = async () => {
     try {
-      setIsUploading(true);
-      
-      // Check if avatars bucket exists, create if not
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
-      
-      if (!avatarBucketExists) {
-        await supabase.storage.createBucket('avatars', {
-          public: true,
-          fileSizeLimit: 1024 * 1024 * 2 // 2MB
-        });
-      }
-      
-      // Generate a unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Upload the file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
+      if (!userId) {
+        console.warn('No user ID found.');
+        return;
       }
 
-      // Get the public URL
-      const { data: publicURL } = supabase.storage
+      const { data, error } = await supabase.storage
         .from('avatars')
-        .getPublicUrl(filePath);
+        .download(`avatars/${userId}`);
 
-      if (publicURL?.publicUrl) {
-        // Update user profile in database
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ avatar_url: publicURL.publicUrl })
-          .eq('id', userId);
-          
-        if (updateError) {
-          throw updateError;
+      if (error) {
+        // Check if the error is because the file doesn't exist
+        if (error.message.includes('Object not found')) {
+          console.log('Avatar not found, using default.');
+          return; // No avatar found, use default
+        } else {
+          console.error('Error downloading avatar:', error);
+          toast.error(`Couldn't load avatar: ${error.message}`);
+          return;
         }
-        
-        // Update local state
-        await updateUserAvatar(publicURL.publicUrl);
-        
-        toast.success("Your profile avatar has been updated successfully.");
+      }
+
+      if (data) {
+        const url = URL.createObjectURL(data);
+        setAvatarUrl(url);
       }
     } catch (error: any) {
-      console.error('Error uploading avatar:', error);
-      toast.error(error.message || "An error occurred during avatar upload.");
-    } finally {
-      setIsUploading(false);
-      // Clear the input
-      if (e.target) {
-        e.target.value = '';
-      }
+      console.error('Unexpected error downloading avatar:', error);
+      toast.error(`Unexpected error loading avatar: ${error.message}`);
     }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || !event.target.files[0]) {
+      return;
+    }
+
+    const file = event.target.files[0];
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error('Image size should be less than 3MB');
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      if (!userId) {
+        toast.error('User not authenticated');
+        return;
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Error uploading avatar:', uploadError);
+        toast.error(`Failed to upload avatar: ${uploadError.message}`);
+        return;
+      }
+
+      const publicUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/avatars/${filePath}`;
+
+      // Update user metadata with the avatar URL
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      });
+
+      if (metadataError) {
+        console.error('Error updating user metadata:', metadataError);
+        toast.error(`Failed to update profile: ${metadataError.message}`);
+      } else {
+        // Optimistically update the local state
+        setAvatarUrl(publicUrl);
+        toast.success('Avatar updated successfully!');
+      }
+    } catch (error: any) {
+      console.error('Unexpected error uploading avatar:', error);
+      toast.error(`Unexpected error uploading avatar: ${error.message}`);
+    } finally {
+      setUploading(false);
+      // Clear the input
+      const input = event.target as HTMLInputElement;
+      input.value = '';
+    }
+  };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handleAvatarUpload(event);
   };
 
   return (
-    <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <Avatar className={sizeClass}>
-        <AvatarImage src={userAvatar || undefined} alt="User avatar" />
-        <AvatarFallback className="bg-primary/10 text-primary">
-          {getInitials()}
-        </AvatarFallback>
+    <div className={`flex flex-col items-center space-y-4 ${className}`}>
+      <Avatar className="h-32 w-32">
+        {avatarUrl ? (
+          <AvatarImage src={avatarUrl} alt="Avatar" referrerPolicy="no-referrer" />
+        ) : (
+          <AvatarFallback>
+            {user?.email ? user.email[0].toUpperCase() : 'N/A'}
+          </AvatarFallback>
+        )}
       </Avatar>
-      
-      {showUploadButton && (
-        <div className="flex items-center">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="relative"
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Avatar
-              </>
-            )}
-            <input
-              type="file"
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              accept="image/*"
-              onChange={handleFileChange}
-              disabled={isUploading}
-            />
+      <div className="space-y-2 text-center">
+        <Label htmlFor="avatar-upload" className="cursor-pointer">
+          <Button asChild variant="secondary" disabled={uploading}>
+            <label htmlFor="avatar-upload" className="cursor-pointer">
+              {uploading ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Change Avatar
+                </>
+              )}
+            </label>
           </Button>
-        </div>
-      )}
+        </Label>
+        <input
+          type="file"
+          id="avatar-upload"
+          className="hidden"
+          accept="image/*"
+          onChange={handleAvatarChange}
+          disabled={uploading}
+        />
+        <p className="text-sm text-muted-foreground">
+          Click to upload a new avatar (Max 3MB)
+        </p>
+      </div>
     </div>
   );
 };
