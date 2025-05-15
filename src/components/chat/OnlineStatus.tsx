@@ -14,14 +14,9 @@ interface OnlineStatusProps {
 }
 
 const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, showLabel = true, size = 'md', userName }) => {
-  const presence = usePresence(userId);
+  const { isOnline, lastSeen, loading } = usePresence(userId);
   const [name, setName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   
-  // Extract isOnline and lastSeen from presence
-  const isOnline = presence?.isOnline || false;
-  const lastSeen = presence?.lastSeen || null;
-
   useEffect(() => {
     const fetchUserName = async () => {
       if (!userId) return;
@@ -29,12 +24,10 @@ const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, showLabel = true, s
       // Use passed userName if available
       if (userName) {
         setName(userName);
-        setLoading(false);
         return;
       }
       
       try {
-        setLoading(true);
         const { data, error } = await supabase
           .from('profiles')
           .select('full_name, email')
@@ -49,8 +42,6 @@ const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, showLabel = true, s
       } catch (error: any) {
         console.error('Error fetching user name:', error);
         toast.error(`Couldn't load user information: ${error.message}`);
-      } finally {
-        setLoading(false);
       }
     };
     
