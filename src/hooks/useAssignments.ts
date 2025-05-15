@@ -204,30 +204,36 @@ export const useAssignments = () => {
     due_date?: string | null;
     user_id: string;
     file_urls?: string[] | null;
+    student_name?: string | null;
+    student_email?: string | null;
+    student_phone?: string | null;
   }) => {
     try {
-      // First, get the user's profile information
-      const { data: userProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name, email, phone_number')
-        .eq('id', assignmentData.user_id)
-        .single();
-      
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
+      // For authenticated users, try to get profile information
+      if (assignmentData.user_id && assignmentData.user_id !== '00000000-0000-0000-0000-000000000000') {
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('full_name, email, phone_number')
+          .eq('id', assignmentData.user_id)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+        }
+        
+        // Add student contact info to assignment data if not already provided
+        if (userProfile) {
+          assignmentData.student_name = assignmentData.student_name || userProfile?.full_name || null;
+          assignmentData.student_email = assignmentData.student_email || userProfile?.email || null;
+          assignmentData.student_phone = assignmentData.student_phone || userProfile?.phone_number || null;
+        }
       }
       
-      // Add student contact info to assignment data
-      const enhancedAssignmentData = {
-        ...assignmentData,
-        student_name: userProfile?.full_name || null,
-        student_email: userProfile?.email || null,
-        student_phone: userProfile?.phone_number || null
-      };
+      // For anonymous users, we already have the contact info from the form
       
       const { data, error } = await supabase
         .from('assignments')
-        .insert([enhancedAssignmentData])
+        .insert([assignmentData])
         .select();
 
       if (error) throw error;
