@@ -10,3 +10,31 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Helper function for anonymous submissions
+export const submitAnonymousAssignment = async (assignmentData: any) => {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/assignments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        ...assignmentData,
+        user_id: null // Using null for anonymous submissions following our migration
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to submit assignment');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting anonymous assignment:', error);
+    throw error;
+  }
+};

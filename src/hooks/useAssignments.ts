@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -16,7 +16,7 @@ export type Assignment = {
   created_at: string | null;
   updated_at: string | null;
   writer_id?: string | null;
-  user_id: string;
+  user_id: string | null; // Updated to be nullable
   file_urls: string[] | null;
   student_name: string | null;
   student_email: string | null;
@@ -201,7 +201,7 @@ export const useAssignments = () => {
     status?: string;
     progress?: number | null;
     due_date?: string | null;
-    user_id?: string;
+    user_id?: string | null; // Updated to be nullable
     file_urls?: string[] | null;
     student_name?: string | null;
     student_email?: string | null;
@@ -236,51 +236,40 @@ export const useAssignments = () => {
           .select();
 
         if (error) throw error;
+        return data?.[0];
       } 
       else {
-        // Anonymous user flow - Direct insert using REST API to bypass RLS
-        // We'll use the standard Fetch API with the Supabase REST endpoint
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/assignments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify({
+        // Anonymous user flow - Use our helper function
+        try {
+          const data = await submitAnonymousAssignment({
             ...assignmentData,
             status: assignmentData.status || 'submitted'
-          })
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error with anonymous submission:', errorText);
-          throw new Error(`Failed to submit anonymous assignment: ${errorText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Anonymous submission successful:', data);
-
-        // Send notification to writers about new assignment
-        try {
-          // Use the full URL for the function call
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              type: 'assignment_submitted',
-              assignment: data[0]
-            }),
           });
-        } catch (notifyError) {
-          console.error('Error sending assignment submission notification:', notifyError);
+          
+          console.log('Anonymous submission successful:', data);
+          
+          // Send notification to writers about new assignment
+          try {
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                type: 'assignment_submitted',
+                assignment: data[0]
+              }),
+            });
+          } catch (notifyError) {
+            console.error('Error sending assignment submission notification:', notifyError);
+          }
+          
+          return data[0];
+        } catch (error) {
+          console.error('Error with anonymous submission:', error);
+          throw error;
         }
-        
-        return data[0];
       }
       
     } catch (err: any) {

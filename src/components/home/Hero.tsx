@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Hero = () => {
@@ -158,31 +158,16 @@ const Hero = () => {
         toast.success("Your assignment was submitted successfully!");
         console.log("Assignment submitted:", result);
       } else {
-        // Anonymous submission - use REST API directly to bypass RLS
-        const response = await fetch(`https://ihvgtaxvrqdnrgdddhdx.supabase.co/rest/v1/assignments`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlodmd0YXh2cnFkbnJnZGRkaGR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxOTAwMTQsImV4cCI6MjA2MTc2NjAxNH0.zwjvn4wy33o_nYHuwNXI6aHTQWLx1-XriImQxj4tPfg',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify({
-            ...assignmentData,
-            // Use a placeholder user_id for anonymous submissions
-            user_id: '00000000-0000-0000-0000-000000000000',
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error in anonymous submission:", errorData);
+        // Anonymous submission - use our helper function
+        try {
+          const result = await submitAnonymousAssignment(assignmentData);
+          toast.success("Your assignment was submitted successfully!");
+          console.log("Anonymous assignment submitted:", result);
+        } catch (error: any) {
+          console.error("Error in anonymous submission:", error);
           toast.error("Failed to submit your assignment");
-          throw new Error(`Failed to submit: ${errorData.message || 'Unknown error'}`);
+          throw error;
         }
-
-        const result = await response.json();
-        toast.success("Your assignment was submitted successfully!");
-        console.log("Anonymous assignment submitted:", result);
       }
       
       setSubmissionDialogOpen(false);
@@ -231,7 +216,7 @@ const Hero = () => {
       alt: "Books and writing materials"
     },
     {
-      src: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
+      src: "https://images.unsplash.com/photo-1498050108023-c5249f4b4173?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
       alt: "Coding and academic research"
     },
     {
