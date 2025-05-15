@@ -1,11 +1,114 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle, Phone } from 'lucide-react';
+import { ArrowRight, CheckCircle, Phone, FileText } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
 const Hero = () => {
   const whatsappNumber = "0797280930";
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+  const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
+  const [showLoginOption, setShowLoginOption] = useState(false);
+  const { isAuthenticated, userId } = useAuth();
+  
+  // Form validation schema
+  const formSchema = z.object({
+    title: z.string().min(3, { message: "Title must be at least 3 characters." }),
+    subject: z.string().min(2, { message: "Subject is required." }),
+    description: z.string().optional(),
+    name: z.string().min(2, { message: "Your name is required." }),
+    email: z.string().email({ message: "Please enter a valid email address." }),
+    phone: z.string().optional(),
+    due_date: z.string().optional(),
+    university: z.string().optional(),
+    terms: z.boolean().refine(val => val === true, {
+      message: "You must accept the terms and conditions."
+    })
+  });
+
+  // Initialize form
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      subject: "",
+      description: "",
+      name: "",
+      email: "",
+      phone: "",
+      due_date: "",
+      university: "",
+      terms: false
+    }
+  });
+
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    try {
+      // Prepare assignment data
+      const assignmentData = {
+        title: data.title,
+        subject: data.subject,
+        description: data.description || null,
+        status: "submitted",
+        user_id: userId || "00000000-0000-0000-0000-000000000000", // Anonymous ID if not logged in
+        student_name: data.name,
+        student_email: data.email,
+        student_phone: data.phone || null,
+        due_date: data.due_date ? new Date(data.due_date).toISOString() : null
+      };
+
+      // If user is authenticated, use their ID
+      if (isAuthenticated && userId) {
+        console.log("Submitting as authenticated user:", userId);
+        // Use the actual user ID
+      } else {
+        console.log("Submitting as anonymous user");
+        // Anonymous submission - already handled above
+      }
+
+      // Insert into database
+      const { data: result, error } = await supabase
+        .from('assignments')
+        .insert([assignmentData])
+        .select();
+
+      if (error) {
+        console.error("Error submitting assignment:", error);
+        toast.error("Failed to submit your assignment");
+        throw error;
+      }
+
+      toast.success("Your assignment was submitted successfully!");
+      console.log("Assignment submitted:", result);
+      setSubmissionDialogOpen(false);
+      form.reset();
+      
+    } catch (err) {
+      console.error("Error in submission process:", err);
+      toast.error("Something went wrong. Please try again.");
+    }
+  };
+
+  const handleSubmitClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginOption(true);
+    } else {
+      setShowLoginOption(false);
+    }
+    setSubmissionDialogOpen(true);
+  };
 
   // Academic-themed images for the carousel - expanded to 20 images
   const carouselImages = [{
@@ -114,6 +217,9 @@ const Hero = () => {
                   <Phone className="mr-2 h-4 w-4" /> Get in Touch
                 </a>
               </Button>
+              <Button size="lg" variant="default" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSubmitClick}>
+                <FileText className="mr-2 h-4 w-4" /> Submit Assignment
+              </Button>
             </div>
 
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -161,6 +267,207 @@ const Hero = () => {
           </div>
         </div>
       </div>
+
+      {/* Assignment Submission Dialog */}
+      <Dialog open={submissionDialogOpen} onOpenChange={setSubmissionDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold">Submit Your Assignment</DialogTitle>
+            <DialogDescription>
+              {showLoginOption && (
+                <div className="bg-blue-50 p-4 rounded-md mb-4">
+                  <p className="font-medium text-blue-800 mb-2">Already have an account?</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" asChild size="sm">
+                      <Link to="/login">Sign In</Link>
+                    </Button>
+                    <Button onClick={() => setShowLoginOption(false)} variant="default" size="sm">
+                      Continue without account
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <p className="mt-2">Fill in the details below to get help with your assignment.</p>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assignment Title *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter assignment title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="subject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject *</FormLabel>
+                        <FormControl>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a subject" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Mathematics">Mathematics</SelectItem>
+                              <SelectItem value="Science">Science</SelectItem>
+                              <SelectItem value="English">English</SelectItem>
+                              <SelectItem value="History">History</SelectItem>
+                              <SelectItem value="Computer Science">Computer Science</SelectItem>
+                              <SelectItem value="Business">Business</SelectItem>
+                              <SelectItem value="Economics">Economics</SelectItem>
+                              <SelectItem value="Psychology">Psychology</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter assignment details" 
+                            className="min-h-[100px]" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Your Name *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your email" type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="WhatsApp number (optional)" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="university"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>University</FormLabel>
+                          <FormControl>
+                            <Input placeholder="University name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="due_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Due Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="terms"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox 
+                        checked={field.value} 
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="cursor-pointer">
+                        I accept the <Link to="/terms" className="text-blue-600 hover:underline">Terms & Conditions</Link>, agree to receive offers & updates
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setSubmissionDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-[#0d2241] hover:bg-[#193764]">
+                  Submit Assignment
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </section>;
 };
 export default Hero;
