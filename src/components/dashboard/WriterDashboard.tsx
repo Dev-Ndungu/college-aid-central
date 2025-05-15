@@ -17,7 +17,6 @@ const WriterDashboard = () => {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [updatingProgressIds, setUpdatingProgressIds] = useState<Set<string>>(new Set());
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
   const { userId } = useAuth();
   const navigate = useNavigate();
 
@@ -38,47 +37,15 @@ const WriterDashboard = () => {
     setProcessingIds(prev => new Set(prev).add(assignmentId));
     
     try {
-      // Debug database permissions before trying to take assignment
-      const { testAssignmentPermissions, debugAssignmentTaking } = await import('@/utils/databaseDebugger');
-      
-      // Check if the user has the right permissions
-      if (userId) {
-        const permissionCheck = await testAssignmentPermissions(userId, 'writer');
-        if (!permissionCheck.success) {
-          console.warn('Permission issue detected:', permissionCheck);
-          setDebugInfo(permissionCheck);
-          // Continue anyway - the take assignment function has its own error handling
-        }
-        
-        // Debug this specific assignment
-        const debugResult = await debugAssignmentTaking(assignmentId, userId);
-        console.log('Assignment debug result:', debugResult);
-        
-        if (!debugResult.success && debugResult.message.includes('already taken')) {
-          toast.error('This assignment has already been taken by another writer');
-          setProcessingIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(assignmentId);
-            return newSet;
-          });
-          return;
-        }
-      }
-      
-      console.log('Taking assignment:', assignmentId);
       const result = await takeAssignment(assignmentId);
-      
       if (result) {
         toast.success('Assignment taken successfully!');
         // Navigate to the chat page for this assignment
         navigate(`/assignment-chat/${assignmentId}`);
-      } else {
-        // The toast error is already handled in the takeAssignment function
-        console.log('Take assignment returned null');
       }
     } catch (error) {
       console.error('Error taking assignment:', error);
-      toast.error('Failed to take assignment. Please try again.');
+      toast.error('Failed to take assignment');
     } finally {
       // Remove from processing state
       setProcessingIds(prev => {

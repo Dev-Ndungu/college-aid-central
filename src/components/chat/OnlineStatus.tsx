@@ -1,89 +1,90 @@
 
 import React, { useEffect, useState } from 'react';
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock } from "lucide-react";
-import { usePresence } from '@/hooks/usePresence';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
+import { UserPresence } from '@/integrations/supabase/client-with-types';
 
 interface OnlineStatusProps {
-  userId: string;
-  showLabel?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  userName?: string; // Add userName as an optional prop
+  userId: string | null;
+  userName: string | null;
 }
 
-const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, showLabel = true, size = 'md', userName }) => {
-  const { isOnline, lastSeen, loading } = usePresence(userId);
-  const [name, setName] = useState<string | null>(null);
-  
+const OnlineStatus: React.FC<OnlineStatusProps> = ({ userId, userName }) => {
+  const [userStatus, setUserStatus] = useState<UserPresence | null>(null);
+  const { toast } = useToast();
+  const displayName = userName || 'User';
+
   useEffect(() => {
-    const fetchUserName = async () => {
-      if (!userId) return;
-      
-      // Use passed userName if available
-      if (userName) {
-        setName(userName);
-        return;
-      }
-      
+    if (!userId) return;
+
+    // Function to fetch user's last seen and online status
+    const fetchUserStatus = async () => {
       try {
+        // We have to use any here since the types don't include user_presence yet
         const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, email')
-          .eq('id', userId)
+          .from('user_presence')
+          .select('online, last_seen')
+          .eq('user_id', userId)
           .single();
           
         if (error) {
-          throw error;
+          console.error('Error fetching user status:', error);
+          return;
         }
         
-        setName(data?.full_name || data?.email || 'Unknown User');
-      } catch (error: any) {
-        console.error('Error fetching user name:', error);
-        toast.error(`Couldn't load user information: ${error.message}`);
+        if (data) {
+          setUserStatus(data as UserPresence);
+        }
+      } catch (err) {
+        console.error('Error in fetchUserStatus:', err);
       }
     };
-    
-    fetchUserName();
-  }, [userId, userName]);
 
-  const getStatusDisplay = () => {
-    if (loading) return 'Loading...';
-    if (isOnline) return `${name || 'User'} is online`;
+    fetchUserStatus();
     
-    if (lastSeen) {
-      const lastActive = new Date(lastSeen);
-      const now = new Date();
-      const diffInMinutes = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60));
-      
-      if (diffInMinutes < 1) return `${name || 'User'} was just active`;
-      if (diffInMinutes < 60) return `${name || 'User'} was active ${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
-      
-      const diffInHours = Math.floor(diffInMinutes / 60);
-      if (diffInHours < 24) return `${name || 'User'} was active ${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
-      
-      const diffInDays = Math.floor(diffInHours / 24);
-      return `${name || 'User'} was active ${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
-    }
-    
-    return `${name || 'User'} is offline`;
-  };
+    // Subscribe to changes in user presence
+    const presenceChannel = supabase
+      .channel(`presence-${userId}`)
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'user_presence', filter: `user_id=eq.${userId}` }, 
+        (payload) => {
+          const newStatus = payload.new as UserPresence;
+          setUserStatus(newStatus);
+          
+          // Show toast notification when user comes online
+          if (newStatus.online && !userStatus?.online) {
+            toast(`${displayName} is now online`, {
+              description: "They can respond to your messages in real-time."
+            });
+          }
+        }
+      )
+      .subscribe();
 
-  const statusClass = isOnline ? 'bg-green-500' : 'bg-gray-400';
-  const sizeClasses = {
-    sm: 'w-2 h-2',
-    md: 'w-3 h-3',
-    lg: 'w-4 h-4'
-  };
-  
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [userId, userName, toast, userStatus?.online]);
+
+  if (!userStatus) {
+    return null;
+  }
+
   return (
     <div className="flex items-center gap-1.5">
-      <div className={`rounded-full ${statusClass} ${sizeClasses[size]}`}></div>
-      {showLabel && (
-        <span className="text-sm text-gray-600 dark:text-gray-400">
-          {getStatusDisplay()}
-        </span>
+      {userStatus.online ? (
+        <>
+          <span className="h-2 w-2 rounded-full bg-green-500"></span>
+          <span className="text-xs text-green-600 dark:text-green-400">Online</span>
+        </>
+      ) : (
+        <>
+          <span className="h-2 w-2 rounded-full bg-gray-300"></span>
+          <span className="text-xs text-gray-500">
+            Last seen {formatDistanceToNow(new Date(userStatus.last_seen), { addSuffix: true })}
+          </span>
+        </>
       )}
     </div>
   );

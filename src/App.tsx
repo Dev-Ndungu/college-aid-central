@@ -4,7 +4,7 @@ import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/toaster';
 
 // Import routes
 import Index from '@/pages/Index';
@@ -18,7 +18,6 @@ import ProfileCompletion from '@/pages/ProfileCompletion';
 import NotFound from '@/pages/NotFound';
 import HowItWorksPage from '@/pages/HowItWorks';
 import AssignmentSubmission from '@/pages/AssignmentSubmission';
-import StudentAssignmentSubmission from '@/pages/StudentAssignmentSubmission';
 import Messages from '@/pages/Messages';
 import AssignmentChat from '@/pages/AssignmentChat';
 import ResetPassword from '@/pages/ResetPassword';
@@ -40,7 +39,6 @@ function App() {
               <Route path="/profile-completion" element={<ProfileCompletion />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/submit-assignment" element={<AssignmentSubmission />} />
-              <Route path="/new-assignment" element={<StudentAssignmentSubmission />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
               <Route path="/reset-password" element={<ResetPassword />} />

@@ -10,8 +10,8 @@ $$
 BEGIN
   RETURN QUERY
   SELECT
-    p.tablename::text,
-    p.policyname::text,
+    p.tablename,
+    p.policyname,
     'cmd: ' || p.cmd || ', qual: ' || p.qual AS policy_info
   FROM
     pg_policies p
