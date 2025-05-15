@@ -587,7 +587,7 @@ const Hero = () => {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="cursor-pointer">
-                        I accept the <Link to="/terms" className="text-blue-600 hover:underline">Terms & Conditions</Link>, agree to receive offers & updates
+                        I accept the <Link to="/terms-and-conditions" className="text-blue-600 hover:underline" target="_blank">Terms and Conditions</Link>, agree to receive offers & updates
                       </FormLabel>
                       <FormMessage />
                     </div>
