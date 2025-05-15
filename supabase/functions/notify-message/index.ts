@@ -11,10 +11,6 @@ const corsHeaders = {
 // Initialize Resend client with the API key
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
-// Set the custom email address for sending emails
-const SENDER_EMAIL = 'admin@assignmenthub.org';
-const SENDER_NAME = 'Assignment Hub';
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -75,7 +71,7 @@ serve(async (req) => {
           <p>Login to track the progress of your assignment.</p>
           
           <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from Assignment Hub. Please do not reply directly to this email.
+            This is an automated message from College Aid Central. Please do not reply directly to this email.
           </p>
         </div>
       `;
@@ -83,9 +79,9 @@ serve(async (req) => {
       console.log('Sending email to student:', student.email);
       
       try {
-        // Send email using Resend with your custom domain email
+        // Send email using Resend
         const { data, error } = await resend.emails.send({
-          from: `${SENDER_NAME} <${SENDER_EMAIL}>`,
+          from: 'College Aid Central <onboarding@resend.dev>',
           to: [student.email],
           subject: emailSubject,
           html: emailBody,
@@ -144,7 +140,7 @@ serve(async (req) => {
           <p>Login to view more details and take this assignment.</p>
           
           <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from Assignment Hub. Please do not reply directly to this email.
+            This is an automated message from College Aid Central. Please do not reply directly to this email.
           </p>
         </div>
       `;
@@ -154,9 +150,9 @@ serve(async (req) => {
         console.log(`Sending email to writer ${writer.email} about new assignment`);
         
         try {
-          // Send email using Resend with your custom domain email
+          // Send email using Resend
           const { data, error } = await resend.emails.send({
-            from: `${SENDER_NAME} <${SENDER_EMAIL}>`,
+            from: 'College Aid Central <onboarding@resend.dev>',
             to: [writer.email],
             subject: emailSubject,
             html: emailBody,
@@ -242,15 +238,15 @@ serve(async (req) => {
             </div>
             
             <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-              This is an automated message from Assignment Hub. Please do not reply directly to this email.
+              This is an automated message from College Aid Central. Please do not reply directly to this email.
             </p>
           </div>
         `;
         
         try {
-          // Send email using Resend with your custom domain email
+          // Send email using Resend
           const { data, error } = await resend.emails.send({
-            from: `${SENDER_NAME} <${SENDER_EMAIL}>`,
+            from: 'College Aid Central <onboarding@resend.dev>',
             to: [recipient.email],
             subject: emailSubject,
             html: emailBody,
