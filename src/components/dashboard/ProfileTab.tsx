@@ -202,7 +202,7 @@ const ProfileTab = () => {
         throw error;
       }
 
-      toast("Your profile has been updated successfully.");
+      toast.success("Your profile has been updated successfully.");
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast.error(error.message || "An error occurred while updating your profile.");
@@ -233,7 +233,7 @@ const ProfileTab = () => {
         throw error;
       }
 
-      toast("Your profile has been updated successfully.");
+      toast.success("Your profile has been updated successfully.");
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast.error(error.message || "An error occurred while updating your profile.");
@@ -261,7 +261,7 @@ const ProfileTab = () => {
       // Then sign out
       await signOut();
       
-      toast("Your account and profile have been deleted successfully.");
+      toast.success("Your account and profile have been deleted successfully.");
     } catch (error: any) {
       console.error("Error deleting profile:", error);
       toast.error(error.message || "An error occurred while deleting your profile.");

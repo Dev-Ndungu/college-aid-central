@@ -25,9 +25,11 @@ export const testAssignmentPermissions = async (userId: string, userRole: string
       };
     }
     
-    // For writers, test taking an assignment
+    // For writers, test taking an assignment by getting policies
     if (userRole === 'writer') {
-      const { data: updateTest, error: updateError } = await supabase.rpc('check_assignment_permissions');
+      const { data: updateTest, error: updateError } = await supabase
+        .from('get_assignment_policies')
+        .select('*');
       
       if (updateError) {
         console.error('Update permission test failed:', updateError);

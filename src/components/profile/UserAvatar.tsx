@@ -118,7 +118,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         // Update local state
         await updateUserAvatar(publicURL.publicUrl);
         
-        toast("Your profile avatar has been updated successfully.");
+        toast.success("Your profile avatar has been updated successfully.");
       }
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
