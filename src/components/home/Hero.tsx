@@ -1,20 +1,50 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle, Phone, FileText, Paperclip } from 'lucide-react';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar as CalendarIcon, Upload, X, FileText, File, ArrowRight, CheckCircle, Phone, Mail, Paperclip } from 'lucide-react';
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import AssignmentSubmissionConfirmation from '@/components/dialogs/AssignmentSubmissionConfirmation';
 
 const Hero = () => {
   const whatsappNumber = "0797280930";
@@ -24,6 +54,7 @@ const Hero = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [countryCode, setCountryCode] = useState("+1");
   const { isAuthenticated, userId } = useAuth();
+  const [showConfirmation, setShowConfirmation] = useState(false);
   
   // Country code options
   const countryCodes = [
@@ -170,9 +201,11 @@ const Hero = () => {
         }
       }
       
+      // Close the submission dialog and show confirmation instead
       setSubmissionDialogOpen(false);
       form.reset();
       setSelectedFiles([]);
+      setShowConfirmation(true);
       
     } catch (err) {
       console.error("Error in submission process:", err);
@@ -611,6 +644,12 @@ const Hero = () => {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <AssignmentSubmissionConfirmation 
+        open={showConfirmation} 
+        onOpenChange={setShowConfirmation}
+      />
     </section>;
 };
 export default Hero;

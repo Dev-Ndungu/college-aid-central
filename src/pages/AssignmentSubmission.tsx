@@ -32,7 +32,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/components/ui/use-toast';
+import AssignmentSubmissionConfirmation from '@/components/dialogs/AssignmentSubmissionConfirmation';
 
 // Comprehensive assignment types based on the provided list
 const assignmentTypes = [
@@ -132,6 +133,7 @@ const AssignmentSubmission = () => {
   const [uploadProgress, setUploadProgress] = React.useState<{[key: string]: number}>({});
   const { isAuthenticated, userRole, userEmail, userId } = useAuth();
   const navigate = useNavigate();
+  const [showConfirmation, setShowConfirmation] = useState(false);
   
   // Form state
   const [title, setTitle] = useState('');
@@ -210,7 +212,11 @@ const AssignmentSubmission = () => {
     try {
       // Get the current user from profiles
       if (!userEmail) {
-        toast.error("User email not available. Please log in again.");
+        toast({
+          title: "Error",
+          description: "User email not available. Please log in again.",
+          variant: "destructive",
+        });
         navigate('/login');
         return;
       }
@@ -244,7 +250,11 @@ const AssignmentSubmission = () => {
             setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
           } catch (err) {
             console.error(`Error uploading file ${file.name}:`, err);
-            toast.error(`Failed to upload ${file.name}`);
+            toast({
+              title: "Upload Failed",
+              description: `Failed to upload ${file.name}`,
+              variant: "destructive",
+            });
           }
         }
       }
@@ -271,16 +281,29 @@ const AssignmentSubmission = () => {
       }
 
       // Show success message
-      toast("Your assignment has been successfully submitted and is now available for writers to view.");
+      toast({
+        title: "Success",
+        description: "Your assignment has been successfully submitted and is now available for writers to view.",
+      });
 
-      // Redirect to dashboard
-      navigate('/dashboard');
+      // Show confirmation dialog instead of redirecting immediately
+      setShowConfirmation(true);
+      
     } catch (error: any) {
       console.error('Error submitting assignment:', error);
-      toast.error(error.message || "An error occurred while submitting your assignment.");
+      toast({
+        title: "Submission Failed",
+        description: error.message || "An error occurred while submitting your assignment.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmationClose = () => {
+    setShowConfirmation(false);
+    navigate('/dashboard');
   };
 
   return (
@@ -551,6 +574,17 @@ const AssignmentSubmission = () => {
         </div>
       </main>
       <Footer />
+      
+      {/* Confirmation dialog */}
+      <AssignmentSubmissionConfirmation 
+        open={showConfirmation} 
+        onOpenChange={(open) => {
+          setShowConfirmation(open);
+          if (!open) {
+            navigate('/dashboard');
+          }
+        }}
+      />
     </div>
   );
 };
