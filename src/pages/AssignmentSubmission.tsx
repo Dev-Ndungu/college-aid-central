@@ -32,7 +32,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import AssignmentSubmissionConfirmation from '@/components/dialogs/AssignmentSubmissionConfirmation';
 
 // Comprehensive assignment types based on the provided list
@@ -212,11 +212,7 @@ const AssignmentSubmission = () => {
     try {
       // Get the current user from profiles
       if (!userEmail) {
-        toast({
-          title: "Error",
-          description: "User email not available. Please log in again.",
-          variant: "destructive",
-        });
+        toast.error("User email not available. Please log in again.");
         navigate('/login');
         return;
       }
@@ -250,11 +246,7 @@ const AssignmentSubmission = () => {
             setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
           } catch (err) {
             console.error(`Error uploading file ${file.name}:`, err);
-            toast({
-              title: "Upload Failed",
-              description: `Failed to upload ${file.name}`,
-              variant: "destructive",
-            });
+            toast.error(`Failed to upload ${file.name}`);
           }
         }
       }
@@ -281,21 +273,14 @@ const AssignmentSubmission = () => {
       }
 
       // Show success message
-      toast({
-        title: "Success",
-        description: "Your assignment has been successfully submitted and is now available for writers to view.",
-      });
+      toast.success("Your assignment has been successfully submitted and is now available for writers to view.");
 
       // Show confirmation dialog instead of redirecting immediately
       setShowConfirmation(true);
       
     } catch (error: any) {
       console.error('Error submitting assignment:', error);
-      toast({
-        title: "Submission Failed",
-        description: error.message || "An error occurred while submitting your assignment.",
-        variant: "destructive",
-      });
+      toast.error(error.message || "An error occurred while submitting your assignment.");
     } finally {
       setLoading(false);
     }

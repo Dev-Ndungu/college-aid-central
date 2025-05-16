@@ -45,6 +45,13 @@ import { toast } from "sonner";
 import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import AssignmentSubmissionConfirmation from '@/components/dialogs/AssignmentSubmissionConfirmation';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const Hero = () => {
   const whatsappNumber = "0797280930";
@@ -383,14 +390,16 @@ const Hero = () => {
               loop: true
             }}>
                 <CarouselContent>
-                  {carouselImages.map((image, index) => <CarouselItem key={index}>
+                  {carouselImages.map((image, index) => (
+                    <CarouselItem key={index}>
                       <div className="relative">
                         <img src={image.src} alt={image.alt} className="rounded-lg shadow-lg w-full aspect-[4/3] object-cover animate-fade-in" />
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 rounded-b-lg">
                           <p className="text-sm font-medium">{image.alt}</p>
                         </div>
                       </div>
-                    </CarouselItem>)}
+                    </CarouselItem>
+                  ))}
                 </CarouselContent>
                 <CarouselPrevious className="left-2 bg-white/80 hover:bg-white" />
                 <CarouselNext className="right-2 bg-white/80 hover:bg-white" />
