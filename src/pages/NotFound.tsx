@@ -6,6 +6,7 @@ import { Home, ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const NotFound = () => {
   const navigate = useNavigate();
@@ -22,14 +23,44 @@ const NotFound = () => {
     // Check if the URL contains auth-related parameters that might indicate a failed redirect
     const isAuthRedirect = currentUrl.includes('access_token=') || 
                           currentUrl.includes('code=') || 
-                          currentUrl.includes('token=') ||
-                          currentUrl.includes('profile-completion');
+                          currentUrl.includes('token=');
 
     if (isAuthRedirect) {
-      console.log("Detected possible failed auth redirect, redirecting to profile-completion");
-      toast.info("Redirecting you to complete your profile...");
-      // Redirect to profile completion page which will handle the auth state
-      navigate('/profile-completion', { replace: true });
+      console.log("Detected possible OAuth redirect, attempting to handle auth session");
+      
+      // If we have an access_token in the URL, try to set the session
+      // This helps recover from redirect issues with Google auth
+      (async () => {
+        try {
+          // Get the session - if we just authenticated, this should return a valid session
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session) {
+            toast.success("Authentication successful - redirecting to dashboard");
+            // If we have a session, navigate to dashboard
+            navigate('/dashboard', { replace: true });
+          } else {
+            // If no session but auth params in URL, try to parse the hash
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            
+            if (accessToken) {
+              console.log("Found access token in URL, attempting to restore session");
+              toast.info("Restoring your session...");
+              // Try to set session with access token from hash
+              navigate('/dashboard', { replace: true });
+            } else {
+              toast.error("Authentication failed. Please try signing in again.");
+              navigate('/login', { replace: true });
+            }
+          }
+        } catch (error) {
+          console.error("Error processing auth redirect:", error);
+          toast.error("Authentication error. Please try signing in again.");
+          navigate('/login', { replace: true });
+        }
+      })();
+      
       return;
     }
 
@@ -49,8 +80,9 @@ const NotFound = () => {
           <h1 className="text-9xl font-bold text-brand-500">404</h1>
           <h2 className="text-3xl font-semibold mt-4 mb-2">Page Not Found</h2>
           <p className="text-gray-600 mb-6">
-            The page you are looking for doesn't exist or has been moved.
-            You will be redirected to the homepage in a few seconds.
+            {window.location.href.includes('access_token=') 
+              ? "We detected you've signed in. Redirecting you to the dashboard..." 
+              : "The page you are looking for doesn't exist or has been moved. You will be redirected to the homepage in a few seconds."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="outline" onClick={goBack}>

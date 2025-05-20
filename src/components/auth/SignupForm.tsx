@@ -125,7 +125,7 @@ const SignupForm = () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      // Store "student" as the default role for Google sign-in
+      // Google sign-in defaults to "student" role
       localStorage.setItem('googleSignupRole', 'student');
       console.log("Starting Google Sign In with default role: student");
       await signInWithGoogle();

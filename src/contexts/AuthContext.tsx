@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from "sonner";
 
 type UserProfile = {
@@ -35,9 +35,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Store the selected role for Google sign-in
   const [googleSignupRole, setGoogleSignupRole] = useState<'student' | 'writer'>('student');
+
+  useEffect(() => {
+    // Handle OAuth redirects in the URL - for cases when the user is redirected back to the app
+    // with an access_token or error in the hash fragment
+    const handleOAuthRedirectParams = async () => {
+      // Check for OAuth-related parameters in the URL
+      const hasHashParams = window.location.hash && 
+        (window.location.hash.includes('access_token=') || 
+         window.location.hash.includes('error='));
+        
+      const hasQueryParams = window.location.search &&
+        (window.location.search.includes('code=') || 
+         window.location.search.includes('error='));
+      
+      if ((hasHashParams || hasQueryParams) && location.pathname !== '/login') {
+        console.log("Detected OAuth redirect parameters, handling auth state");
+        
+        try {
+          // Get the current session - if the redirect was successful, we should have a session
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session) {
+            // We have a valid session, redirect to dashboard
+            console.log("OAuth redirect with valid session, redirecting to dashboard");
+            
+            // Check if we have a profile with a full_name (to determine if profile is complete)
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', session.user.id)
+              .single();
+            
+            // Decide where to redirect based on profile completion
+            const hasCompletedProfile = profileData && profileData.full_name;
+            if (hasCompletedProfile) {
+              navigate('/dashboard', { replace: true });
+            } else {
+              navigate('/profile-completion', { replace: true });
+            }
+          }
+        } catch (error) {
+          console.error("Error handling OAuth redirect:", error);
+        }
+      }
+    };
+    
+    // Run the OAuth redirect handler on initial load and URL changes
+    handleOAuthRedirectParams();
+  }, [location, navigate]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -79,18 +129,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
               
-              // If this is a new login (on event = 'SIGNED_IN'), decide where to redirect
+              // Handle different auth events
               if (event === 'SIGNED_IN') {
-                // Check if the profile is complete based on the presence of full_name
-                const isProfileComplete = !!profile?.full_name;
-                
-                if (isProfileComplete) {
-                  // If profile is complete, navigate to dashboard
-                  navigate('/dashboard');
+                // For existing users (with a complete profile), navigate to dashboard
+                if (profile?.full_name) {
+                  navigate('/dashboard', { replace: true });
                 } else {
-                  // If profile is incomplete, navigate to profile completion
-                  navigate('/profile-completion');
+                  // For new users, navigate to profile completion
+                  navigate('/profile-completion', { replace: true });
                 }
+              } else if (event === 'TOKEN_REFRESHED') {
+                // When token is refreshed, make sure user stays on the right page
+                // No navigation needed, just update the state
               }
             }
           } catch (error) {
@@ -188,16 +238,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Get user role
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name')
           .eq('id', data.user.id)
           .single();
           
         if (!profileError) {
           setUserRole(profile?.role as 'student' | 'writer' | null);
+          
+          // If profile is complete (has full_name), navigate to dashboard
+          // Otherwise, navigate to profile completion
+          if (profile?.full_name) {
+            toast.success("You have successfully signed in.");
+            navigate('/dashboard', { replace: true });
+          } else {
+            toast.success("Please complete your profile information.");
+            navigate('/profile-completion', { replace: true });
+          }
         }
-        
-        toast.success("You have successfully signed in.");
-        navigate('/dashboard');
       }
     } catch (error: any) {
       console.error('Error signing in:', error);
@@ -212,20 +269,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       
-      // Get the selected role from localStorage to ensure it persists through the redirect
-      const selectedRole = localStorage.getItem('googleSignupRole') || 'student';
-      console.log("Starting Google sign-in with role:", selectedRole);
-      
       // Get the current URL origin to use for redirects
       const origin = window.location.origin;
       console.log("Current origin for redirect:", origin);
       
-      // The final destination after authentication - We'll go to the dashboard directly
-      // This ensures existing users with accounts go directly to dashboard
+      // The final destination after authentication
       const finalRedirectUrl = `${origin}/dashboard`;
       console.log("Final redirect destination:", finalRedirectUrl);
       
-      // Store the role in the queryParams object
+      // Default role is student
+      const role = "student";
+      localStorage.setItem('googleSignupRole', role);
+      console.log("Starting Google Sign In with default role:", role);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -233,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            role: selectedRole // Pass role as a query parameter
+            role: role
           }
         }
       });
