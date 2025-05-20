@@ -215,9 +215,35 @@ const SignupForm = () => {
                 <FormMessage />
               </FormItem>} />
           
-          <FormField control={form.control} name="role" render={({
-          field
-        }) => {}} />
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel>I am a...</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={(value) => {
+                      setSelectedRole(value as "student" | "writer");
+                      field.onChange(value);
+                    }}
+                    defaultValue={field.value}
+                    className="flex flex-col md:flex-row space-y-1 md:space-y-0 md:space-x-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="student" id="student" />
+                      <Label htmlFor="student">Student</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="writer" id="writer" />
+                      <Label htmlFor="writer">Writer</Label>
+                    </div>
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <>
