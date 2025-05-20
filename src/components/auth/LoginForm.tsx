@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -54,9 +53,7 @@ const LoginForm = () => {
     try {
       setErrorMessage(null);
       setIsProcessingOAuth(true);
-      
-      // No need to set role for Google sign-in for existing users
-      // They will be redirected to dashboard directly
+      toast.info("Redirecting to Google for authentication...");
       
       await signInWithGoogle();
       // The redirect happens in the signInWithGoogle function
@@ -67,13 +64,14 @@ const LoginForm = () => {
     }
   };
 
-  const togglePasswordVisibility = () => {
+  // Helper function to toggle password visibility
+  function togglePasswordVisibility() {
     setShowPassword(!showPassword);
-  };
+  }
 
-  const dismissError = () => {
+  function dismissError() {
     setErrorMessage(null);
-  };
+  }
 
   if (showForgotPassword) {
     return <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />;

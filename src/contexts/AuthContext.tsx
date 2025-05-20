@@ -19,7 +19,7 @@ type AuthContextType = {
   userId: string | null; 
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signUp: (email: string, password: string, role: 'student' | 'writer', profile?: UserProfile) => Promise<void>;
+  signUp: (email: string, password: string, profile?: UserProfile) => Promise<void>;
   signOut: () => Promise<void>;
   updateUserProfile: (profile: UserProfile) => Promise<void>;
   updateUserAvatar: (avatarUrl: string) => Promise<void>;
@@ -37,9 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Store the selected role for Google sign-in
-  const [googleSignupRole, setGoogleSignupRole] = useState<'student' | 'writer'>('student');
-
   // Handle OAuth redirects in the URL - for cases when the user is redirected back to the app
   useEffect(() => {
     // This useEffect handles OAuth redirects and URL parameters
@@ -339,10 +336,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const finalRedirectUrl = `${origin}/dashboard`;
       console.log("Final redirect destination:", finalRedirectUrl);
       
-      // Default role is student
+      // Always use "student" as the default role
       const role = "student";
       localStorage.setItem('googleSignupRole', role);
-      console.log("Starting Google Sign In with default role:", role);
+      console.log("Starting Google Sign In with role:", role);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -372,14 +369,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (
     email: string, 
-    password: string, 
-    role: 'student' | 'writer', 
+    password: string,
     profile?: UserProfile
   ) => {
     try {
       setIsLoading(true);
       
-      console.log("Starting signup process with role:", role);
+      console.log("Starting signup process with default student role");
+      
+      // Always use "student" as the default role
+      const role = "student";
       
       // Store the role in localStorage for Google signup
       localStorage.setItem('googleSignupRole', role);

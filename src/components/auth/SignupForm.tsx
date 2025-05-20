@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -75,8 +74,13 @@ const SignupForm = () => {
         setErrorMessage(`Request timed out. Retrying (${currentRetry}/${MAX_RETRY_ATTEMPTS})...`);
         await delay(backoffTime);
       }
-      // Always use "student" as the default role
-      await signUp(data.email, data.password, "student");
+      
+      // Create user profile object with default role "student"
+      const userProfile = {
+        // We don't need to pass a role anymore as it defaults to student in the AuthContext
+      };
+      
+      await signUp(data.email, data.password, userProfile);
       setRegistrationComplete(true);
     } catch (error: any) {
       console.error(`Retry attempt ${currentRetry} failed:`, error);
@@ -125,9 +129,7 @@ const SignupForm = () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      // Google sign-in defaults to "student" role
-      localStorage.setItem('googleSignupRole', 'student');
-      console.log("Starting Google Sign In with default role: student");
+      console.log("Starting Google Sign In with default student role");
       await signInWithGoogle();
     } catch (error: any) {
       console.error("Google sign in error:", error);

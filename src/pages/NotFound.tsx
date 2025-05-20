@@ -36,55 +36,78 @@ const NotFound = () => {
       
       if (isAuthRedirect) {
         console.log("Detected auth redirect parameters, attempting to process session");
-        toast.info("Detected authentication data, attempting to sign you in...");
+        toast.info("Processing your sign-in...");
         
         try {
-          // Try to get the session directly - this should work if the hash params were processed
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session) {
-            console.log("Found valid session, redirecting to dashboard");
-            toast.success("Authentication successful");
-            navigate('/dashboard', { replace: true });
-            return;
-          }
-          
-          // If we don't have a session but have an access_token in the URL,
-          // try to extract it from the hash and set the session manually
+          // Set the session from the hash parameters if present
           if (fullUrl.includes('#access_token=')) {
-            console.log("No session found but access token is in URL, attempting to process it");
+            console.log("Found access token in URL hash, processing OAuth redirect");
             
             // The URL fragment with parameters starts after the # symbol
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const accessToken = hashParams.get('access_token');
             const refreshToken = hashParams.get('refresh_token');
-            const expiresIn = hashParams.get('expires_in');
-            const tokenType = hashParams.get('token_type');
             
             if (accessToken) {
-              console.log("Found access token in URL hash, setting session");
+              console.log("Setting session with access token from URL");
               
-              // Set session using the extracted tokens
               const { data, error } = await supabase.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken || '',
               });
               
               if (error) {
-                console.error("Error setting session:", error);
-                toast.error("Failed to restore your session. Please try signing in again.");
+                console.error("Error setting session from redirect:", error);
+                toast.error("Failed to complete sign-in. Please try again.");
                 navigate('/login', { replace: true });
               } else if (data?.session) {
-                console.log("Successfully set session from URL parameters");
+                console.log("Session successfully set from redirect");
                 toast.success("Successfully signed in");
-                navigate('/dashboard', { replace: true });
+                
+                // Get user profile to check if profile is complete
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('full_name')
+                  .eq('id', data.session.user.id)
+                  .single();
+                
+                // Redirect based on profile completion
+                if (profile && profile.full_name) {
+                  navigate('/dashboard', { replace: true });
+                } else {
+                  navigate('/profile-completion', { replace: true });
+                }
+                return;
               }
             }
           } else {
-            // No access token in URL and no session, redirect to login
-            console.log("No access token in URL and no session, redirecting to login");
-            toast.error("Authentication failed. Please try signing in again.");
-            navigate('/login', { replace: true });
+            // If we don't have an access_token in the URL but detected auth parameters,
+            // try to get the session directly
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session) {
+              console.log("Found valid session after OAuth redirect");
+              toast.success("Authentication successful");
+              
+              // Check if profile is complete
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', session.user.id)
+                .single();
+              
+              // Redirect based on profile completion
+              if (profile && profile.full_name) {
+                navigate('/dashboard', { replace: true });
+              } else {
+                navigate('/profile-completion', { replace: true });
+              }
+              return;
+            } else {
+              console.log("No session found after OAuth redirect parameters detected");
+              toast.error("Authentication failed. Please try signing in again.");
+              navigate('/login', { replace: true });
+            }
           }
         } catch (error) {
           console.error("Error processing auth redirect:", error);
@@ -116,7 +139,7 @@ const NotFound = () => {
           <h2 className="text-3xl font-semibold mt-4 mb-2">Page Not Found</h2>
           <p className="text-gray-600 mb-6">
             {window.location.href.includes('access_token=') 
-              ? "We detected you've signed in. Attempting to restore your session..." 
+              ? "We detected you've signed in. Processing your authentication..." 
               : "The page you are looking for doesn't exist or has been moved. You will be redirected to the homepage in a few seconds."}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
