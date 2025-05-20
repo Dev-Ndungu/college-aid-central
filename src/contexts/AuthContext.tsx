@@ -40,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Store the selected role for Google sign-in
   const [googleSignupRole, setGoogleSignupRole] = useState<'student' | 'writer'>('student');
 
+  // Handle OAuth redirects in the URL - for cases when the user is redirected back to the app
   useEffect(() => {
-    // Handle OAuth redirects in the URL - for cases when the user is redirected back to the app
-    // with an access_token or error in the hash fragment
+    // This useEffect handles OAuth redirects and URL parameters
     const handleOAuthRedirectParams = async () => {
       // Check for OAuth-related parameters in the URL
       const hasHashParams = window.location.hash && 
@@ -53,30 +53,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (window.location.search.includes('code=') || 
          window.location.search.includes('error='));
       
+      console.log("Checking for OAuth parameters:", { 
+        hasHashParams, 
+        hasQueryParams, 
+        hash: window.location.hash,
+        pathname: location.pathname
+      });
+      
       if ((hasHashParams || hasQueryParams) && location.pathname !== '/login') {
         console.log("Detected OAuth redirect parameters, handling auth state");
         
         try {
-          // Get the current session - if the redirect was successful, we should have a session
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session) {
-            // We have a valid session, redirect to dashboard
-            console.log("OAuth redirect with valid session, redirecting to dashboard");
+          // If we have hash params with access_token, set the session directly
+          if (hasHashParams && window.location.hash.includes('access_token=')) {
+            // Extract tokens from the hash
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
             
-            // Check if we have a profile with a full_name (to determine if profile is complete)
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', session.user.id)
-              .single();
+            if (accessToken) {
+              console.log("Found access_token in hash, setting session directly");
+              
+              // Set session using hash parameters
+              const { data, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken || '',
+              });
+              
+              if (error) {
+                console.error("Error setting session from hash params:", error);
+                toast.error("Failed to restore your session");
+              } else if (data?.session) {
+                // Session set successfully
+                console.log("Session set successfully from hash params");
+                toast.success("Successfully signed in");
+                
+                // Update state
+                setIsAuthenticated(true);
+                setUserEmail(data.session.user.email);
+                setUserId(data.session.user.id);
+                
+                // Get user profile with role and avatar
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('role, avatar_url, full_name')
+                  .eq('id', data.session.user.id)
+                  .single();
+                  
+                if (profile) {
+                  setUserRole(profile.role as 'student' | 'writer' | null);
+                  setUserAvatar(profile.avatar_url);
+                  
+                  // If profile is complete, redirect to dashboard
+                  if (profile.full_name) {
+                    navigate('/dashboard', { replace: true });
+                  } else {
+                    navigate('/profile-completion', { replace: true });
+                  }
+                } else {
+                  // New user with Google, redirect to profile completion
+                  navigate('/profile-completion', { replace: true });
+                }
+              }
+            }
+          } else {
+            // Standard session check
+            const { data: { session } } = await supabase.auth.getSession();
             
-            // Decide where to redirect based on profile completion
-            const hasCompletedProfile = profileData && profileData.full_name;
-            if (hasCompletedProfile) {
-              navigate('/dashboard', { replace: true });
-            } else {
-              navigate('/profile-completion', { replace: true });
+            if (session) {
+              // We have a valid session, redirect to appropriate page
+              console.log("OAuth redirect with valid session, redirecting to appropriate page");
+              
+              // Check if we have a profile with a full_name (to determine if profile is complete)
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', session.user.id)
+                .single();
+              
+              // Decide where to redirect based on profile completion
+              const hasCompletedProfile = profileData && profileData.full_name;
+              if (hasCompletedProfile) {
+                navigate('/dashboard', { replace: true });
+              } else {
+                navigate('/profile-completion', { replace: true });
+              }
             }
           }
         } catch (error) {
@@ -89,8 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     handleOAuthRedirectParams();
   }, [location, navigate]);
 
+  // Set up auth state listener and check for existing session
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Store the selected role for Google sign-in
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session?.user?.id);
       
