@@ -15,7 +15,7 @@ const Index = () => {
       <Helmet>
         <title>Assignment Hub ✒️ - Expert Academic Writing Help for College & University</title>
         <meta name="description" content="Get professional academic writing assistance with essays, research papers, dissertations and assignments. 100% original content, affordable prices, 24/7 support from verified experts." />
-        <meta name="keywords" content="academic writing, essay help, research paper, dissertation, assignment help, college writing, university essay help, homework help, essay writing service, thesis help, term paper help, coursework assistance, case study help, book report, lab report, research proposal, personal statement, admission essay, scholarship essay, online tutoring, student help, APA formatting, MLA formatting, Chicago style, Harvard referencing, plagiarism-free content, affordable writing service, professional writers, urgent assignment help, graduate level writing, undergraduate assignments" />
+        <meta name="keywords" content="academic writing, essay help, research paper, dissertation, assignment help, college writing, university essay help, homework help, essay writing service, thesis help, term paper help, coursework assistance, case study help, book report, lab report, research proposal, personal statement, admission essay, scholarship essay, online tutoring, student help, APA formatting, MLA formatting, Chicago style, Harvard referencing, plagiarism-free content, affordable writing service, professional writers, urgent assignment help, graduate level writing, undergraduate assignments, history essay, literature review, business report, nursing assignment, psychology paper, computer science project, mathematics homework, economics assignment, biology lab report, chemistry report, physics assignment, engineering project, law essay, sociology paper, political science essay, philosophy essay, religious studies, art history paper, film analysis" />
         <link rel="canonical" href="https://www.assignmenthub.org/" />
         
         {/* OpenGraph Meta Tags for better social sharing */}
@@ -24,20 +24,22 @@ const Index = () => {
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Assignment Hub - Expert Academic Writing Help" />
         <meta property="og:description" content="Professional academic writing assistance for college and university students. Get expert help with essays, research papers, dissertations, and any academic assignment." />
-        <meta property="og:image" content="https://www.assignmenthub.org/og-image.jpg" />
+        <meta property="og:image" content="https://www.assignmenthub.org/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" />
         
         {/* Twitter Card Tags */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@assignmenthub" />
         <meta name="twitter:title" content="Assignment Hub - Professional Academic Writing Services" />
         <meta name="twitter:description" content="Get top-quality academic writing assistance from expert writers. Essays, research papers, dissertations, and more." />
-        <meta name="twitter:image" content="https://www.assignmenthub.org/twitter-card.jpg" />
+        <meta name="twitter:image" content="https://www.assignmenthub.org/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" />
         
         {/* Additional SEO-enhancing meta tags */}
         <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
         <meta name="author" content="Assignment Hub" />
         <meta name="language" content="English" />
-        <meta name="revisit-after" content="7 days" />
+        <meta name="revisit-after" content="3 days" />
         <meta name="rating" content="general" />
 
         {/* Structured Data for Rich Results */}

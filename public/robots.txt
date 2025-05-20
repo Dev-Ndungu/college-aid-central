@@ -1,6 +1,7 @@
 
 # The Assignment Hub Robots.txt
 # Website: https://www.assignmenthub.org
+# Last updated: 2025-05-20
 
 User-agent: *
 Allow: /
@@ -17,6 +18,7 @@ Allow: /services/
 Allow: /subjects/
 Allow: /how-it-works
 Allow: /contact
+Allow: /terms-and-conditions
 
 # Allow specific bots with more permissions
 User-agent: Googlebot
@@ -29,6 +31,9 @@ Allow: /
 Disallow: /profile/
 Disallow: /dashboard/private/
 
+User-agent: Yandexbot
+Allow: /
+
 User-agent: Twitterbot
 Allow: /
 
@@ -38,5 +43,5 @@ Allow: /
 # Crawler directives
 Crawl-delay: 10
 
-# Sitemap location
+# Sitemap location - ESSENTIAL FOR INDEXING
 Sitemap: https://www.assignmenthub.org/sitemap.xml

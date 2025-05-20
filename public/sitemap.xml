@@ -10,7 +10,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://www.assignmenthub.org/</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -23,7 +23,7 @@
   <!-- How It Works Page -->
   <url>
     <loc>https://www.assignmenthub.org/how-it-works</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -31,7 +31,7 @@
   <!-- Contact Page -->
   <url>
     <loc>https://www.assignmenthub.org/contact</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -39,65 +39,101 @@
   <!-- Resources Page -->
   <url>
     <loc>https://www.assignmenthub.org/resources</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
-  <!-- Services Pages -->
+  <!-- Terms and Conditions Page -->
+  <url>
+    <loc>https://www.assignmenthub.org/terms-and-conditions</loc>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Services Pages with Keywords -->
   <url>
     <loc>https://www.assignmenthub.org/services/essay-writing</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/services/research-papers</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/services/dissertations</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/services/coursework-help</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   
-  <!-- Subject-specific Pages -->
+  <!-- Subject-specific Pages with Keywords -->
   <url>
     <loc>https://www.assignmenthub.org/subjects/business</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/subjects/nursing</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/subjects/computer-science</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/subjects/psychology</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/history</loc>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/literature</loc>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/mathematics</loc>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/subjects/economics</loc>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -105,36 +141,57 @@
   <!-- Authentication Pages -->
   <url>
     <loc>https://www.assignmenthub.org/login</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/signup</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   
-  <!-- Blog Posts (Examples) -->
+  <!-- Blog Posts with Keywords -->
   <url>
     <loc>https://www.assignmenthub.org/blog/how-to-write-a-research-paper</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/blog/apa-vs-mla-formatting</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://www.assignmenthub.org/blog/time-management-tips-for-students</loc>
-    <lastmod>2025-05-14</lastmod>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/blog/how-to-write-an-argumentative-essay</loc>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/blog/effective-note-taking-strategies</loc>
+    <lastmod>2025-05-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.assignmenthub.org/blog/critical-thinking-in-academic-writing</loc>
+    <lastmod>2025-05-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
