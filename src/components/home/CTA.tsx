@@ -15,7 +15,7 @@ const CTA = () => {
             Get started today and see the difference expert help can make.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button size="lg" className="bg-white text-brand-500 hover:bg-gray-100" asChild>
+            <Button size="lg" className="bg-[#0d2241] text-white hover:bg-[#193764] transition-colors" asChild>
               <Link to="/signup">
                 Get Started <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
