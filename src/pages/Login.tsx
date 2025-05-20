@@ -25,10 +25,13 @@ const Login = () => {
     
     // Check for hash fragment that might indicate OAuth redirect issues
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.has('error') || hashParams.has('access_token')) {
-      // If we detect OAuth parameters in the URL hash, redirect to profile completion
-      // This helps recover from potential redirect issues
-      navigate('/profile-completion', { replace: true });
+    if (hashParams.has('error')) {
+      console.error('OAuth error in hash:', hashParams.get('error'));
+      toast.error(hashParams.get('error_description') || 'Authentication error. Please try again.');
+    } else if (hashParams.has('access_token')) {
+      // If we detect access_token in the URL hash, authentication succeeded
+      // The user will be redirected to dashboard by the AuthContext
+      console.log('OAuth authentication successful');
     }
   }, [location, navigate]);
 

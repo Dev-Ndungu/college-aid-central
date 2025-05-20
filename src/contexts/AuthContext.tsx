@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
@@ -221,9 +220,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const origin = window.location.origin;
       console.log("Current origin for redirect:", origin);
       
-      // The final destination after authentication - we'll go to the profile-completion page
-      // This is important as we need to ensure we're redirecting to a route that exists in our app
-      const finalRedirectUrl = `${origin}/profile-completion`;
+      // The final destination after authentication - We'll go to the dashboard directly
+      // This ensures existing users with accounts go directly to dashboard
+      const finalRedirectUrl = `${origin}/dashboard`;
       console.log("Final redirect destination:", finalRedirectUrl);
       
       // Store the role in the queryParams object

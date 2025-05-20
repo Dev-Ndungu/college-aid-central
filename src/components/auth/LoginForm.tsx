@@ -55,8 +55,8 @@ const LoginForm = () => {
       setErrorMessage(null);
       setIsProcessingOAuth(true);
       
-      // Store the role in localStorage for Google signup (default to student if signing in)
-      localStorage.setItem('googleSignupRole', 'student');
+      // No need to set role for Google sign-in for existing users
+      // They will be redirected to dashboard directly
       
       await signInWithGoogle();
       // The redirect happens in the signInWithGoogle function
@@ -170,7 +170,7 @@ const LoginForm = () => {
         </div>
         <Button 
           type="submit" 
-          className="w-full" 
+          className="w-full bg-[#0d2241] hover:bg-[#193764]" 
           disabled={isProcessingOAuth || isLoading}
         >
           {isLoading ? "Signing in..." : "Sign In"}
