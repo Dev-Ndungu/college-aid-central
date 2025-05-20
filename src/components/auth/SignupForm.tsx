@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { Mail, CheckCircle, X, Eye, EyeOff, Loader2 } from "lucide-react";
@@ -12,6 +12,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters").refine(password => {
@@ -27,12 +28,12 @@ const formSchema = z.object({
   }, {
     message: "Password should contain at least one character of each: uppercase, lowercase, number, and special character"
   }),
-  confirmPassword: z.string(),
-  role: z.enum(["student", "writer"])
+  confirmPassword: z.string()
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"]
 });
+
 type FormData = z.infer<typeof formSchema>;
 
 // Maximum number of retry attempts
@@ -40,6 +41,7 @@ const MAX_RETRY_ATTEMPTS = 3;
 
 // Function to delay execution (for retry with exponential backoff)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 const SignupForm = () => {
   const {
     signUp,
@@ -50,23 +52,18 @@ const SignupForm = () => {
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState<"student" | "writer">("student");
   const [isLoading, setIsLoading] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(0);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
       password: "",
-      confirmPassword: "",
-      role: "student"
+      confirmPassword: ""
     }
   });
 
-  // Update the form's role value when selectedRole changes
-  useEffect(() => {
-    form.setValue("role", selectedRole);
-  }, [selectedRole, form]);
   const retrySignup = async (data: FormData, currentRetry: number): Promise<void> => {
     if (currentRetry >= MAX_RETRY_ATTEMPTS) {
       throw new Error("Signup failed after multiple attempts. The server might be experiencing issues. Please try again later.");
@@ -78,7 +75,8 @@ const SignupForm = () => {
         setErrorMessage(`Request timed out. Retrying (${currentRetry}/${MAX_RETRY_ATTEMPTS})...`);
         await delay(backoffTime);
       }
-      await signUp(data.email, data.password, data.role);
+      // Always use "student" as the default role
+      await signUp(data.email, data.password, "student");
       setRegistrationComplete(true);
     } catch (error: any) {
       console.error(`Retry attempt ${currentRetry} failed:`, error);
@@ -92,6 +90,7 @@ const SignupForm = () => {
       }
     }
   };
+
   const onSubmit = async (data: FormData) => {
     try {
       setIsLoading(true);
@@ -121,13 +120,14 @@ const SignupForm = () => {
       setIsLoading(false);
     }
   };
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       setErrorMessage(null);
-      // Store the selected role in localStorage for Google sign-in
-      localStorage.setItem('googleSignupRole', selectedRole);
-      console.log("Starting Google Sign In with role:", selectedRole);
+      // Store "student" as the default role for Google sign-in
+      localStorage.setItem('googleSignupRole', 'student');
+      console.log("Starting Google Sign In with default role: student");
       await signInWithGoogle();
     } catch (error: any) {
       console.error("Google sign in error:", error);
@@ -144,9 +144,11 @@ const SignupForm = () => {
       setIsLoading(false);
     }
   };
+
   const dismissError = () => {
     setErrorMessage(null);
   };
+
   if (registrationComplete) {
     return <div className="space-y-6">
         <Alert className="bg-green-50 border-green-200">
@@ -163,6 +165,7 @@ const SignupForm = () => {
         </div>
       </div>;
   }
+
   return <div className="space-y-6">
       {errorMessage && <Alert variant="destructive" className="relative">
           <X className="h-4 w-4 cursor-pointer absolute right-2 top-2" onClick={dismissError} />
@@ -214,36 +217,6 @@ const SignupForm = () => {
                 </FormControl>
                 <FormMessage />
               </FormItem>} />
-          
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormLabel>I am a...</FormLabel>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={(value) => {
-                      setSelectedRole(value as "student" | "writer");
-                      field.onChange(value);
-                    }}
-                    defaultValue={field.value}
-                    className="flex flex-col md:flex-row space-y-1 md:space-y-0 md:space-x-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="student" id="student" />
-                      <Label htmlFor="student">Student</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="writer" id="writer" />
-                      <Label htmlFor="writer">Writer</Label>
-                    </div>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? <>
@@ -285,4 +258,5 @@ const SignupForm = () => {
       </div>
     </div>;
 };
+
 export default SignupForm;
