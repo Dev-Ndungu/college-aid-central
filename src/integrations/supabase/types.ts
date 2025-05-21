@@ -20,10 +20,13 @@ export type Database = {
           id: string
           progress: number | null
           status: string
+          student_email: string | null
+          student_name: string | null
+          student_phone: string | null
           subject: string
           title: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
           writer_id: string | null
         }
         Insert: {
@@ -36,10 +39,13 @@ export type Database = {
           id?: string
           progress?: number | null
           status?: string
+          student_email?: string | null
+          student_name?: string | null
+          student_phone?: string | null
           subject: string
           title: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
           writer_id?: string | null
         }
         Update: {
@@ -52,10 +58,13 @@ export type Database = {
           id?: string
           progress?: number | null
           status?: string
+          student_email?: string | null
+          student_name?: string | null
+          student_phone?: string | null
           subject?: string
           title?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
           writer_id?: string | null
         }
         Relationships: [

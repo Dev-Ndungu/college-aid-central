@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -17,11 +16,15 @@ export type Assignment = {
   created_at: string | null;
   updated_at: string | null;
   writer_id?: string | null;
-  user_id: string;
+  user_id: string | null; // Updated to be nullable
   file_urls: string[] | null;
+  student_name: string | null;
+  student_email: string | null;
+  student_phone: string | null;
   user?: {
     full_name: string | null;
     email: string;
+    phone_number?: string | null;
   } | null;
 };
 
@@ -90,12 +93,12 @@ export const useAssignments = () => {
         console.log('Fetching assignments for writer with ID:', userId);
         
         // First, fetch all available assignments (status='submitted', writer_id=null)
-        // Include user information
+        // Include user information with expanded fields
         const { data: availableAssignments, error: availableError } = await supabase
           .from('assignments')
           .select(`
             *,
-            user:profiles(full_name, email)
+            user:profiles(full_name, email, phone_number)
           `)
           .eq('status', 'submitted')
           .is('writer_id', null);
@@ -114,7 +117,7 @@ export const useAssignments = () => {
           .from('assignments')
           .select(`
             *,
-            user:profiles(full_name, email)
+            user:profiles(full_name, email, phone_number)
           `)
           .eq('writer_id', userId)
           .neq('status', 'completed');
@@ -140,7 +143,7 @@ export const useAssignments = () => {
           .from('assignments')
           .select(`
             *,
-            user:profiles(full_name, email)
+            user:profiles(full_name, email, phone_number)
           `)
           .eq('writer_id', userId)
           .eq('status', 'completed')
@@ -198,36 +201,77 @@ export const useAssignments = () => {
     status?: string;
     progress?: number | null;
     due_date?: string | null;
-    user_id: string;
+    user_id?: string | null; // Updated to be nullable
     file_urls?: string[] | null;
+    student_name?: string | null;
+    student_email?: string | null;
+    student_phone?: string | null;
   }) => {
     try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .insert([assignmentData])
-        .select();
+      // Check if user is authenticated
+      if (isAuthenticated && userId) {
+        // Logged-in user flow - First, get the user's profile information
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('full_name, email, phone_number')
+          .eq('id', userId)
+          .single();
+        
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+        }
+        
+        // Add student contact info to assignment data
+        const enhancedAssignmentData = {
+          ...assignmentData,
+          user_id: userId,
+          student_name: userProfile?.full_name || assignmentData.student_name,
+          student_email: userProfile?.email || assignmentData.student_email,
+          student_phone: userProfile?.phone_number || assignmentData.student_phone
+        };
+        
+        const { data, error } = await supabase
+          .from('assignments')
+          .insert([enhancedAssignmentData])
+          .select();
 
-      if (error) throw error;
-      
-      // Send notification to writers about new assignment
-      try {
-        // Use the full URL for the function call
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            type: 'assignment_submitted',
-            assignment: data[0]
-          }),
-        });
-      } catch (notifyError) {
-        console.error('Error sending assignment submission notification:', notifyError);
+        if (error) throw error;
+        return data?.[0];
+      } 
+      else {
+        // Anonymous user flow - Use our helper function
+        try {
+          const data = await submitAnonymousAssignment({
+            ...assignmentData,
+            status: assignmentData.status || 'submitted'
+          });
+          
+          console.log('Anonymous submission successful:', data);
+          
+          // Send notification to writers about new assignment
+          try {
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              },
+              body: JSON.stringify({
+                type: 'assignment_submitted',
+                assignment: data[0]
+              }),
+            });
+          } catch (notifyError) {
+            console.error('Error sending assignment submission notification:', notifyError);
+          }
+          
+          return data[0];
+        } catch (error) {
+          console.error('Error with anonymous submission:', error);
+          throw error;
+        }
       }
       
-      return data[0];
     } catch (err: any) {
       console.error('Error creating assignment:', err);
       throw err;

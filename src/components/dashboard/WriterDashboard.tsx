@@ -6,7 +6,7 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar, Mail, Phone } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
@@ -187,7 +187,7 @@ const WriterDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
                 <th className="p-3 text-left font-medium text-gray-600">Subject</th>
-                <th className="p-3 text-left font-medium text-gray-600">Student</th>
+                <th className="p-3 text-left font-medium text-gray-600">Student Information</th>
                 <th className="p-3 text-left font-medium text-gray-600">Posted</th>
                 <th className="p-3 text-left font-medium text-gray-600">Status</th>
                 <th className="p-3 text-left font-medium text-gray-600">Actions</th>
@@ -212,13 +212,19 @@ const WriterDashboard = () => {
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {assignment.user?.full_name || 'Anonymous Student'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {assignment.user?.email || 'No email provided'}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center text-sm font-medium">
+                        <User className="h-3 w-3 mr-1 text-gray-500" />
+                        {assignment.student_name || 'Anonymous Student'}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Mail className="h-3 w-3 mr-1" />
+                        {assignment.student_email || 'No email provided'}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {assignment.student_phone || 'No phone provided'}
+                      </div>
                     </div>
                   </td>
                   <td className="p-3 text-gray-600 text-xs">
@@ -303,7 +309,7 @@ const WriterDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
                 <th className="p-3 text-left font-medium text-gray-600">Subject</th>
-                <th className="p-3 text-left font-medium text-gray-600">Student</th>
+                <th className="p-3 text-left font-medium text-gray-600">Student Information</th>
                 <th className="p-3 text-left font-medium text-gray-600">Posted</th>
                 <th className="p-3 text-left font-medium text-gray-600">Status</th>
                 <th className="p-3 text-left font-medium text-gray-600">Update Progress</th>
@@ -329,13 +335,19 @@ const WriterDashboard = () => {
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {assignment.user?.full_name || 'Anonymous Student'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {assignment.user?.email || 'No email provided'}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center text-sm font-medium">
+                        <User className="h-3 w-3 mr-1 text-gray-500" />
+                        {assignment.student_name || 'Anonymous Student'}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Mail className="h-3 w-3 mr-1" />
+                        {assignment.student_email || 'No email provided'}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {assignment.student_phone || 'No phone provided'}
+                      </div>
                     </div>
                   </td>
                   <td className="p-3 text-gray-600 text-xs">
@@ -431,7 +443,7 @@ const WriterDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
                 <th className="p-3 text-left font-medium text-gray-600">Subject</th>
-                <th className="p-3 text-left font-medium text-gray-600">Student</th>
+                <th className="p-3 text-left font-medium text-gray-600">Student Information</th>
                 <th className="p-3 text-left font-medium text-gray-600">Posted</th>
                 <th className="p-3 text-left font-medium text-gray-600">Completed Date</th>
                 <th className="p-3 text-left font-medium text-gray-600">Actions</th>
@@ -451,13 +463,19 @@ const WriterDashboard = () => {
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {assignment.user?.full_name || 'Anonymous Student'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {assignment.user?.email || 'No email provided'}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center text-sm font-medium">
+                        <User className="h-3 w-3 mr-1 text-gray-500" />
+                        {assignment.student_name || 'Anonymous Student'}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Mail className="h-3 w-3 mr-1" />
+                        {assignment.student_email || 'No email provided'}
+                      </div>
+                      <div className="flex items-center text-xs text-gray-500">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {assignment.student_phone || 'No phone provided'}
+                      </div>
                     </div>
                   </td>
                   <td className="p-3 text-gray-600 text-xs">

@@ -32,7 +32,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import AssignmentSubmissionConfirmation from '@/components/dialogs/AssignmentSubmissionConfirmation';
 
 // Comprehensive assignment types based on the provided list
 const assignmentTypes = [
@@ -132,6 +133,7 @@ const AssignmentSubmission = () => {
   const [uploadProgress, setUploadProgress] = React.useState<{[key: string]: number}>({});
   const { isAuthenticated, userRole, userEmail, userId } = useAuth();
   const navigate = useNavigate();
+  const [showConfirmation, setShowConfirmation] = useState(false);
   
   // Form state
   const [title, setTitle] = useState('');
@@ -271,10 +273,11 @@ const AssignmentSubmission = () => {
       }
 
       // Show success message
-      toast("Your assignment has been successfully submitted and is now available for writers to view.");
+      toast.success("Your assignment has been successfully submitted and is now available for writers to view.");
 
-      // Redirect to dashboard
-      navigate('/dashboard');
+      // Show confirmation dialog instead of redirecting immediately
+      setShowConfirmation(true);
+      
     } catch (error: any) {
       console.error('Error submitting assignment:', error);
       toast.error(error.message || "An error occurred while submitting your assignment.");
@@ -283,11 +286,16 @@ const AssignmentSubmission = () => {
     }
   };
 
+  const handleConfirmationClose = () => {
+    setShowConfirmation(false);
+    navigate('/dashboard');
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow bg-gray-50 py-8 px-4">
-        <div className="container mx-auto max-w-3xl">
+        <div className="container mx-auto max-w-5xl">
           <header className="mb-8">
             <h1 className="text-3xl font-bold">Submit New Assignment</h1>
             <p className="text-gray-600">
@@ -295,192 +303,201 @@ const AssignmentSubmission = () => {
             </p>
           </header>
 
-          <Card>
+          <Card className="shadow-md">
             <form onSubmit={handleSubmit}>
-              <CardHeader>
+              <CardHeader className="border-b bg-gray-50 rounded-t-lg">
                 <CardTitle>Assignment Details</CardTitle>
                 <CardDescription>
                   Provide as much information as possible to get accurate assistance.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Assignment Title</Label>
-                  <Input 
-                    id="title" 
-                    placeholder="e.g., Research Paper on Climate Change" 
-                    required 
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject</Label>
-                  <Select required value={subject} onValueChange={setSubject}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select subject" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
-                      {/* Group subjects by category */}
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b">
-                        STEM
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'STEM')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                        Humanities and Social Sciences
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'Humanities')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                        Business and Economics
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'Business')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                        Health and Medicine
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'Health')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                        Education
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'Education')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                        Arts and Design
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'Arts')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                        Law and Legal Studies
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'Law')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                        International and Interdisciplinary Studies
-                      </div>
-                      {subjects
-                        .filter(s => s.category === 'International')
-                        .map(subject => (
-                          <SelectItem key={subject.value} value={subject.value}>
-                            {subject.label}
-                          </SelectItem>
-                        ))
-                      }
-                      
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="type">Assignment Type</Label>
-                  <Select required value={assignmentType} onValueChange={setAssignmentType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select assignment type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {assignmentTypes.map(type => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="due-date">Due Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Select a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
+              <CardContent className="space-y-8 pt-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Assignment Title</Label>
+                      <Input 
+                        id="title" 
+                        placeholder="e.g., Research Paper on Climate Change" 
+                        required 
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full"
                       />
-                    </PopoverContent>
-                  </Popover>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="subject">Subject</Label>
+                      <Select required value={subject} onValueChange={setSubject}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select subject" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {/* Group subjects by category */}
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b">
+                            STEM
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'STEM')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                            Humanities and Social Sciences
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'Humanities')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                            Business and Economics
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'Business')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                            Health and Medicine
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'Health')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                            Education
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'Education')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                            Arts and Design
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'Arts')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                            Law and Legal Studies
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'Law')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
+                            International and Interdisciplinary Studies
+                          </div>
+                          {subjects
+                            .filter(s => s.category === 'International')
+                            .map(subject => (
+                              <SelectItem key={subject.value} value={subject.value}>
+                                {subject.label}
+                              </SelectItem>
+                            ))
+                          }
+                          
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Assignment Type</Label>
+                      <Select required value={assignmentType} onValueChange={setAssignmentType}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select assignment type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {assignmentTypes.map(type => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="due-date">Due Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !date && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {date ? format(date, "PPP") : <span>Select a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={setDate}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Assignment Description</Label>
+                      <Textarea 
+                        id="description" 
+                        placeholder="Provide detailed instructions for your assignment..."
+                        rows={6}
+                        required
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="resize-none"
+                      />
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Assignment Description</Label>
-                  <Textarea 
-                    id="description" 
-                    placeholder="Provide detailed instructions for your assignment..."
-                    rows={5}
-                    required
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-4">
+                <div className="space-y-4 border-t pt-6">
                   <Label>Upload Files</Label>
-                  <div className="border border-dashed rounded-md p-6 text-center">
+                  <div className="border border-dashed rounded-md p-6 text-center hover:bg-gray-50 transition-colors">
                     <Input
                       id="file"
                       type="file"
@@ -500,13 +517,13 @@ const AssignmentSubmission = () => {
                   {selectedFiles.length > 0 && (
                     <div className="mt-4">
                       <h4 className="text-sm font-medium mb-3">Selected Files</h4>
-                      <div className="space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {selectedFiles.map((file, index) => (
                           <div 
                             key={`${file.name}-${index}`} 
                             className="flex items-center justify-between bg-gray-50 p-2 rounded-md border"
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 overflow-hidden">
                               {getFileIcon(file.type)}
                               <div className="text-sm">
                                 <p className="font-medium truncate max-w-[200px] md:max-w-[300px]">{file.name}</p>
@@ -529,11 +546,11 @@ const AssignmentSubmission = () => {
                 </div>
               </CardContent>
               
-              <CardFooter className="flex justify-between">
+              <CardFooter className="flex justify-between border-t py-4 bg-gray-50 rounded-b-lg">
                 <Button type="button" variant="outline" onClick={() => navigate('/dashboard')}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading} className="bg-[#0d2241] hover:bg-[#193764]">
                   {loading ? "Submitting..." : "Submit Assignment"}
                 </Button>
               </CardFooter>
@@ -542,6 +559,17 @@ const AssignmentSubmission = () => {
         </div>
       </main>
       <Footer />
+      
+      {/* Confirmation dialog */}
+      <AssignmentSubmissionConfirmation 
+        open={showConfirmation} 
+        onOpenChange={(open) => {
+          setShowConfirmation(open);
+          if (!open) {
+            navigate('/dashboard');
+          }
+        }}
+      />
     </div>
   );
 };

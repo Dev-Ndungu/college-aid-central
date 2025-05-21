@@ -17,3 +17,30 @@ export type UserPresence = {
   last_seen: string;
 };
 
+// Helper function for anonymous submissions with proper types
+export const submitAnonymousAssignment = async (assignmentData: Omit<Database['public']['Tables']['assignments']['Insert'], 'user_id'>) => {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/assignments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        ...assignmentData,
+        user_id: null // Using null for anonymous submissions following our migration
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to submit assignment');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting anonymous assignment:', error);
+    throw error;
+  }
+};

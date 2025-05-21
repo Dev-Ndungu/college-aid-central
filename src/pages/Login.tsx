@@ -1,21 +1,46 @@
 
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LoginForm from '@/components/auth/LoginForm';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const Login = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for auth errors in URL parameters
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
+    if (error) {
+      console.error('Auth error:', error, errorDescription);
+      toast.error(errorDescription || 'Authentication error. Please try again.');
+    }
+    
+    // Check for hash fragment that might indicate OAuth redirect issues
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.has('error')) {
+      console.error('OAuth error in hash:', hashParams.get('error'));
+      toast.error(hashParams.get('error_description') || 'Authentication error. Please try again.');
+    } else if (hashParams.has('access_token')) {
+      // If we detect access_token in the URL hash, authentication succeeded
+      // The user will be redirected to dashboard by the AuthContext
+      console.log('OAuth authentication successful');
+    }
+  }, [location, navigate]);
 
   // Redirect if already authenticated
-  React.useEffect(() => {
-    if (isAuthenticated) {
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
       navigate('/dashboard');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">

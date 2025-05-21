@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Assignment } from '@/hooks/useAssignments';
 import FileAttachments from './FileAttachments';
-import { Calendar, Clock, BookOpen, User, Circle } from 'lucide-react';
+import { Calendar, Clock, BookOpen, User, Circle, Mail, Phone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
@@ -46,9 +46,10 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
     return format(new Date(dateString), 'MMM d, yyyy h:mm a');
   };
 
-  // Determine student display name and email
-  const studentName = assignment.user?.full_name || 'Anonymous Student';
-  const studentEmail = assignment.user?.email || 'No email provided';
+  // Use student information directly from assignment
+  const studentName = assignment.student_name || 'Anonymous Student';
+  const studentEmail = assignment.student_email || 'No email provided';
+  const studentPhone = assignment.student_phone || 'No phone number provided';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -87,19 +88,34 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
             )}
           </div>
           
-          {/* Student information - enhanced display */}
+          {/* Enhanced student information display */}
           <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
-            <h3 className="font-medium text-base mb-2 flex items-center">
+            <h3 className="font-medium text-base mb-3 flex items-center">
               <User className="h-4 w-4 mr-2 text-blue-500" />
               Student Information
             </h3>
-            <div className="space-y-1">
-              <p className="text-sm">
-                <span className="font-medium">Name:</span> {studentName}
-              </p>
-              <p className="text-sm">
-                <span className="font-medium">Email:</span> {studentEmail}
-              </p>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <User className="h-4 w-4 mr-2 text-gray-500" />
+                <div>
+                  <span className="font-medium text-sm">Name:</span>
+                  <span className="ml-2 text-sm">{studentName}</span>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                <div>
+                  <span className="font-medium text-sm">Email:</span>
+                  <span className="ml-2 text-sm">{studentEmail}</span>
+                </div>
+              </div>
+              <div className="flex items-center">
+                <Phone className="h-4 w-4 mr-2 text-gray-500" />
+                <div>
+                  <span className="font-medium text-sm">Phone:</span>
+                  <span className="ml-2 text-sm">{studentPhone}</span>
+                </div>
+              </div>
             </div>
           </div>
           
