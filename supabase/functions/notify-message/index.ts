@@ -9,6 +9,7 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
 };
 
 // Create a Supabase client
@@ -60,7 +61,10 @@ Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     console.log("Handling OPTIONS request (CORS preflight)");
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204
+    });
   }
 
   try {
@@ -363,10 +367,12 @@ async function handleWriterDirectEmail(payload: WriterDirectEmailPayload) {
     try {
       console.log(`Sending direct email to ${payload.student_name} (${payload.student_email})`);
       
+      // Ensure we're using the test domain format required by Resend for non-verified domains
+      // And make sure we include all required fields
       const emailResponse = await resend.emails.send({
         from: "Assignment Tutor <onboarding@resend.dev>",
         to: payload.student_email,
-        replyTo: payload.writer.email,
+        reply_to: payload.writer.email,
         subject: payload.subject,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -390,7 +396,7 @@ async function handleWriterDirectEmail(payload: WriterDirectEmailPayload) {
       return new Response(JSON.stringify({ 
         success: true,
         message: "Email sent successfully",
-        emailId: emailResponse.id
+        emailId: emailResponse.id || "unknown"
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
@@ -398,7 +404,7 @@ async function handleWriterDirectEmail(payload: WriterDirectEmailPayload) {
       
     } catch (emailError: any) {
       console.error("Error sending direct email with Resend:", emailError);
-      throw emailError;
+      throw new Error(`Email sending failed: ${emailError.message || "Unknown error"}`);
     }
   } catch (error: any) {
     console.error("Error in writer_direct_email handler:", error);

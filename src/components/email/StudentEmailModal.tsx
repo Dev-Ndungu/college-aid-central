@@ -72,14 +72,15 @@ const StudentEmailModal = ({
         throw writerError;
       }
 
-      // Use the project reference for the function call
+      // Use the full HTTPS URL for the function call to prevent routing issues
       const projectRef = "ihvgtaxvrqdnrgdddhdx";
       
-      // Using fetch directly with the full URL to ensure proper routing
+      // Using fetch with complete HTTPS URL and all required headers
       const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           type: 'writer_direct_email',
@@ -94,8 +95,13 @@ const StudentEmailModal = ({
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to send email: ${errorText}`);
+        console.error('Error response from API:', errorText);
+        throw new Error(`Failed to send email: ${response.status} - ${errorText}`);
       }
+      
+      // Parse the response
+      const responseData = await response.json();
+      console.log('Email API response:', responseData);
 
       toast.success("Email sent successfully!");
       
