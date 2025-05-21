@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -474,11 +475,30 @@ export const useAssignments = () => {
           }
         }
         
+        // Get the writer information to send in the notification
+        const { data: writerProfile, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', userId)
+          .single();
+          
+        if (writerError) {
+          console.error('Error fetching writer profile:', writerError);
+        }
+        
         // Notify student about assignment being taken
         try {
+          console.log('Sending assignment taken notification to student');
+          
           // Use the full URL with the correct project reference for the function call
           const projectRef = "ihvgtaxvrqdnrgdddhdx";
-          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+          const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
+          
+          console.log('Notification URL:', notifyUrl);
+          console.log('Sending notification with writer:', writerProfile);
+          console.log('Assignment data:', assignment);
+          
+          const response = await fetch(notifyUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -487,9 +507,17 @@ export const useAssignments = () => {
             body: JSON.stringify({
               type: 'assignment_taken',
               assignment: assignment,
-              writer: writer
+              writer: writerProfile || { id: userId }
             }),
           });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response from notification service:', response.status, errorText);
+          } else {
+            const responseData = await response.json();
+            console.log('Assignment taken notification response:', responseData);
+          }
         } catch (notifyError) {
           console.error('Error sending assignment taken notification:', notifyError);
         }
