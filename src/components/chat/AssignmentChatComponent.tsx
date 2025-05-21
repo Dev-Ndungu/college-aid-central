@@ -167,6 +167,42 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
               read: false
             });
         }
+        
+        // NEW CODE: Send email notification to student about the status change
+        try {
+          console.log('Sending email notification about status change');
+          
+          // Get writer details
+          const { data: writerData, error: writerError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', userId)
+            .single();
+            
+          if (writerError) {
+            console.error('Error fetching writer data:', writerError);
+          }
+          
+          // Use the full URL with the correct project reference for the function call
+          const projectRef = "ihvgtaxvrqdnrgdddhdx";
+          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // No authorization header needed since we've made the function public
+            },
+            body: JSON.stringify({
+              type: 'assignment_status_update',
+              assignment: assignment,
+              status: status,
+              writer: writerData
+            }),
+          });
+          
+          console.log('Status update notification sent');
+        } catch (notifyError) {
+          console.error('Error sending status update notification:', notifyError);
+        }
       }
       
       toast.success(`Assignment status updated to ${status.replace('_', ' ')}`);

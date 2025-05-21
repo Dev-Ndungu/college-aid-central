@@ -212,6 +212,119 @@ serve(async (req) => {
       
       console.log(`Email sending summary: ${successCount} successful, ${failureCount} failed`);
     }
+    else if (payload.type === 'assignment_status_update') {
+      // NEW HANDLER - This is a status update notification for students
+      const { assignment, status, writer } = payload;
+      console.log('Processing assignment_status_update notification. Assignment ID:', assignment.id);
+      
+      if (!assignment.user_id) {
+        console.log('No user_id associated with this assignment, cannot send notification');
+        return new Response(
+          JSON.stringify({ warning: 'No student associated with this assignment' }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      }
+      
+      // Get the student details
+      const { data: student, error: studentError } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', assignment.user_id)
+        .single();
+
+      if (studentError || !student) {
+        console.error('Error fetching student:', studentError);
+        return new Response(
+          JSON.stringify({ error: 'Student not found' }),
+          { 
+            status: 404, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      }
+
+      console.log('Found student:', student.email);
+      
+      // Different subject and content based on status
+      let emailSubject = '';
+      let statusMessage = '';
+      let statusColor = '';
+      
+      switch(status) {
+        case 'in_progress':
+          emailSubject = `Your assignment "${assignment.title}" is in progress`;
+          statusMessage = 'Your writer has started working on your assignment.';
+          statusColor = '#3b82f6'; // blue
+          break;
+        case 'almost_done':
+          emailSubject = `Your assignment "${assignment.title}" is almost complete`;
+          statusMessage = 'Your assignment is nearly finished! The writer is putting the final touches on it.';
+          statusColor = '#10b981'; // green
+          break;
+        case 'completed':
+          emailSubject = `Your assignment "${assignment.title}" is complete`;
+          statusMessage = 'Great news! Your assignment has been completed.';
+          statusColor = '#6d28d9'; // purple
+          break;
+        default:
+          emailSubject = `Update on your assignment "${assignment.title}"`;
+          statusMessage = 'There has been an update to your assignment.';
+          statusColor = '#4338ca'; // indigo
+      }
+
+      const writerName = writer?.full_name || writer?.email || 'Your writer';
+      
+      const emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: ${statusColor};">Assignment Update</h2>
+          
+          <p>${statusMessage}</p>
+          
+          <div style="background-color: #f9fafb; border-left: 4px solid ${statusColor}; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">${assignment.title}</h3>
+            <p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${status.replace('_', ' ')}</span></p>
+            <p><strong>Writer:</strong> ${writerName}</p>
+            <p><strong>Subject:</strong> ${assignment.subject}</p>
+          </div>
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${supabaseUrl.replace('.supabase.co', '')}/assignment-chat/${assignment.id}" 
+               style="background-color: ${statusColor}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+              Chat With Your Writer
+            </a>
+          </div>
+          
+          <p>Login to check the details and communicate with your writer.</p>
+          
+          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            This is an automated message from Assignment Hub. Please do not reply directly to this email.
+          </p>
+        </div>
+      `;
+      
+      console.log('Sending status update email to student:', student.email);
+      
+      try {
+        // Send email using Resend
+        const { data, error } = await resend.emails.send({
+          from: 'Assignment Hub <admin@assignmenthub.org>',
+          to: [student.email],
+          subject: emailSubject,
+          html: emailBody,
+        });
+
+        if (error) {
+          console.error('Error sending status update email with Resend:', error);
+        } else {
+          console.log('Status update email sent successfully with Resend:', data);
+        }
+      } catch (emailError) {
+        console.error('Exception sending status update email with Resend:', emailError);
+      }
+    }
     else {
       // This is a message notification (original functionality)
       const message = payload.record;
