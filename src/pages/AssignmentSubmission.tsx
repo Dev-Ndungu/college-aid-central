@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -284,17 +283,15 @@ const AssignmentSubmission = () => {
       try {
         console.log("Triggering notification to writers");
         
-        // CRITICAL FIX: Extract project ref correctly using regex
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        console.log('Original Supabase URL:', supabaseUrl);
+        // Get Supabase URL directly from the client configuration
+        const supabaseUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co";
+        console.log('Using Supabase URL:', supabaseUrl);
         
-        // Extract project ref from URL format like "https://ihvgtaxvrqdnrgdddhdx.supabase.co"
-        const projectRef = supabaseUrl.match(/\/\/([^.]+)\.supabase\.co/)?.[1] || 
-                        supabaseUrl.replace('https://', '').replace('.supabase.co', '');
+        // Extract project ref from URL
+        const projectRef = "ihvgtaxvrqdnrgdddhdx";
+        console.log('Project ref:', projectRef);
         
-        console.log('Project ref extracted:', projectRef);
-        
-        // Construct the proper edge function URL with full domain
+        // Construct the proper edge function URL
         const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
         console.log('Constructed notify URL:', notifyUrl);
         

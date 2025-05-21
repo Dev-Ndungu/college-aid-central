@@ -254,17 +254,15 @@ export const useAssignments = () => {
         try {
           console.log('📧 Sending notification about new assignment');
           
-          // CRITICAL FIX: Get the Supabase project reference ID directly
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-          console.log('Original Supabase URL:', supabaseUrl);
+          // Use hardcoded values for Supabase URL and project reference
+          const supabaseUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co";
+          console.log('Using Supabase URL:', supabaseUrl);
           
-          // Extract project ref from URL format like "https://ihvgtaxvrqdnrgdddhdx.supabase.co"
-          const projectRef = supabaseUrl.match(/\/\/([^.]+)\.supabase\.co/)?.[1] || 
-                          supabaseUrl.replace('https://', '').replace('.supabase.co', '');
+          // Extract project ref
+          const projectRef = "ihvgtaxvrqdnrgdddhdx";
+          console.log('Project ref:', projectRef);
           
-          console.log('Project ref extracted:', projectRef);
-          
-          // Construct the proper edge function URL with the extracted project reference
+          // Construct the proper edge function URL
           const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
           console.log('Constructed notify URL:', notifyUrl);
           
@@ -314,17 +312,15 @@ export const useAssignments = () => {
           try {
             console.log('📧 Sending notification about anonymous new assignment');
             
-            // CRITICAL FIX: Get the Supabase project reference ID directly
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            console.log('Original Supabase URL:', supabaseUrl);
+            // Use hardcoded values for Supabase URL and project reference
+            const supabaseUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co";
+            console.log('Using Supabase URL:', supabaseUrl);
             
-            // Extract project ref from URL format like "https://ihvgtaxvrqdnrgdddhdx.supabase.co"
-            const projectRef = supabaseUrl.match(/\/\/([^.]+)\.supabase\.co/)?.[1] || 
-                           supabaseUrl.replace('https://', '').replace('.supabase.co', '');
+            // Extract project ref
+            const projectRef = "ihvgtaxvrqdnrgdddhdx";
+            console.log('Project ref:', projectRef);
             
-            console.log('Project ref extracted:', projectRef);
-            
-            // Construct the proper edge function URL with the extracted project reference
+            // Construct the proper edge function URL
             const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
             console.log('Constructed notify URL:', notifyUrl);
             
