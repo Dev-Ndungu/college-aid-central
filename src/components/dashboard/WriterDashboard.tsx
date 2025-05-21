@@ -200,6 +200,57 @@ const WriterDashboard = () => {
     setViewingAssignment(assignment);
   };
 
+  // Student information display component
+  const StudentInformation = ({ assignment }: { assignment: Assignment }) => {
+    // If student has an account (email is present), show student details
+    if (assignment.student_email) {
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center text-sm font-medium">
+            <User className="h-3 w-3 mr-1 text-gray-500" />
+            {assignment.student_name || 'Student'}
+            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <UserCheck className="h-3 w-3 mr-1" />
+              Has Account
+            </span>
+          </div>
+          <div className="flex items-center text-xs text-gray-500">
+            <Mail className="h-3 w-3 mr-1" />
+            {assignment.student_email}
+          </div>
+          {assignment.student_phone && (
+            <div className="flex items-center text-xs text-gray-500">
+              <Phone className="h-3 w-3 mr-1" />
+              {assignment.student_phone}
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // If student does not have an account, show anonymous information
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center text-sm font-medium">
+            <User className="h-3 w-3 mr-1 text-gray-500" />
+            Anonymous Student
+            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              <UserX className="h-3 w-3 mr-1" />
+              No Account
+            </span>
+          </div>
+          <div className="flex items-center text-xs text-gray-500">
+            <Mail className="h-3 w-3 mr-1" />
+            No email provided
+          </div>
+          <div className="flex items-center text-xs text-gray-500">
+            <Phone className="h-3 w-3 mr-1" />
+            No phone provided
+          </div>
+        </div>
+      );
+    }
+  };
+
   const AvailableAssignments = () => {
     // Filter for assignments that have not been taken yet
     const availableAssignments = activeAssignments.filter(
@@ -260,33 +311,7 @@ const WriterDashboard = () => {
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center text-sm font-medium">
-                        <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.student_name || 'Anonymous Student'}
-                        
-                        {/* Account status indicator */}
-                        {assignment.student_email ? (
-                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Has Account
-                          </span>
-                        ) : (
-                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            <UserX className="h-3 w-3 mr-1" />
-                            No Account
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {assignment.student_email || 'No email provided'}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {assignment.student_phone || 'No phone provided'}
-                      </div>
-                    </div>
+                    <StudentInformation assignment={assignment} />
                   </td>
                   <td className="p-3 text-gray-600 text-xs">
                     <div className="flex items-center gap-1">
@@ -396,33 +421,7 @@ const WriterDashboard = () => {
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center text-sm font-medium">
-                        <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.student_name || 'Anonymous Student'}
-                        
-                        {/* Account status indicator */}
-                        {assignment.student_email ? (
-                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Has Account
-                          </span>
-                        ) : (
-                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            <UserX className="h-3 w-3 mr-1" />
-                            No Account
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {assignment.student_email || 'No email provided'}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {assignment.student_phone || 'No phone provided'}
-                      </div>
-                    </div>
+                    <StudentInformation assignment={assignment} />
                   </td>
                   <td className="p-3 text-gray-600 text-xs">
                     <div className="flex items-center gap-1">
@@ -537,33 +536,7 @@ const WriterDashboard = () => {
                   </td>
                   <td className="p-3 text-gray-700">{assignment.subject}</td>
                   <td className="p-3">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center text-sm font-medium">
-                        <User className="h-3 w-3 mr-1 text-gray-500" />
-                        {assignment.student_name || 'Anonymous Student'}
-                        
-                        {/* Account status indicator */}
-                        {assignment.student_email ? (
-                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <UserCheck className="h-3 w-3 mr-1" />
-                            Has Account
-                          </span>
-                        ) : (
-                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            <UserX className="h-3 w-3 mr-1" />
-                            No Account
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {assignment.student_email || 'No email provided'}
-                      </div>
-                      <div className="flex items-center text-xs text-gray-500">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {assignment.student_phone || 'No phone provided'}
-                      </div>
-                    </div>
+                    <StudentInformation assignment={assignment} />
                   </td>
                   <td className="p-3 text-gray-600 text-xs">
                     <div className="flex items-center gap-1">

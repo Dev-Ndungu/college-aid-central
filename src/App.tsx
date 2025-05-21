@@ -20,6 +20,7 @@ import HowItWorksPage from '@/pages/HowItWorks';
 import AssignmentSubmission from '@/pages/AssignmentSubmission';
 import ResetPassword from '@/pages/ResetPassword';
 import TermsAndConditions from '@/pages/TermsAndConditions';
+import AssignmentChat from '@/pages/AssignmentChat';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route path="/submit-assignment" element={<AssignmentSubmission />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+              <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />
