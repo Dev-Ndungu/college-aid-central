@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -257,17 +258,23 @@ export const useAssignments = () => {
           const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`;
           console.log('Notify URL:', notifyUrl);
           
+          // Improved logging for notification payload
+          const notificationPayload = {
+            type: 'assignment_submitted',
+            assignment: data[0]
+          };
+          console.log('Notification payload:', JSON.stringify(notificationPayload));
+          
           const notifyResponse = await fetch(notifyUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             },
-            body: JSON.stringify({
-              type: 'assignment_submitted',
-              assignment: data[0]
-            }),
+            body: JSON.stringify(notificationPayload),
           });
+          
+          console.log('📤 Notification request sent to edge function');
           
           if (!notifyResponse.ok) {
             const responseText = await notifyResponse.text();

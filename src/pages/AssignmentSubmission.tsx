@@ -251,25 +251,64 @@ const AssignmentSubmission = () => {
         }
       }
 
-      // Create the assignment in the database
+      console.log("Creating assignment with user ID:", profileData.id);
+
+      // Create the assignment in the database with more logging
+      const assignmentData = {
+        title,
+        subject,
+        description,
+        due_date: date ? date.toISOString() : null,
+        user_id: profileData.id,
+        status: 'submitted',
+        progress: 0,
+        file_urls: fileUrls.length > 0 ? fileUrls : null
+      };
+      
+      console.log("Assignment data to submit:", assignmentData);
+      
       const { data, error } = await supabase
         .from('assignments')
-        .insert([
-          {
-            title,
-            subject,
-            description,
-            due_date: date ? date.toISOString() : null,
-            user_id: profileData.id,
-            status: 'submitted',
-            progress: 0,
-            file_urls: fileUrls.length > 0 ? fileUrls : null
-          }
-        ])
+        .insert([assignmentData])
         .select();
 
       if (error) {
+        console.error("Error submitting assignment:", error);
         throw error;
+      }
+
+      console.log("Assignment created successfully:", data);
+      
+      // Manually trigger the notification to writers
+      try {
+        console.log("Triggering notification to writers");
+        const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`;
+        
+        const notificationPayload = {
+          type: 'assignment_submitted',
+          assignment: data[0]
+        };
+        
+        console.log("Notification payload:", JSON.stringify(notificationPayload));
+        
+        const notifyResponse = await fetch(notifyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify(notificationPayload),
+        });
+        
+        if (!notifyResponse.ok) {
+          const responseText = await notifyResponse.text();
+          console.error("Notification API error:", notifyResponse.status, responseText);
+        } else {
+          const responseJson = await notifyResponse.json();
+          console.log("Notification sent successfully:", responseJson);
+        }
+      } catch (notifyError) {
+        console.error("Error sending assignment notification:", notifyError);
       }
 
       // Show success message

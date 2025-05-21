@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize Resend client with the new API key
+// Initialize Resend client with the API key
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 serve(async (req) => {
@@ -29,7 +29,12 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const payload = await req.json();
+    // Parse and log the full request payload
+    const rawPayload = await req.text();
+    console.log('Raw request payload:', rawPayload);
+    
+    // Parse the payload into JSON
+    const payload = JSON.parse(rawPayload);
     console.log('Request payload type:', payload.type);
     console.log('Full payload:', JSON.stringify(payload));
     
@@ -172,10 +177,15 @@ serve(async (req) => {
         </div>
       `;
       
-      // In a real application, you would send an email to each writer
+      // Log the Resend API key status
+      console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
+      
+      // Send emails to all writers with enhanced logging
+      let successCount = 0;
+      let failureCount = 0;
+      
       for (const writer of writers || []) {
         console.log(`Sending email to writer ${writer.email} about new assignment`);
-        console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
         
         try {
           // Send email using Resend with updated "from" address
@@ -188,13 +198,18 @@ serve(async (req) => {
 
           if (error) {
             console.error(`Error sending email to writer ${writer.email}:`, error);
+            failureCount++;
           } else {
             console.log(`Email sent successfully to writer ${writer.email}:`, data);
+            successCount++;
           }
         } catch (emailError) {
           console.error(`Exception sending email to writer ${writer.email}:`, emailError);
+          failureCount++;
         }
       }
+      
+      console.log(`Email sending summary: ${successCount} successful, ${failureCount} failed`);
     }
     else {
       // This is a message notification (original functionality)
@@ -295,7 +310,7 @@ serve(async (req) => {
 
     console.log('Notification processing completed successfully');
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, message: `Notification processed successfully` }),
       { 
         status: 200, 
         headers: { 'Content-Type': 'application/json', ...corsHeaders } 
