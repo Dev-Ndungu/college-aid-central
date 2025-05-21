@@ -118,13 +118,6 @@ const Navbar = () => {
                 </Button>
               )}
               
-              {/* Messages button - only on desktop */}
-              {!isMobile && (
-                <Link to="/messages">
-                  <Button variant="outline" size="sm">Messages</Button>
-                </Link>
-              )}
-              
               {/* User dropdown with avatar */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -137,9 +130,6 @@ const Navbar = () => {
                     <>
                       <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                         Dashboard
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/messages')}>
-                        Messages
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                     </>
