@@ -193,7 +193,6 @@ export const useAssignments = () => {
     }
   }, [isAuthenticated, userId, userRole]);
 
-  // Expose all the CRUD operations
   const createAssignment = async (assignmentData: {
     title: string;
     subject: string;
@@ -277,7 +276,7 @@ export const useAssignments = () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              // No authorization header needed since we've made the function public
             },
             body: JSON.stringify(notificationPayload),
           });
@@ -328,7 +327,7 @@ export const useAssignments = () => {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                // No authorization header needed since we've made the function public
               },
               body: JSON.stringify({
                 type: 'assignment_submitted',
@@ -382,12 +381,13 @@ export const useAssignments = () => {
         if (!writerError && writerData) {
           // Send notification to the student
           try {
-            // Use the full URL for the function call
-            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+            // Use the full URL with the correct project reference for the function call
+            const projectRef = "ihvgtaxvrqdnrgdddhdx";
+            await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                // No authorization header needed since we've made the function public
               },
               body: JSON.stringify({
                 type: 'assignment_taken',
@@ -476,12 +476,13 @@ export const useAssignments = () => {
         
         // Notify student about assignment being taken
         try {
-          // Use the full URL for the function call
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+          // Use the full URL with the correct project reference for the function call
+          const projectRef = "ihvgtaxvrqdnrgdddhdx";
+          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              // No authorization header needed since we've made the function public
             },
             body: JSON.stringify({
               type: 'assignment_taken',
