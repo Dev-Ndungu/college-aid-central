@@ -128,7 +128,7 @@ serve(async (req) => {
       try {
         // Send email using Resend
         const { data, error } = await resend.emails.send({
-          from: 'Assignment Hub <admin@assignmenthub.org>',
+          from: 'Assignment Hub <info@assignmenthub.org>',
           to: [student.email],
           subject: emailSubject,
           html: emailBody,
@@ -219,7 +219,7 @@ serve(async (req) => {
         try {
           // Send email using Resend with updated "from" address
           const { data, error } = await resend.emails.send({
-            from: 'Assignment Hub <admin@assignmenthub.org>',
+            from: 'Assignment Hub <info@assignmenthub.org>',
             to: [writer.email],
             subject: emailSubject,
             html: emailBody,
@@ -354,7 +354,7 @@ serve(async (req) => {
       try {
         // Send email using Resend
         const { data, error } = await resend.emails.send({
-          from: 'Assignment Hub <admin@assignmenthub.org>',
+          from: 'Assignment Hub <info@assignmenthub.org>',
           to: [student.email],
           subject: emailSubject,
           html: emailBody,
@@ -449,7 +449,7 @@ serve(async (req) => {
         try {
           // Send email using Resend with updated "from" address
           const { data, error } = await resend.emails.send({
-            from: 'Assignment Hub <admin@assignmenthub.org>',
+            from: 'Assignment Hub <info@assignmenthub.org>',
             to: [recipient.email],
             subject: emailSubject,
             html: emailBody,
