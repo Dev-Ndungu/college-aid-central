@@ -52,6 +52,7 @@ type Writer = {
   email: string;
 };
 
+// Main request handler
 Deno.serve(async (req) => {
   console.log("📨 Notification endpoint called. Method:", req.method);
   console.log("Full request URL:", req.url);
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
         return await handleAssignmentStatusUpdate(payload as AssignmentStatusUpdatePayload);
         
       case 'writer_direct_email':
-        // New handler for direct emails from writer to student
+        // Handler for direct emails from writer to student
         return await handleWriterDirectEmail(payload as WriterDirectEmailPayload);
         
       default:
@@ -118,7 +119,7 @@ async function handleAssignmentSubmitted(payload: AssignmentSubmittedPayload) {
   if (writerEmails.length > 0) {
     try {
       await resend.emails.send({
-        from: "Assignment Tutor <notifications@assignmenttutor.com>",
+        from: "Assignment Tutor <onboarding@resend.dev>",
         to: writerEmails,
         subject: "New Assignment Available",
         html: `
@@ -185,7 +186,7 @@ async function handleAssignmentTaken(payload: AssignmentTakenPayload) {
         console.log("Using Resend API key:", Deno.env.get("RESEND_API_KEY") ? "API key exists" : "Missing API key");
         
         const emailResponse = await resend.emails.send({
-          from: "Assignment Tutor <notifications@assignmenttutor.com>",
+          from: "Assignment Tutor <onboarding@resend.dev>",
           to: studentEmail,
           subject: "Your Assignment Has Been Taken",
           html: `
@@ -292,7 +293,7 @@ async function handleAssignmentStatusUpdate(payload: AssignmentStatusUpdatePaylo
         console.log("Sending status update email to student:", studentEmail);
         
         const emailResponse = await resend.emails.send({
-          from: "Assignment Tutor <notifications@assignmenttutor.com>",
+          from: "Assignment Tutor <onboarding@resend.dev>",
           to: studentEmail,
           subject: subject,
           html: `
@@ -342,7 +343,7 @@ async function handleAssignmentStatusUpdate(payload: AssignmentStatusUpdatePaylo
   }
 }
 
-// New handler for direct emails from writer to student
+// Handler for direct emails from writer to student
 async function handleWriterDirectEmail(payload: WriterDirectEmailPayload) {
   console.log("Processing writer_direct_email notification");
   
@@ -363,7 +364,7 @@ async function handleWriterDirectEmail(payload: WriterDirectEmailPayload) {
       console.log(`Sending direct email to ${payload.student_name} (${payload.student_email})`);
       
       const emailResponse = await resend.emails.send({
-        from: "Assignment Tutor <notifications@assignmenttutor.com>",
+        from: "Assignment Tutor <onboarding@resend.dev>",
         to: payload.student_email,
         replyTo: payload.writer.email,
         subject: payload.subject,

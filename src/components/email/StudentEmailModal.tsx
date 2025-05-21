@@ -75,6 +75,7 @@ const StudentEmailModal = ({
       // Use the project reference for the function call
       const projectRef = "ihvgtaxvrqdnrgdddhdx";
       
+      // Using fetch directly with the full URL to ensure proper routing
       const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
         method: 'POST',
         headers: {
