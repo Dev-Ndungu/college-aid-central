@@ -283,12 +283,19 @@ const AssignmentSubmission = () => {
       try {
         console.log("Triggering notification to writers");
         
-        // FIX: Use the correct URL format without "undefined" in the path
+        // CRITICAL FIX: Extract project ref correctly from Supabase URL
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        console.log('Supabase URL:', supabaseUrl);
+        console.log('Original Supabase URL:', supabaseUrl);
         
-        // Construct the proper edge function URL
-        const notifyUrl = `${supabaseUrl}/functions/v1/notify-message`;
+        // Extract just the project ID part from the URL
+        const projectRef = supabaseUrl.includes('supabase.co') ? 
+          supabaseUrl.split('.')[0].split('//')[1] : 
+          supabaseUrl;
+        
+        console.log('Project ref extracted:', projectRef);
+        
+        // Construct the proper edge function URL with full domain
+        const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
         console.log('Constructed notify URL:', notifyUrl);
         
         const notificationPayload = {

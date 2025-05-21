@@ -13,6 +13,7 @@ const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 serve(async (req) => {
   console.log('📨 Notification endpoint called. Method:', req.method);
+  console.log('Full request URL:', req.url);
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
