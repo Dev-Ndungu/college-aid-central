@@ -381,8 +381,6 @@ export const useAssignments = () => {
         if (!writerError && writerData) {
           // Send notification to the student
           try {
-            console.log('Sending assignment taken notification');
-            
             // Use the full URL with the correct project reference for the function call
             const projectRef = "ihvgtaxvrqdnrgdddhdx";
             await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
@@ -397,48 +395,8 @@ export const useAssignments = () => {
                 writer: writerData
               }),
             });
-            
-            console.log('Assignment taken notification sent');
           } catch (notifyError) {
             console.error('Error sending assignment taken notification:', notifyError);
-          }
-        }
-      }
-      
-      // If the assignment status is being updated, send a notification
-      if (updates.status && userRole === 'writer' && 
-          (updates.status === 'almost_done' || updates.status === 'completed' || updates.status === 'in_progress')) {
-        // Get the writer information
-        const { data: writerData, error: writerError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', userId)
-          .single();
-        
-        if (!writerError && writerData) {
-          // Send notification about status update
-          try {
-            console.log('Sending assignment status update notification');
-            
-            // Use the full URL with the correct project reference for the function call
-            const projectRef = "ihvgtaxvrqdnrgdddhdx";
-            await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                // No authorization header needed since we've made the function public
-              },
-              body: JSON.stringify({
-                type: 'assignment_status_update',
-                assignment: data[0],
-                status: updates.status,
-                writer: writerData
-              }),
-            });
-            
-            console.log('Assignment status update notification sent');
-          } catch (notifyError) {
-            console.error('Error sending assignment status update notification:', notifyError);
           }
         }
       }
@@ -516,25 +474,11 @@ export const useAssignments = () => {
           }
         }
         
-        // Notify student about assignment being taken - Fix this section to ensure notification is sent
+        // Notify student about assignment being taken
         try {
-          console.log('Sending assignment taken notification');
-          
-          // Get the writer's full information to include in notification
-          const { data: writerData, error: writerError } = await supabase
-            .from('profiles')
-            .select('id, full_name, email')
-            .eq('id', userId)
-            .single();
-            
-          if (writerError) {
-            console.error('Error fetching writer details:', writerError);
-            throw writerError;
-          }
-          
           // Use the full URL with the correct project reference for the function call
           const projectRef = "ihvgtaxvrqdnrgdddhdx";
-          const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -543,22 +487,11 @@ export const useAssignments = () => {
             body: JSON.stringify({
               type: 'assignment_taken',
               assignment: assignment,
-              writer: writerData // Use the properly fetched writer data
+              writer: writer
             }),
           });
-          
-          if (!response.ok) {
-            const responseText = await response.text();
-            console.error('Error in notification response:', response.status, responseText);
-            throw new Error(`Notification failed with status ${response.status}`);
-          } else {
-            const responseData = await response.json();
-            console.log('Assignment taken notification sent successfully:', responseData);
-          }
-          
         } catch (notifyError) {
           console.error('Error sending assignment taken notification:', notifyError);
-          // We'll log the error but not throw it to prevent blocking the assignment taking process
         }
         
         toast.success("Assignment taken successfully");
