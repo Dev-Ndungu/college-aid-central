@@ -1,3 +1,4 @@
+
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -140,6 +141,50 @@ const Hero = () => {
       return null;
     }
   };
+  
+  // Function to send notification to writers
+  const sendNotificationToWriters = async (assignment: any) => {
+    try {
+      console.log('Sending notification about new anonymous assignment from home page');
+      
+      // Use hardcoded values for Supabase URL and project reference
+      const projectRef = "ihvgtaxvrqdnrgdddhdx";
+      console.log('Project ref:', projectRef);
+      
+      // Construct the proper edge function URL
+      const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
+      console.log('Constructed notify URL:', notifyUrl);
+      
+      const notificationPayload = {
+        type: 'assignment_submitted',
+        assignment: assignment
+      };
+      console.log('Notification payload:', JSON.stringify(notificationPayload));
+      
+      const notifyResponse = await fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // No authorization header needed since we've made the function public
+        },
+        body: JSON.stringify(notificationPayload),
+      });
+      
+      if (!notifyResponse.ok) {
+        const responseText = await notifyResponse.text();
+        console.error('Notification API error:', notifyResponse.status, responseText);
+        throw new Error(`Notification API error: ${notifyResponse.status} ${responseText}`);
+      } else {
+        const responseJson = await notifyResponse.json();
+        console.log('Anonymous assignment notification sent successfully:', responseJson);
+        return true;
+      }
+    } catch (error: any) {
+      console.error('Error sending assignment submission notification:', error);
+      return false;
+    }
+  };
+  
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       // Format the phone number with country code
@@ -183,12 +228,18 @@ const Hero = () => {
         }
         toast.success("Your assignment was submitted successfully!");
         console.log("Assignment submitted:", result);
+        
+        // Send notification to writers
+        await sendNotificationToWriters(result[0]);
       } else {
         // Anonymous submission - use our helper function
         try {
           const result = await submitAnonymousAssignment(assignmentData);
           toast.success("Your assignment was submitted successfully!");
           console.log("Anonymous assignment submitted:", result);
+          
+          // Send notification to writers
+          await sendNotificationToWriters(result[0]);
         } catch (error: any) {
           console.error("Error in anonymous submission:", error);
           toast.error("Failed to submit your assignment");
