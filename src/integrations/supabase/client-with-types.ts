@@ -17,17 +17,6 @@ export type UserPresence = {
   last_seen: string;
 };
 
-// Custom types for the messages table (until Supabase types are regenerated)
-export type Message = {
-  id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
-  assignment_id: string | null;
-  created_at: string;
-  read: boolean;
-};
-
 // Helper function for anonymous submissions with proper types
 export const submitAnonymousAssignment = async (assignmentData: Omit<Database['public']['Tables']['assignments']['Insert'], 'user_id'>) => {
   try {
