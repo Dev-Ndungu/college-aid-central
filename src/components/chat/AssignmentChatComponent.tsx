@@ -34,6 +34,9 @@ interface AssignmentWithWriter {
   writer?: Writer | null;
   user?: User | null;
   progress?: number | null;
+  student_email?: string | null; // Add the student_email property
+  student_name?: string | null; // Also add student_name for consistency
+  student_phone?: string | null; // Add student_phone for completeness
 }
 
 interface AssignmentChatComponentProps {
