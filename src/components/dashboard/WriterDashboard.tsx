@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,17 +7,19 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar, Mail, Phone, UserCheck, UserX } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
+import WriterEmailModal from './WriterEmailModal';
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [updatingProgressIds, setUpdatingProgressIds] = useState<Set<string>>(new Set());
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
+  const [emailingAssignment, setEmailingAssignment] = useState<Assignment | null>(null);
   const { userId } = useAuth();
   const navigate = useNavigate();
 
@@ -104,18 +107,6 @@ const WriterDashboard = () => {
         
         const message = statusMessages[status as keyof typeof statusMessages];
         
-        if (message) {
-          await supabase
-            .from('messages')
-            .insert({
-              sender_id: userId,
-              recipient_id: assignment.user_id,
-              content: message,
-              assignment_id: assignmentId,
-              read: false
-            });
-        }
-        
         // Send email notification to student about the status change
         try {
           console.log('Sending email notification about status change');
@@ -198,6 +189,10 @@ const WriterDashboard = () => {
 
   const handleViewAssignment = (assignment: Assignment) => {
     setViewingAssignment(assignment);
+  };
+
+  const handleOpenEmailModal = (assignment: Assignment) => {
+    setEmailingAssignment(assignment);
   };
 
   // Student information display component
@@ -470,10 +465,10 @@ const WriterDashboard = () => {
                       <Button 
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
+                        onClick={() => handleOpenEmailModal(assignment)}
                       >
-                        <MessageCircle className="mr-1 h-3 w-3" />
-                        Chat
+                        <Mail className="mr-1 h-3 w-3" />
+                        Email Student
                       </Button>
                     </div>
                   </td>
@@ -565,10 +560,10 @@ const WriterDashboard = () => {
                       <Button 
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
+                        onClick={() => handleOpenEmailModal(assignment)}
                       >
-                        <MessageCircle className="mr-1 h-3 w-3" />
-                        Messages
+                        <Mail className="mr-1 h-3 w-3" />
+                        Email Student
                       </Button>
                     </div>
                   </td>
@@ -659,6 +654,13 @@ const WriterDashboard = () => {
         assignment={viewingAssignment} 
         isOpen={viewingAssignment !== null}
         onClose={() => setViewingAssignment(null)}
+      />
+
+      {/* Email Student Modal */}
+      <WriterEmailModal
+        assignment={emailingAssignment}
+        isOpen={emailingAssignment !== null}
+        onClose={() => setEmailingAssignment(null)}
       />
     </div>
   );

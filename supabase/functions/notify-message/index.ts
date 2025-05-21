@@ -40,7 +40,76 @@ serve(async (req) => {
     console.log('Full payload:', JSON.stringify(payload));
     
     // Handle different types of notifications
-    if (payload.type === 'assignment_taken') {
+    if (payload.type === 'writer_direct_email') {
+      // This is a direct email from writer to student
+      const { recipient, sender, assignment, message } = payload;
+      console.log('Processing writer_direct_email. Recipient:', recipient.email);
+      
+      if (!recipient || !recipient.email) {
+        console.error('No recipient email provided');
+        return new Response(
+          JSON.stringify({ error: 'No recipient email provided' }),
+          { 
+            status: 400, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      }
+      
+      const writerName = sender?.full_name || (sender?.email ? sender.email.split('@')[0] : 'Your Writer');
+      
+      // Format email body with proper HTML formatting
+      const formattedBody = message.body.replace(/\n/g, '<br>');
+      
+      const emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4338ca;">Message from your Writer</h2>
+          <p>You have received a message from ${writerName} regarding your assignment "${assignment.title}".</p>
+          
+          <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
+            <div style="margin-bottom: 10px;">
+              ${formattedBody}
+            </div>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            This is an automated message from Assignment Hub. You can reply to this email to communicate with your writer.
+          </p>
+        </div>
+      `;
+      
+      console.log('Sending email to student:', recipient.email);
+      
+      try {
+        // Send email using Resend
+        const { data, error } = await resend.emails.send({
+          from: 'Assignment Hub <info@assignmenthub.org>',
+          to: [recipient.email],
+          subject: message.subject,
+          html: emailBody,
+          reply_to: sender.email,
+        });
+
+        if (error) {
+          console.error('Error sending direct email with Resend:', error);
+          throw error;
+        } else {
+          console.log('Direct email sent successfully with Resend:', data);
+        }
+        
+        return new Response(
+          JSON.stringify({ success: true, data }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      } catch (emailError) {
+        console.error('Exception sending direct email with Resend:', emailError);
+        throw emailError;
+      }
+    }
+    else if (payload.type === 'assignment_taken') {
       // This is an assignment update notification
       const { assignment, writer } = payload;
       console.log('Processing assignment_taken notification. Assignment ID:', assignment.id);
@@ -370,100 +439,15 @@ serve(async (req) => {
       }
     }
     else {
-      // This is a message notification (original functionality)
-      const message = payload.record;
-      console.log('Processing message notification');
-
-      if (!message || !message.recipient_id) {
-        console.error('Invalid message payload:', payload);
-        return new Response(
-          JSON.stringify({ error: 'Invalid message payload' }),
-          { 
-            status: 400, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-
-      // Get the recipient details
-      const { data: recipient, error: recipientError } = await supabase
-        .from('profiles')
-        .select('email, role')
-        .eq('id', message.recipient_id)
-        .single();
-
-      if (recipientError || !recipient) {
-        console.error('Error fetching recipient:', recipientError);
-        return new Response(
-          JSON.stringify({ error: 'Recipient not found' }),
-          { 
-            status: 404, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-
-      // Get the sender details
-      const { data: sender, error: senderError } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', message.sender_id)
-        .single();
-
-      if (senderError || !sender) {
-        console.error('Error fetching sender:', senderError);
-        return new Response(
-          JSON.stringify({ error: 'Sender not found' }),
-          { 
-            status: 404, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-
-      // Only send email notifications to writers
-      if (recipient.role === 'writer') {
-        const emailSubject = `New Message from ${sender.full_name || sender.email}`;
-        const emailBody = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #4338ca;">You have a new message</h2>
-            <p>You have received a new message from <strong>${sender.full_name || sender.email}</strong>.</p>
-            
-            <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
-              <p style="margin: 0; font-style: italic;">"${message.content.substring(0, 150)}${message.content.length > 150 ? '...' : ''}"</p>
-            </div>
-            
-            <div style="margin: 30px 0; text-align: center;">
-              <a href="${supabaseUrl.replace('.supabase.co', '')}/messages" 
-                 style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-                Respond to Message
-              </a>
-            </div>
-            
-            <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-              This is an automated message from Assignment Hub. Please do not reply directly to this email.
-            </p>
-          </div>
-        `;
-        
-        try {
-          // Send email using Resend with updated "from" address
-          const { data, error } = await resend.emails.send({
-            from: 'Assignment Hub <info@assignmenthub.org>',
-            to: [recipient.email],
-            subject: emailSubject,
-            html: emailBody,
-          });
-
-          if (error) {
-            console.error('Error sending message notification email:', error);
-          } else {
-            console.log('Message notification email sent successfully:', data);
-          }
-        } catch (emailError) {
-          console.error('Exception sending message notification email:', emailError);
+      // This is an unknown notification type
+      console.error('Unknown notification type:', payload.type);
+      return new Response(
+        JSON.stringify({ error: 'Unknown notification type' }),
+        { 
+          status: 400, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
         }
-      }
+      );
     }
 
     console.log('Notification processing completed successfully');
