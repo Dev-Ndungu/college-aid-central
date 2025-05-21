@@ -282,7 +282,14 @@ const AssignmentSubmission = () => {
       // Manually trigger the notification to writers
       try {
         console.log("Triggering notification to writers");
-        const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`;
+        
+        // FIX: Use the correct URL format without "undefined" in the path
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        console.log('Supabase URL:', supabaseUrl);
+        
+        // Construct the proper edge function URL
+        const notifyUrl = `${supabaseUrl}/functions/v1/notify-message`;
+        console.log('Constructed notify URL:', notifyUrl);
         
         const notificationPayload = {
           type: 'assignment_submitted',

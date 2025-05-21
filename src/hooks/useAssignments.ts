@@ -202,7 +202,7 @@ export const useAssignments = () => {
     status?: string;
     progress?: number | null;
     due_date?: string | null;
-    user_id?: string | null; // Updated to be nullable
+    user_id?: string | null;
     file_urls?: string[] | null;
     student_name?: string | null;
     student_email?: string | null;
@@ -254,9 +254,15 @@ export const useAssignments = () => {
         // Send notification to writers about new assignment
         try {
           console.log('📧 Sending notification about new assignment');
-          console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-          const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`;
-          console.log('Notify URL:', notifyUrl);
+          
+          // FIX: Use the correct URL format without "undefined" in the path
+          // Get the base URL from VITE_SUPABASE_URL environment variable
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          console.log('Supabase URL:', supabaseUrl);
+          
+          // Construct the proper edge function URL
+          const notifyUrl = `${supabaseUrl}/functions/v1/notify-message`;
+          console.log('Constructed notify URL:', notifyUrl);
           
           // Improved logging for notification payload
           const notificationPayload = {
@@ -303,9 +309,14 @@ export const useAssignments = () => {
           // Send notification to writers about new assignment
           try {
             console.log('📧 Sending notification about anonymous new assignment');
-            console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-            const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`;
-            console.log('Notify URL:', notifyUrl);
+            
+            // FIX: Use the correct URL format without "undefined" in the path
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+            console.log('Supabase URL:', supabaseUrl);
+            
+            // Construct the proper edge function URL
+            const notifyUrl = `${supabaseUrl}/functions/v1/notify-message`;
+            console.log('Constructed notify URL:', notifyUrl);
             
             const notifyResponse = await fetch(notifyUrl, {
               method: 'POST',
