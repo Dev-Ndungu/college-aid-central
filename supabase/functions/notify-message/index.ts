@@ -12,22 +12,32 @@ const corsHeaders = {
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 serve(async (req) => {
+  console.log('📨 Notification endpoint called. Method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request (CORS preflight)');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
+    
+    console.log('Creating Supabase client with URL:', supabaseUrl ? 'URL exists' : 'URL missing');
+    console.log('Service role key exists:', supabaseServiceKey ? 'Yes' : 'No');
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const payload = await req.json();
+    console.log('Request payload type:', payload.type);
+    console.log('Full payload:', JSON.stringify(payload));
     
     // Handle different types of notifications
     if (payload.type === 'assignment_taken') {
       // This is an assignment update notification
       const { assignment, writer } = payload;
+      console.log('Processing assignment_taken notification. Assignment ID:', assignment.id);
       
       // Get the student details
       const { data: student, error: studentError } = await supabase
@@ -46,6 +56,8 @@ serve(async (req) => {
           }
         );
       }
+
+      console.log('Found student:', student.email);
 
       const emailSubject = `Your assignment "${assignment.title}" has been taken by a writer`;
       const emailBody = `
@@ -71,12 +83,13 @@ serve(async (req) => {
           <p>Login to track the progress of your assignment.</p>
           
           <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from College Aid Central. Please do not reply directly to this email.
+            This is an automated message from Assignment Hub. Please do not reply directly to this email.
           </p>
         </div>
       `;
       
       console.log('Sending email to student:', student.email);
+      console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
       
       try {
         // Send email using Resend
@@ -100,6 +113,7 @@ serve(async (req) => {
     else if (payload.type === 'assignment_submitted') {
       // This is a new assignment notification for writers
       const { assignment } = payload;
+      console.log('Processing assignment_submitted notification. Assignment title:', assignment.title);
       
       // Get all writers
       const { data: writers, error: writersError } = await supabase
@@ -113,6 +127,19 @@ serve(async (req) => {
           JSON.stringify({ error: 'Writers not found' }),
           { 
             status: 404, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      }
+
+      console.log(`Found ${writers?.length || 0} writers to notify about new assignment`);
+      
+      if (!writers || writers.length === 0) {
+        console.log('No writers found in the database! Cannot send notifications.');
+        return new Response(
+          JSON.stringify({ warning: 'No writers found to notify' }),
+          { 
+            status: 200, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders } 
           }
         );
@@ -144,12 +171,11 @@ serve(async (req) => {
           </p>
         </div>
       `;
-
-      console.log(`Found ${writers?.length || 0} writers to notify about new assignment`);
       
       // In a real application, you would send an email to each writer
       for (const writer of writers || []) {
         console.log(`Sending email to writer ${writer.email} about new assignment`);
+        console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
         
         try {
           // Send email using Resend with updated "from" address
@@ -173,8 +199,10 @@ serve(async (req) => {
     else {
       // This is a message notification (original functionality)
       const message = payload.record;
+      console.log('Processing message notification');
 
       if (!message || !message.recipient_id) {
+        console.error('Invalid message payload:', payload);
         return new Response(
           JSON.stringify({ error: 'Invalid message payload' }),
           { 
@@ -265,6 +293,7 @@ serve(async (req) => {
       }
     }
 
+    console.log('Notification processing completed successfully');
     return new Response(
       JSON.stringify({ success: true }),
       { 

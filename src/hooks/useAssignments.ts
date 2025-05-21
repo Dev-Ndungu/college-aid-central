@@ -208,8 +208,11 @@ export const useAssignments = () => {
     student_phone?: string | null;
   }) => {
     try {
+      console.log('🔍 Creating assignment:', assignmentData.title);
+      
       // Check if user is authenticated
       if (isAuthenticated && userId) {
+        console.log('👤 Creating assignment as authenticated user:', userId);
         // Logged-in user flow - First, get the user's profile information
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
@@ -219,6 +222,8 @@ export const useAssignments = () => {
         
         if (profileError) {
           console.error('Error fetching user profile:', profileError);
+        } else {
+          console.log('Found user profile:', userProfile?.email);
         }
         
         // Add student contact info to assignment data
@@ -227,20 +232,32 @@ export const useAssignments = () => {
           user_id: userId,
           student_name: userProfile?.full_name || assignmentData.student_name,
           student_email: userProfile?.email || assignmentData.student_email,
-          student_phone: userProfile?.phone_number || assignmentData.student_phone
+          student_phone: userProfile?.phone_number || assignmentData.student_phone,
+          status: assignmentData.status || 'submitted'
         };
+        
+        console.log('Enhanced assignment data:', enhancedAssignmentData);
         
         const { data, error } = await supabase
           .from('assignments')
           .insert([enhancedAssignmentData])
           .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Error inserting assignment to DB:', error);
+          throw error;
+        }
+        
+        console.log('✅ Assignment created successfully:', data?.[0]?.id);
         
         // Send notification to writers about new assignment
         try {
-          console.log('Sending notification about new assignment');
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+          console.log('📧 Sending notification about new assignment');
+          console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+          const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`;
+          console.log('Notify URL:', notifyUrl);
+          
+          const notifyResponse = await fetch(notifyUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -251,14 +268,22 @@ export const useAssignments = () => {
               assignment: data[0]
             }),
           });
-          console.log('Notification sent successfully');
+          
+          if (!notifyResponse.ok) {
+            const responseText = await notifyResponse.text();
+            console.error('❌ Notification API error:', notifyResponse.status, responseText);
+          } else {
+            const responseJson = await notifyResponse.json();
+            console.log('✅ Notification sent successfully:', responseJson);
+          }
         } catch (notifyError) {
-          console.error('Error sending assignment submission notification:', notifyError);
+          console.error('❌ Error sending assignment submission notification:', notifyError);
         }
         
         return data?.[0];
       } 
       else {
+        console.log('👤 Creating assignment as anonymous user');
         // Anonymous user flow - Use our helper function
         try {
           const data = await submitAnonymousAssignment({
@@ -266,12 +291,16 @@ export const useAssignments = () => {
             status: assignmentData.status || 'submitted'
           });
           
-          console.log('Anonymous submission successful:', data);
+          console.log('✅ Anonymous submission successful:', data?.[0]?.id);
           
           // Send notification to writers about new assignment
           try {
-            console.log('Sending notification about anonymous new assignment');
-            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+            console.log('📧 Sending notification about anonymous new assignment');
+            console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+            const notifyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`;
+            console.log('Notify URL:', notifyUrl);
+            
+            const notifyResponse = await fetch(notifyUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -282,20 +311,27 @@ export const useAssignments = () => {
                 assignment: data[0]
               }),
             });
-            console.log('Anonymous assignment notification sent successfully');
+            
+            if (!notifyResponse.ok) {
+              const responseText = await notifyResponse.text();
+              console.error('❌ Notification API error:', notifyResponse.status, responseText);
+            } else {
+              const responseJson = await notifyResponse.json();
+              console.log('✅ Anonymous assignment notification sent successfully:', responseJson);
+            }
           } catch (notifyError) {
-            console.error('Error sending assignment submission notification:', notifyError);
+            console.error('❌ Error sending assignment submission notification:', notifyError);
           }
           
           return data[0];
         } catch (error) {
-          console.error('Error with anonymous submission:', error);
+          console.error('❌ Error with anonymous submission:', error);
           throw error;
         }
       }
       
     } catch (err: any) {
-      console.error('Error creating assignment:', err);
+      console.error('❌ Error creating assignment:', err);
       throw err;
     }
   };
