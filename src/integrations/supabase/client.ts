@@ -12,6 +12,37 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Create an untyped client to avoid TypeScript errors until types are regenerated
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+// Type extension for message operations
+export const messageApi = {
+  async sendMessage(message: { 
+    sender_id: string;
+    recipient_id: string; 
+    content: string;
+    assignment_id?: string | null;
+  }) {
+    return supabase.from('messages').insert({
+      ...message,
+      read: false,
+    });
+  },
+  
+  async getConversation(userId: string, otherId: string) {
+    return supabase
+      .from('messages')
+      .select('*')
+      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+      .or(`sender_id.eq.${otherId},recipient_id.eq.${otherId}`)
+      .order('created_at', { ascending: true });
+  },
+  
+  async markAsRead(messageIds: string[]) {
+    return supabase
+      .from('messages')
+      .update({ read: true })
+      .in('id', messageIds);
+  }
+};
+
 // Helper function for anonymous submissions
 export const submitAnonymousAssignment = async (assignmentData: any) => {
   try {
