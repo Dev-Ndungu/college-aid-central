@@ -45,47 +45,17 @@ serve(async (req) => {
       const { assignment, writer } = payload;
       console.log('Processing assignment_taken notification. Assignment ID:', assignment.id);
       
-      // Check if writer exists and has required properties
-      if (!writer || !writer.id) {
-        console.error('Writer data is missing or incomplete:', writer);
-        return new Response(
-          JSON.stringify({ error: 'Writer data is missing or incomplete' }),
-          { 
-            status: 400, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-      
-      // Get or determine the student email
-      let studentEmail = null;
-      
-      if (assignment.user_id) {
-        // Get the student details if user_id is available
-        const { data: student, error: studentError } = await supabase
-          .from('profiles')
-          .select('email, full_name')
-          .eq('id', assignment.user_id)
-          .single();
+      // Get the student details
+      const { data: student, error: studentError } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', assignment.user_id)
+        .single();
 
-        if (!studentError && student) {
-          studentEmail = student.email;
-          console.log('Found student from user_id:', studentEmail);
-        } else {
-          console.log('Could not find student by user_id, checking student_email field');
-        }
-      }
-      
-      // Use student_email field as fallback
-      if (!studentEmail && assignment.student_email) {
-        studentEmail = assignment.student_email;
-        console.log('Using student_email from assignment:', studentEmail);
-      }
-
-      if (!studentEmail) {
-        console.error('No student email found for notification');
+      if (studentError || !student) {
+        console.error('Error fetching student:', studentError);
         return new Response(
-          JSON.stringify({ error: 'Student email not found' }),
+          JSON.stringify({ error: 'Student not found' }),
           { 
             status: 404, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders } 
@@ -93,16 +63,13 @@ serve(async (req) => {
         );
       }
 
-      console.log('Sending notification to student email:', studentEmail);
-
-      // Get writer details
-      const writerName = writer.full_name || writer.email || 'A writer';
+      console.log('Found student:', student.email);
 
       const emailSubject = `Your assignment "${assignment.title}" has been taken by a writer`;
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #4338ca;">Great news!</h2>
-          <p>Your assignment <strong>"${assignment.title}"</strong> has been taken by ${writerName}.</p>
+          <p>Your assignment <strong>"${assignment.title}"</strong> has been taken by ${writer.full_name || writer.email}.</p>
           
           <p>You can now communicate directly with the writer through our messaging system.</p>
           
@@ -127,13 +94,14 @@ serve(async (req) => {
         </div>
       `;
       
-      console.log('Sending email to student:', studentEmail);
+      console.log('Sending email to student:', student.email);
+      console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
       
       try {
         // Send email using Resend
         const { data, error } = await resend.emails.send({
-          from: 'Assignment Hub <onboarding@resend.dev>',
-          to: [studentEmail],
+          from: 'Assignment Hub <admin@assignmenthub.org>',
+          to: [student.email],
           subject: emailSubject,
           html: emailBody,
         });
