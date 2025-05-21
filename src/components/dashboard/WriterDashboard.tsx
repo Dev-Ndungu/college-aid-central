@@ -6,17 +6,20 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar, Mail, Phone } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar, Mail, Phone, Send } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
+import StudentEmailModal from '../email/StudentEmailModal';
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [updatingProgressIds, setUpdatingProgressIds] = useState<Set<string>>(new Set());
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedAssignmentForEmail, setSelectedAssignmentForEmail] = useState<Assignment | null>(null);
   const { userId } = useAuth();
   const navigate = useNavigate();
 
@@ -189,6 +192,16 @@ const WriterDashboard = () => {
     setViewingAssignment(assignment);
   };
 
+  const handleOpenEmailModal = (assignment: Assignment) => {
+    setSelectedAssignmentForEmail(assignment);
+    setEmailModalOpen(true);
+  };
+
+  const handleCloseEmailModal = () => {
+    setEmailModalOpen(false);
+    setSelectedAssignmentForEmail(null);
+  };
+
   const AvailableAssignments = () => {
     // Filter for assignments that have not been taken yet
     const availableAssignments = activeAssignments.filter(
@@ -300,6 +313,16 @@ const WriterDashboard = () => {
                         <Eye className="mr-1 h-3 w-3" />
                         View Details
                       </Button>
+                      {assignment.student_email && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEmailModal(assignment)}
+                        >
+                          <Send className="mr-1 h-3 w-3" />
+                          Email
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -439,6 +462,16 @@ const WriterDashboard = () => {
                         <MessageCircle className="mr-1 h-3 w-3" />
                         Chat
                       </Button>
+                      {assignment.student_email && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEmailModal(assignment)}
+                        >
+                          <Send className="mr-1 h-3 w-3" />
+                          Email
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -547,6 +580,16 @@ const WriterDashboard = () => {
                         <MessageCircle className="mr-1 h-3 w-3" />
                         Messages
                       </Button>
+                      {assignment.student_email && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEmailModal(assignment)}
+                        >
+                          <Send className="mr-1 h-3 w-3" />
+                          Email
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -637,6 +680,19 @@ const WriterDashboard = () => {
         isOpen={viewingAssignment !== null}
         onClose={() => setViewingAssignment(null)}
       />
+
+      {/* Student Email Modal */}
+      {selectedAssignmentForEmail && (
+        <StudentEmailModal
+          isOpen={emailModalOpen}
+          onClose={handleCloseEmailModal}
+          studentName={selectedAssignmentForEmail.student_name}
+          studentEmail={selectedAssignmentForEmail.student_email}
+          assignmentTitle={selectedAssignmentForEmail.title}
+          assignmentId={selectedAssignmentForEmail.id}
+          writerId={userId || ''}
+        />
+      )}
     </div>
   );
 };
