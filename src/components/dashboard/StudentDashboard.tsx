@@ -10,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Trash2, Clock, CheckCircle, CalendarDays, BookOpen, MessageCircle } from "lucide-react";
+import { Edit2, Trash2, Clock, CheckCircle, CalendarDays, BookOpen } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -90,18 +90,6 @@ const StudentDashboard = () => {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-2">
-                      {/* Show chat button only if the assignment has been taken by a writer */}
-                      {assignment.writer_id && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
-                        >
-                          <MessageCircle className="mr-1 h-3 w-3" />
-                          Chat with Writer
-                        </Button>
-                      )}
-                      
                       {/* Only allow editing if the assignment is still in submitted status */}
                       {assignment.status === 'submitted' && !assignment.writer_id && (
                         <Button 
@@ -186,7 +174,6 @@ const StudentDashboard = () => {
                 <th className="p-3 text-left font-medium">Subject</th>
                 <th className="p-3 text-left font-medium">Completed Date</th>
                 <th className="p-3 text-left font-medium">Grade</th>
-                <th className="p-3 text-left font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -203,16 +190,6 @@ const StudentDashboard = () => {
                     }
                   </td>
                   <td className="p-3">{assignment.grade || 'Not graded'}</td>
-                  <td className="p-3">
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/assignment-chat/${assignment.id}`)}
-                    >
-                      <MessageCircle className="mr-1 h-3 w-3" />
-                      View Messages
-                    </Button>
-                  </td>
                 </tr>
               ))}
             </tbody>
