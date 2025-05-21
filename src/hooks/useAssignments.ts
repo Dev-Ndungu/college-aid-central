@@ -236,6 +236,26 @@ export const useAssignments = () => {
           .select();
 
         if (error) throw error;
+        
+        // Send notification to writers about new assignment
+        try {
+          console.log('Sending notification about new assignment');
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({
+              type: 'assignment_submitted',
+              assignment: data[0]
+            }),
+          });
+          console.log('Notification sent successfully');
+        } catch (notifyError) {
+          console.error('Error sending assignment submission notification:', notifyError);
+        }
+        
         return data?.[0];
       } 
       else {
@@ -250,6 +270,7 @@ export const useAssignments = () => {
           
           // Send notification to writers about new assignment
           try {
+            console.log('Sending notification about anonymous new assignment');
             await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-message`, {
               method: 'POST',
               headers: {
@@ -261,6 +282,7 @@ export const useAssignments = () => {
                 assignment: data[0]
               }),
             });
+            console.log('Anonymous assignment notification sent successfully');
           } catch (notifyError) {
             console.error('Error sending assignment submission notification:', notifyError);
           }

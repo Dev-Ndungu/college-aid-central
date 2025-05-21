@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize Resend client with the API key
+// Initialize Resend client with the new API key
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 serve(async (req) => {
@@ -81,7 +81,7 @@ serve(async (req) => {
       try {
         // Send email using Resend
         const { data, error } = await resend.emails.send({
-          from: 'College Aid Central <onboarding@resend.dev>',
+          from: 'Assignment Hub <admin@assignmenthub.org>',
           to: [student.email],
           subject: emailSubject,
           html: emailBody,
@@ -118,7 +118,7 @@ serve(async (req) => {
         );
       }
 
-      const emailSubject = `New Assignment Available: "${assignment.title}"`;
+      const emailSubject = `📚 New Assignment Alert: "${assignment.title}"`;
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #4338ca;">New Assignment Available</h2>
@@ -140,19 +140,21 @@ serve(async (req) => {
           <p>Login to view more details and take this assignment.</p>
           
           <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from College Aid Central. Please do not reply directly to this email.
+            This is an automated message from Assignment Hub. Please do not reply directly to this email.
           </p>
         </div>
       `;
 
+      console.log(`Found ${writers?.length || 0} writers to notify about new assignment`);
+      
       // In a real application, you would send an email to each writer
-      for (const writer of writers) {
+      for (const writer of writers || []) {
         console.log(`Sending email to writer ${writer.email} about new assignment`);
         
         try {
-          // Send email using Resend
+          // Send email using Resend with updated "from" address
           const { data, error } = await resend.emails.send({
-            from: 'College Aid Central <onboarding@resend.dev>',
+            from: 'Assignment Hub <admin@assignmenthub.org>',
             to: [writer.email],
             subject: emailSubject,
             html: emailBody,
@@ -238,15 +240,15 @@ serve(async (req) => {
             </div>
             
             <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-              This is an automated message from College Aid Central. Please do not reply directly to this email.
+              This is an automated message from Assignment Hub. Please do not reply directly to this email.
             </p>
           </div>
         `;
         
         try {
-          // Send email using Resend
+          // Send email using Resend with updated "from" address
           const { data, error } = await resend.emails.send({
-            from: 'College Aid Central <onboarding@resend.dev>',
+            from: 'Assignment Hub <admin@assignmenthub.org>',
             to: [recipient.email],
             subject: emailSubject,
             html: emailBody,
