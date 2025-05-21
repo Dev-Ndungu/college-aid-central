@@ -45,7 +45,17 @@ serve(async (req) => {
       const { assignment, writer } = payload;
       console.log('Processing assignment_taken notification. Assignment ID:', assignment.id);
       
-      // Get the student details
+      // Get the student details - first check if we have user_id
+      if (!assignment.user_id) {
+        return new Response(
+          JSON.stringify({ warning: 'No user_id associated with this assignment' }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      }
+      
       const { data: student, error: studentError } = await supabase
         .from('profiles')
         .select('email, full_name')
@@ -65,11 +75,29 @@ serve(async (req) => {
 
       console.log('Found student:', student.email);
 
+      // Get writer profile if writer object is not provided
+      let writerInfo = writer;
+      if (!writerInfo && assignment.writer_id) {
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', assignment.writer_id)
+          .single();
+          
+        if (writerError) {
+          console.error('Error fetching writer:', writerError);
+        } else {
+          writerInfo = writerData;
+        }
+      }
+      
+      const writerName = writerInfo?.full_name || (writerInfo?.email ? writerInfo.email.split('@')[0] : 'a writer');
+
       const emailSubject = `Your assignment "${assignment.title}" has been taken by a writer`;
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #4338ca;">Great news!</h2>
-          <p>Your assignment <strong>"${assignment.title}"</strong> has been taken by ${writer.full_name || writer.email}.</p>
+          <p>Your assignment <strong>"${assignment.title}"</strong> has been taken by ${writerName}.</p>
           
           <p>You can now communicate directly with the writer through our messaging system.</p>
           
@@ -213,7 +241,7 @@ serve(async (req) => {
       console.log(`Email sending summary: ${successCount} successful, ${failureCount} failed`);
     }
     else if (payload.type === 'assignment_status_update') {
-      // NEW HANDLER - This is a status update notification for students
+      // This is a status update notification for students
       const { assignment, status, writer } = payload;
       console.log('Processing assignment_status_update notification. Assignment ID:', assignment.id);
       
@@ -248,6 +276,22 @@ serve(async (req) => {
 
       console.log('Found student:', student.email);
       
+      // Get writer profile if writer object is not provided
+      let writerInfo = writer;
+      if (!writerInfo && assignment.writer_id) {
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', assignment.writer_id)
+          .single();
+          
+        if (writerError) {
+          console.error('Error fetching writer:', writerError);
+        } else {
+          writerInfo = writerData;
+        }
+      }
+      
       // Different subject and content based on status
       let emailSubject = '';
       let statusMessage = '';
@@ -275,7 +319,7 @@ serve(async (req) => {
           statusColor = '#4338ca'; // indigo
       }
 
-      const writerName = writer?.full_name || writer?.email || 'Your writer';
+      const writerName = writerInfo?.full_name || (writerInfo?.email ? writerInfo.email.split('@')[0] : 'Your writer');
       
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

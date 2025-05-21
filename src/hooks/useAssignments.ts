@@ -1,525 +1,346 @@
-import { useState, useEffect } from 'react';
-import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
+
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export type Assignment = {
+export interface Assignment {
   id: string;
   title: string;
   subject: string;
-  description: string | null;
+  description?: string;
   status: string;
-  progress: number | null;
-  due_date: string | null;
-  completed_date: string | null;
-  grade: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  writer_id?: string | null;
-  user_id: string | null; // Updated to be nullable
-  file_urls: string[] | null;
-  student_name: string | null;
-  student_email: string | null;
-  student_phone: string | null;
-  user?: {
-    full_name: string | null;
-    email: string;
-    phone_number?: string | null;
-  } | null;
-};
-
-// Define writer type
-export type Writer = {
-  id: string;
-  full_name: string | null;
-  email: string;
-};
+  progress: number;
+  due_date?: string;
+  completed_date?: string;
+  grade?: string;
+  user_id?: string;
+  writer_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  file_urls?: string[];
+  student_name?: string;
+  student_email?: string;
+  student_phone?: string;
+}
 
 export const useAssignments = () => {
   const [activeAssignments, setActiveAssignments] = useState<Assignment[]>([]);
   const [completedAssignments, setCompletedAssignments] = useState<Assignment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, userRole, userEmail, userId } = useAuth();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { userRole, userId } = useAuth();
 
-  const fetchAssignments = async () => {
-    if (!isAuthenticated || !userId) {
-      console.log('User not authenticated or userId not available');
-      return;
-    }
-    
+  // Helper function to send email notification when a writer takes an assignment
+  const sendAssignmentNotification = async (
+    assignmentId: string,
+    type: string,
+    writerData: any = null,
+    status: string | null = null
+  ) => {
     try {
-      setIsLoading(true);
-      setError(null);
-      console.log('Fetching assignments for user ID:', userId);
-      console.log('User role:', userRole);
+      // Get assignment details
+      const { data: assignment, error: assignmentError } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('id', assignmentId)
+        .single();
 
-      // For students - only show their own assignments
+      if (assignmentError) {
+        console.error('Error fetching assignment for notification:', assignmentError);
+        return;
+      }
+
+      console.log(`Sending ${type} notification for assignment:`, assignment.title);
+
+      // Use the full URL with the correct project reference
+      const projectRef = "ihvgtaxvrqdnrgdddhdx";
+      
+      const payload: any = {
+        type,
+        assignment
+      };
+
+      // Add writer data if available
+      if (writerData) {
+        payload.writer = writerData;
+      }
+      
+      // Add status if available
+      if (status) {
+        payload.status = status;
+      }
+
+      const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error(`Error sending ${type} notification:`, errorData);
+        return false;
+      }
+
+      console.log(`${type} notification sent successfully`);
+      return true;
+    } catch (error) {
+      console.error(`Error sending ${type} notification:`, error);
+      return false;
+    }
+  };
+
+  // Fetch assignments based on user role
+  const fetchAssignments = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      let query;
+      
       if (userRole === 'student') {
-        // Fetch active assignments
-        const { data: active, error: activeError } = await supabase
+        // Get active (non-completed) assignments for student
+        query = supabase
           .from('assignments')
           .select('*')
           .eq('user_id', userId)
-          .neq('status', 'completed')
-          .order('due_date', { ascending: true });
-
+          .not('status', 'eq', 'completed')
+          .order('created_at', { ascending: false });
+          
+        const { data: active, error: activeError } = await query;
+        
         if (activeError) {
           console.error('Error fetching active assignments:', activeError);
-          throw activeError;
+          toast.error('Failed to fetch assignments');
+          return;
         }
         
-        console.log('Student active assignments fetched:', active?.length || 0);
-        setActiveAssignments(active || []);
-
-        // Fetch completed assignments
+        // Get completed assignments for student
         const { data: completed, error: completedError } = await supabase
           .from('assignments')
           .select('*')
           .eq('user_id', userId)
           .eq('status', 'completed')
           .order('completed_date', { ascending: false });
-
+        
         if (completedError) {
           console.error('Error fetching completed assignments:', completedError);
-          throw completedError;
+          toast.error('Failed to fetch completed assignments');
+          return;
         }
         
-        console.log('Student completed assignments fetched:', completed?.length || 0);
+        setActiveAssignments(active || []);
         setCompletedAssignments(completed || []);
-      }
-      // For writers - enhanced query approach
-      else if (userRole === 'writer') {
-        console.log('Fetching assignments for writer with ID:', userId);
-        
-        // First, fetch all available assignments (status='submitted', writer_id=null)
-        // Include user information with expanded fields
-        const { data: availableAssignments, error: availableError } = await supabase
+      } else if (userRole === 'writer') {
+        // Get all available assignments (not taken by any writer)
+        const { data: available, error: availableError } = await supabase
           .from('assignments')
-          .select(`
-            *,
-            user:profiles(full_name, email, phone_number)
-          `)
+          .select('*')
+          .is('writer_id', null)
           .eq('status', 'submitted')
-          .is('writer_id', null);
+          .order('created_at', { ascending: false });
           
         if (availableError) {
           console.error('Error fetching available assignments:', availableError);
-          throw availableError;
+          toast.error('Failed to fetch assignments');
+          return;
         }
         
-        // Log the raw results to see what's coming back from DB
-        console.log('Raw available assignments result:', availableAssignments);
-        console.log('Available assignments count:', availableAssignments?.length || 0);
-        
-        // Get assignments assigned to this writer
-        const { data: assignedToWriter, error: assignedError } = await supabase
+        // Get active assignments for this writer
+        const { data: active, error: activeError } = await supabase
           .from('assignments')
-          .select(`
-            *,
-            user:profiles(full_name, email, phone_number)
-          `)
+          .select('*')
           .eq('writer_id', userId)
-          .neq('status', 'completed');
+          .not('status', 'eq', 'completed')
+          .order('updated_at', { ascending: false });
           
-        if (assignedError) {
-          console.error('Error fetching writer\'s assignments:', assignedError);
-          throw assignedError;
+        if (activeError) {
+          console.error('Error fetching writer assignments:', activeError);
+          toast.error('Failed to fetch your assignments');
+          return;
         }
-        
-        console.log('Writer\'s assigned assignments found:', assignedToWriter?.length || 0);
-        
-        // Combine results
-        const combinedActive = [
-          ...(availableAssignments || []), 
-          ...(assignedToWriter || [])
-        ];
-        
-        console.log('Combined active assignments for writer:', combinedActive.length);
-        setActiveAssignments(combinedActive);
         
         // Get completed assignments for this writer
         const { data: completed, error: completedError } = await supabase
           .from('assignments')
-          .select(`
-            *,
-            user:profiles(full_name, email, phone_number)
-          `)
+          .select('*')
           .eq('writer_id', userId)
           .eq('status', 'completed')
           .order('completed_date', { ascending: false });
-
+          
         if (completedError) {
           console.error('Error fetching completed assignments:', completedError);
-          throw completedError;
+          toast.error('Failed to fetch completed assignments');
+          return;
         }
         
-        console.log('Writer completed assignments fetched:', completed?.length || 0);
+        // Combine available assignments with active ones
+        setActiveAssignments([...(available || []), ...(active || [])]);
         setCompletedAssignments(completed || []);
       }
-
-    } catch (err: any) {
-      console.error('Error fetching assignments:', err);
-      setError(err.message || 'Failed to fetch assignments');
+    } catch (error) {
+      console.error('Error in fetchAssignments:', error);
       toast.error('Failed to fetch assignments');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userRole, userId]);
 
   useEffect(() => {
-    if (isAuthenticated && userId) {
-      console.log('Authenticated user with ID, fetching assignments:', userId);
+    if (userId) {
       fetchAssignments();
       
-      // Set up real-time subscription for assignments with enhanced logging
+      // Subscribe to changes in assignments table
       const assignmentsSubscription = supabase
         .channel('assignments-changes')
         .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'assignments' }, 
-          (payload) => {
-            console.log('Assignments change detected:', payload);
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'assignments'
+          }, 
+          () => {
             fetchAssignments();
           }
         )
-        .subscribe((status) => {
-          console.log('Realtime subscription status:', status);
-        });
-
+        .subscribe();
+        
       return () => {
-        console.log('Cleaning up realtime subscription');
         supabase.removeChannel(assignmentsSubscription);
       };
     }
-  }, [isAuthenticated, userId, userRole]);
+  }, [userId, fetchAssignments]);
 
-  const createAssignment = async (assignmentData: {
-    title: string;
-    subject: string;
-    description?: string | null;
-    status?: string;
-    progress?: number | null;
-    due_date?: string | null;
-    user_id?: string | null;
-    file_urls?: string[] | null;
-    student_name?: string | null;
-    student_email?: string | null;
-    student_phone?: string | null;
-  }) => {
-    try {
-      console.log('🔍 Creating assignment:', assignmentData.title);
-      
-      // Check if user is authenticated
-      if (isAuthenticated && userId) {
-        console.log('👤 Creating assignment as authenticated user:', userId);
-        // Logged-in user flow - First, get the user's profile information
-        const { data: userProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('full_name, email, phone_number')
-          .eq('id', userId)
-          .single();
-        
-        if (profileError) {
-          console.error('Error fetching user profile:', profileError);
-        } else {
-          console.log('Found user profile:', userProfile?.email);
-        }
-        
-        // Add student contact info to assignment data
-        const enhancedAssignmentData = {
-          ...assignmentData,
-          user_id: userId,
-          student_name: userProfile?.full_name || assignmentData.student_name,
-          student_email: userProfile?.email || assignmentData.student_email,
-          student_phone: userProfile?.phone_number || assignmentData.student_phone,
-          status: assignmentData.status || 'submitted'
-        };
-        
-        console.log('Enhanced assignment data:', enhancedAssignmentData);
-        
-        const { data, error } = await supabase
-          .from('assignments')
-          .insert([enhancedAssignmentData])
-          .select();
-
-        if (error) {
-          console.error('❌ Error inserting assignment to DB:', error);
-          throw error;
-        }
-        
-        console.log('✅ Assignment created successfully:', data?.[0]?.id);
-        
-        // Send notification to writers about new assignment
-        try {
-          console.log('📧 Sending notification about new assignment');
-          
-          // Use hardcoded values for Supabase URL and project reference
-          const supabaseUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co";
-          console.log('Using Supabase URL:', supabaseUrl);
-          
-          // Extract project ref
-          const projectRef = "ihvgtaxvrqdnrgdddhdx";
-          console.log('Project ref:', projectRef);
-          
-          // Construct the proper edge function URL
-          const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
-          console.log('Constructed notify URL:', notifyUrl);
-          
-          // Improved logging for notification payload
-          const notificationPayload = {
-            type: 'assignment_submitted',
-            assignment: data[0]
-          };
-          console.log('Notification payload:', JSON.stringify(notificationPayload));
-          
-          const notifyResponse = await fetch(notifyUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              // No authorization header needed since we've made the function public
-            },
-            body: JSON.stringify(notificationPayload),
-          });
-          
-          console.log('📤 Notification request sent to edge function');
-          
-          if (!notifyResponse.ok) {
-            const responseText = await notifyResponse.text();
-            console.error('❌ Notification API error:', notifyResponse.status, responseText);
-          } else {
-            const responseJson = await notifyResponse.json();
-            console.log('✅ Notification sent successfully:', responseJson);
-          }
-        } catch (notifyError) {
-          console.error('❌ Error sending assignment submission notification:', notifyError);
-        }
-        
-        return data?.[0];
-      } 
-      else {
-        console.log('👤 Creating assignment as anonymous user');
-        // Anonymous user flow - Use our helper function
-        try {
-          const data = await submitAnonymousAssignment({
-            ...assignmentData,
-            status: assignmentData.status || 'submitted'
-          });
-          
-          console.log('✅ Anonymous submission successful:', data?.[0]?.id);
-          
-          // Send notification to writers about new assignment
-          try {
-            console.log('📧 Sending notification about anonymous new assignment');
-            
-            // Use hardcoded values for Supabase URL and project reference
-            const supabaseUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co";
-            console.log('Using Supabase URL:', supabaseUrl);
-            
-            // Extract project ref
-            const projectRef = "ihvgtaxvrqdnrgdddhdx";
-            console.log('Project ref:', projectRef);
-            
-            // Construct the proper edge function URL
-            const notifyUrl = `https://${projectRef}.supabase.co/functions/v1/notify-message`;
-            console.log('Constructed notify URL:', notifyUrl);
-            
-            const notifyResponse = await fetch(notifyUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                // No authorization header needed since we've made the function public
-              },
-              body: JSON.stringify({
-                type: 'assignment_submitted',
-                assignment: data[0]
-              }),
-            });
-            
-            if (!notifyResponse.ok) {
-              const responseText = await notifyResponse.text();
-              console.error('❌ Notification API error:', notifyResponse.status, responseText);
-            } else {
-              const responseJson = await notifyResponse.json();
-              console.log('✅ Anonymous assignment notification sent successfully:', responseJson);
-            }
-          } catch (notifyError) {
-            console.error('❌ Error sending assignment submission notification:', notifyError);
-          }
-          
-          return data[0];
-        } catch (error) {
-          console.error('❌ Error with anonymous submission:', error);
-          throw error;
-        }
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Error creating assignment:', err);
-      throw err;
-    }
-  };
-
-  const updateAssignment = async (id: string, updates: Partial<Assignment>) => {
-    try {
-      const { data, error } = await supabase
-        .from('assignments')
-        .update(updates)
-        .eq('id', id)
-        .select();
-
-      if (error) throw error;
-      
-      // If the assignment is being taken by a writer, send a notification
-      if (updates.writer_id && userRole === 'writer') {
-        // Get the writer information
-        const { data: writerData, error: writerError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', updates.writer_id)
-          .single();
-        
-        if (!writerError && writerData) {
-          // Send notification to the student
-          try {
-            // Use the full URL with the correct project reference for the function call
-            const projectRef = "ihvgtaxvrqdnrgdddhdx";
-            await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                // No authorization header needed since we've made the function public
-              },
-              body: JSON.stringify({
-                type: 'assignment_taken',
-                assignment: data[0],
-                writer: writerData
-              }),
-            });
-          } catch (notifyError) {
-            console.error('Error sending assignment taken notification:', notifyError);
-          }
-        }
-      }
-      
-      return data[0];
-    } catch (err: any) {
-      console.error('Error updating assignment:', err);
-      throw err;
-    }
-  };
-
-  const takeAssignment = async (assignmentId: string) => {
-    if (!userId) {
-      toast.error("You must be logged in to take an assignment");
-      return null;
-    }
-
-    if (userRole !== 'writer') {
-      toast.error("Only writers can take assignments");
-      return null;
-    }
-
+  // Function to take an assignment
+  const takeAssignment = async (assignmentId: string, writerData: any = null) => {
     try {
       const updates = {
         writer_id: userId,
         status: 'in_progress',
         updated_at: new Date().toISOString()
       };
-
-      const { data, error } = await supabase
+      
+      const { error } = await supabase
         .from('assignments')
         .update(updates)
-        .eq('id', assignmentId)
-        .is('writer_id', null) // Only allow taking if no writer has taken it yet
-        .select(`
-          *,
-          writer:profiles(id, full_name, email),
-          user:profiles(id, full_name, email)
-        `);
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const assignment = data[0];
-        const studentId = assignment.user_id;
+        .eq('id', assignmentId);
         
-        // Fix the TypeScript error by properly handling the writer object
-        // The issue is that writer is being treated as an array when it should be an object
-        const writer = assignment.writer as unknown as Writer;
-        
-        // Send initial message to student
-        if (studentId && writer) {
-          try {
-            // Now this will work correctly since writer is properly typed
-            const writerName = writer.full_name || writer.email;
-            const message = `Hello! I'm ${writerName} and I've taken your assignment "${assignment.title}". I'll start working on it right away. Feel free to message me if you have any questions or additional information to share.`;
-            
-            const { error: messageError } = await supabase
-              .from('messages')
-              .insert({
-                sender_id: userId,
-                recipient_id: studentId,
-                content: message,
-                assignment_id: assignmentId,
-                read: false
-              });
-              
-            if (messageError) {
-              console.error('Error sending initial message:', messageError);
-            } else {
-              console.log('Initial message sent successfully');
-            }
-          } catch (msgErr) {
-            console.error('Error preparing initial message:', msgErr);
-          }
-        }
-        
-        // Notify student about assignment being taken
-        try {
-          // Use the full URL with the correct project reference for the function call
-          const projectRef = "ihvgtaxvrqdnrgdddhdx";
-          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              // No authorization header needed since we've made the function public
-            },
-            body: JSON.stringify({
-              type: 'assignment_taken',
-              assignment: assignment,
-              writer: writer
-            }),
-          });
-        } catch (notifyError) {
-          console.error('Error sending assignment taken notification:', notifyError);
-        }
-        
-        toast.success("Assignment taken successfully");
-        return assignment;
-      } else {
-        toast.error("This assignment has already been taken by another writer");
-        return null;
+      if (error) {
+        console.error('Error taking assignment:', error);
+        toast.error('Failed to take assignment');
+        return false;
       }
-    } catch (err: any) {
-      console.error('Error taking assignment:', err);
-      toast.error(err.message || "Failed to take assignment");
-      throw err;
+      
+      // Send notification email to the student
+      await sendAssignmentNotification(assignmentId, 'assignment_taken', writerData);
+      
+      await fetchAssignments();
+      return true;
+    } catch (error) {
+      console.error('Error in takeAssignment:', error);
+      toast.error('Failed to take assignment');
+      return false;
     }
   };
 
-  const deleteAssignment = async (id: string) => {
+  // Function to update an assignment
+  const updateAssignment = async (assignmentId: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('assignments')
+        .update(updates)
+        .eq('id', assignmentId);
+        
+      if (error) {
+        console.error('Error updating assignment:', error);
+        toast.error('Failed to update assignment');
+        return false;
+      }
+      
+      // If the status was updated, send a notification
+      if (updates.status) {
+        // Get writer details
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', userId)
+          .single();
+          
+        if (writerError) {
+          console.error('Error fetching writer data:', writerError);
+        }
+        
+        await sendAssignmentNotification(
+          assignmentId, 
+          'assignment_status_update', 
+          writerData,
+          updates.status
+        );
+      }
+      
+      await fetchAssignments();
+      return true;
+    } catch (error) {
+      console.error('Error in updateAssignment:', error);
+      toast.error('Failed to update assignment');
+      return false;
+    }
+  };
+
+  // Function to delete an assignment
+  const deleteAssignment = async (assignmentId: string) => {
     try {
       const { error } = await supabase
         .from('assignments')
         .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+        .eq('id', assignmentId);
+        
+      if (error) {
+        console.error('Error deleting assignment:', error);
+        toast.error('Failed to delete assignment');
+        return false;
+      }
       
+      await fetchAssignments();
       return true;
-    } catch (err: any) {
-      console.error('Error deleting assignment:', err);
-      throw err;
+    } catch (error) {
+      console.error('Error in deleteAssignment:', error);
+      toast.error('Failed to delete assignment');
+      return false;
+    }
+  };
+
+  // Function to submit a new assignment
+  const submitAssignment = async (assignmentData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('assignments')
+        .insert({
+          ...assignmentData,
+          user_id: userId,
+          status: 'submitted',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select();
+        
+      if (error) {
+        console.error('Error submitting assignment:', error);
+        toast.error('Failed to submit assignment');
+        return null;
+      }
+      
+      // Send notification to all writers about new assignment
+      if (data && data.length > 0) {
+        await sendAssignmentNotification(data[0].id, 'assignment_submitted');
+      }
+      
+      await fetchAssignments();
+      return data?.[0] || null;
+    } catch (error) {
+      console.error('Error in submitAssignment:', error);
+      toast.error('Failed to submit assignment');
+      return null;
     }
   };
 
@@ -527,11 +348,10 @@ export const useAssignments = () => {
     activeAssignments,
     completedAssignments,
     isLoading,
-    error,
-    createAssignment,
+    takeAssignment,
     updateAssignment,
     deleteAssignment,
-    takeAssignment,
-    fetchAssignments
+    submitAssignment,
+    refreshAssignments: fetchAssignments
   };
 };

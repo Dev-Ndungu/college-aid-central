@@ -6,7 +6,7 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar, Mail, Phone } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, MessageCircle, Eye, User, Calendar, Mail, Phone, UserCheck, UserX } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
@@ -37,7 +37,18 @@ const WriterDashboard = () => {
     setProcessingIds(prev => new Set(prev).add(assignmentId));
     
     try {
-      const result = await takeAssignment(assignmentId);
+      // Get writer profile data to include in the notification
+      const { data: writerData, error: writerError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('id', userId)
+        .single();
+        
+      if (writerError) {
+        console.error('Error fetching writer data:', writerError);
+      }
+      
+      const result = await takeAssignment(assignmentId, writerData);
       if (result) {
         toast.success('Assignment taken successfully!');
         // Navigate to the chat page for this assignment
@@ -105,7 +116,7 @@ const WriterDashboard = () => {
             });
         }
         
-        // NEW CODE: Send email notification to student about the status change
+        // Send email notification to student about the status change
         try {
           console.log('Sending email notification about status change');
           
@@ -253,6 +264,19 @@ const WriterDashboard = () => {
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
                         {assignment.student_name || 'Anonymous Student'}
+                        
+                        {/* Account status indicator */}
+                        {assignment.student_email ? (
+                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Has Account
+                          </span>
+                        ) : (
+                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            <UserX className="h-3 w-3 mr-1" />
+                            No Account
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
@@ -376,6 +400,19 @@ const WriterDashboard = () => {
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
                         {assignment.student_name || 'Anonymous Student'}
+                        
+                        {/* Account status indicator */}
+                        {assignment.student_email ? (
+                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Has Account
+                          </span>
+                        ) : (
+                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            <UserX className="h-3 w-3 mr-1" />
+                            No Account
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
@@ -504,6 +541,19 @@ const WriterDashboard = () => {
                       <div className="flex items-center text-sm font-medium">
                         <User className="h-3 w-3 mr-1 text-gray-500" />
                         {assignment.student_name || 'Anonymous Student'}
+                        
+                        {/* Account status indicator */}
+                        {assignment.student_email ? (
+                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Has Account
+                          </span>
+                        ) : (
+                          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            <UserX className="h-3 w-3 mr-1" />
+                            No Account
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center text-xs text-gray-500">
                         <Mail className="h-3 w-3 mr-1" />
