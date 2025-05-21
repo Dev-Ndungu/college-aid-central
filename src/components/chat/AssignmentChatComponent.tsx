@@ -168,7 +168,7 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
             });
         }
         
-        // NEW CODE: Send email notification to student about the status change
+        // Send email notification to student about the status change
         try {
           console.log('Sending email notification about status change');
           
@@ -202,6 +202,43 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
           console.log('Status update notification sent');
         } catch (notifyError) {
           console.error('Error sending status update notification:', notifyError);
+        }
+      }
+      // Handle anonymous submissions that have student_email but no user_id
+      else if (assignment.student_email) {
+        try {
+          console.log('Sending email notification about status change to anonymous student');
+          
+          // Get writer details
+          const { data: writerData, error: writerError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', userId)
+            .single();
+            
+          if (writerError) {
+            console.error('Error fetching writer data:', writerError);
+          }
+          
+          // Use the full URL with the correct project reference for the function call
+          const projectRef = "ihvgtaxvrqdnrgdddhdx";
+          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // No authorization header needed since we've made the function public
+            },
+            body: JSON.stringify({
+              type: 'assignment_status_update',
+              assignment: assignment,
+              status: status,
+              writer: writerData
+            }),
+          });
+          
+          console.log('Status update notification sent to anonymous student');
+        } catch (notifyError) {
+          console.error('Error sending status update notification to anonymous student:', notifyError);
         }
       }
       

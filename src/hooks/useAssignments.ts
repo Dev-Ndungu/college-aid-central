@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -381,6 +382,8 @@ export const useAssignments = () => {
         if (!writerError && writerData) {
           // Send notification to the student
           try {
+            console.log('Sending assignment taken notification');
+            
             // Use the full URL with the correct project reference for the function call
             const projectRef = "ihvgtaxvrqdnrgdddhdx";
             await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
@@ -395,8 +398,48 @@ export const useAssignments = () => {
                 writer: writerData
               }),
             });
+            
+            console.log('Assignment taken notification sent');
           } catch (notifyError) {
             console.error('Error sending assignment taken notification:', notifyError);
+          }
+        }
+      }
+      
+      // If the assignment status is being updated, send a notification
+      if (updates.status && userRole === 'writer' && 
+          (updates.status === 'almost_done' || updates.status === 'completed' || updates.status === 'in_progress')) {
+        // Get the writer information
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', userId)
+          .single();
+        
+        if (!writerError && writerData) {
+          // Send notification about status update
+          try {
+            console.log('Sending assignment status update notification');
+            
+            // Use the full URL with the correct project reference for the function call
+            const projectRef = "ihvgtaxvrqdnrgdddhdx";
+            await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                // No authorization header needed since we've made the function public
+              },
+              body: JSON.stringify({
+                type: 'assignment_status_update',
+                assignment: data[0],
+                status: updates.status,
+                writer: writerData
+              }),
+            });
+            
+            console.log('Assignment status update notification sent');
+          } catch (notifyError) {
+            console.error('Error sending assignment status update notification:', notifyError);
           }
         }
       }
@@ -476,6 +519,8 @@ export const useAssignments = () => {
         
         // Notify student about assignment being taken
         try {
+          console.log('Sending assignment taken notification');
+          
           // Use the full URL with the correct project reference for the function call
           const projectRef = "ihvgtaxvrqdnrgdddhdx";
           await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
@@ -490,6 +535,8 @@ export const useAssignments = () => {
               writer: writer
             }),
           });
+          
+          console.log('Assignment taken notification sent');
         } catch (notifyError) {
           console.error('Error sending assignment taken notification:', notifyError);
         }
