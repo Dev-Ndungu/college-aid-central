@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -283,14 +284,13 @@ const AssignmentSubmission = () => {
       try {
         console.log("Triggering notification to writers");
         
-        // CRITICAL FIX: Extract project ref correctly from Supabase URL
+        // CRITICAL FIX: Extract project ref correctly using regex
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         console.log('Original Supabase URL:', supabaseUrl);
         
-        // Extract just the project ID part from the URL
-        const projectRef = supabaseUrl.includes('supabase.co') ? 
-          supabaseUrl.split('.')[0].split('//')[1] : 
-          supabaseUrl;
+        // Extract project ref from URL format like "https://ihvgtaxvrqdnrgdddhdx.supabase.co"
+        const projectRef = supabaseUrl.match(/\/\/([^.]+)\.supabase\.co/)?.[1] || 
+                        supabaseUrl.replace('https://', '').replace('.supabase.co', '');
         
         console.log('Project ref extracted:', projectRef);
         
@@ -317,12 +317,14 @@ const AssignmentSubmission = () => {
         if (!notifyResponse.ok) {
           const responseText = await notifyResponse.text();
           console.error("Notification API error:", notifyResponse.status, responseText);
+          console.error("This might indicate an issue with the edge function or the URL construction");
         } else {
           const responseJson = await notifyResponse.json();
           console.log("Notification sent successfully:", responseJson);
         }
       } catch (notifyError) {
         console.error("Error sending assignment notification:", notifyError);
+        console.error("Full error details:", notifyError);
       }
 
       // Show success message
