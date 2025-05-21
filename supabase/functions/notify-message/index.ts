@@ -45,6 +45,17 @@ serve(async (req) => {
       const { assignment, writer } = payload;
       console.log('Processing assignment_taken notification. Assignment ID:', assignment.id);
       
+      if (!writer) {
+        console.error('Writer data is missing in the payload');
+        return new Response(
+          JSON.stringify({ error: 'Writer data is missing' }),
+          { 
+            status: 400, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
+      }
+      
       // Get the student details
       // Check if user_id exists first, if not, use student_email directly
       if (!assignment.user_id && assignment.student_email) {
@@ -100,7 +111,7 @@ serve(async (req) => {
           console.error('Exception sending email to anonymous student:', emailError);
         }
         
-      } else {
+      } else if (assignment.user_id) {
         // For registered users - fetch profile and send email
         const { data: student, error: studentError } = await supabase
           .from('profiles')
@@ -170,6 +181,15 @@ serve(async (req) => {
         } catch (emailError) {
           console.error('Exception sending email with Resend:', emailError);
         }
+      } else {
+        console.error('No student contact information found for notification');
+        return new Response(
+          JSON.stringify({ error: 'No student contact information available' }),
+          { 
+            status: 400, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
       }
     } 
     else if (payload.type === 'assignment_submitted') {

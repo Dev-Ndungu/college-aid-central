@@ -188,7 +188,7 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
           
           // Use the full URL with the correct project reference for the function call
           const projectRef = "ihvgtaxvrqdnrgdddhdx";
-          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+          const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -202,7 +202,14 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
             }),
           });
           
-          console.log('Status update notification sent');
+          if (!response.ok) {
+            const responseText = await response.text();
+            console.error('Error sending status update notification:', response.status, responseText);
+          } else {
+            const responseJson = await response.json();
+            console.log('Status update notification sent successfully:', responseJson);
+          }
+          
         } catch (notifyError) {
           console.error('Error sending status update notification:', notifyError);
         }
@@ -225,7 +232,7 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
           
           // Use the full URL with the correct project reference for the function call
           const projectRef = "ihvgtaxvrqdnrgdddhdx";
-          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+          const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -239,7 +246,14 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
             }),
           });
           
-          console.log('Status update notification sent to anonymous student');
+          if (!response.ok) {
+            const responseText = await response.text();
+            console.error('Error sending status update notification:', response.status, responseText);
+          } else {
+            const responseJson = await response.json();
+            console.log('Status update notification sent successfully:', responseJson);
+          }
+          
         } catch (notifyError) {
           console.error('Error sending status update notification to anonymous student:', notifyError);
         }
@@ -322,6 +336,19 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
   if (userRole === 'writer' && !assignment.writer_id) {
     const handleTakeAssignment = async () => {
       try {
+        // Get writer details first to include in the notification
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', userId)
+          .single();
+          
+        if (writerError) {
+          console.error('Error fetching writer data:', writerError);
+          throw new Error('Failed to get writer details');
+        }
+      
+        // Update the assignment with the writer's ID
         const { data, error } = await supabase
           .from('assignments')
           .update({
@@ -339,18 +366,50 @@ const AssignmentChatComponent: React.FC<AssignmentChatComponentProps> = ({ assig
         // Send notification to student about assignment being taken
         const message = `I've taken your assignment "${assignment.title}" and will begin working on it. Let me know if you have any questions!`;
         
-        const { error: messageError } = await supabase
-          .from('messages')
-          .insert({
-            sender_id: userId,
-            recipient_id: assignment.user_id,
-            content: message,
-            assignment_id: assignment.id,
-            read: false
+        if (assignment.user_id) {
+          const { error: messageError } = await supabase
+            .from('messages')
+            .insert({
+              sender_id: userId,
+              recipient_id: assignment.user_id,
+              content: message,
+              assignment_id: assignment.id,
+              read: false
+            });
+            
+          if (messageError) {
+            console.error('Error sending initial message:', messageError);
+          }
+        }
+        
+        // Send email notification to student
+        try {
+          console.log('Sending assignment taken email notification');
+          
+          // Use the full URL with the correct project reference for the function call
+          const projectRef = "ihvgtaxvrqdnrgdddhdx";
+          const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'assignment_taken',
+              assignment: assignment,
+              writer: writerData
+            }),
           });
           
-        if (messageError) {
-          console.error('Error sending initial message:', messageError);
+          if (!response.ok) {
+            const responseText = await response.text();
+            console.error('Error sending assignment taken notification:', response.status, responseText);
+          } else {
+            const responseJson = await response.json();
+            console.log('Assignment taken notification sent successfully:', responseJson);
+          }
+          
+        } catch (notifyError) {
+          console.error('Error sending assignment taken notification:', notifyError);
         }
         
       } catch (err: any) {

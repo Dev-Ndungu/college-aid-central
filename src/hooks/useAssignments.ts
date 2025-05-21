@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -517,13 +516,25 @@ export const useAssignments = () => {
           }
         }
         
-        // Notify student about assignment being taken
+        // Notify student about assignment being taken - Fix this section to ensure notification is sent
         try {
           console.log('Sending assignment taken notification');
           
+          // Get the writer's full information to include in notification
+          const { data: writerData, error: writerError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', userId)
+            .single();
+            
+          if (writerError) {
+            console.error('Error fetching writer details:', writerError);
+            throw writerError;
+          }
+          
           // Use the full URL with the correct project reference for the function call
           const projectRef = "ihvgtaxvrqdnrgdddhdx";
-          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+          const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -532,13 +543,22 @@ export const useAssignments = () => {
             body: JSON.stringify({
               type: 'assignment_taken',
               assignment: assignment,
-              writer: writer
+              writer: writerData // Use the properly fetched writer data
             }),
           });
           
-          console.log('Assignment taken notification sent');
+          if (!response.ok) {
+            const responseText = await response.text();
+            console.error('Error in notification response:', response.status, responseText);
+            throw new Error(`Notification failed with status ${response.status}`);
+          } else {
+            const responseData = await response.json();
+            console.log('Assignment taken notification sent successfully:', responseData);
+          }
+          
         } catch (notifyError) {
           console.error('Error sending assignment taken notification:', notifyError);
+          // We'll log the error but not throw it to prevent blocking the assignment taking process
         }
         
         toast.success("Assignment taken successfully");
