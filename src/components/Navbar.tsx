@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,11 +8,13 @@ import UserAvatar from '@/components/profile/UserAvatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu, LayoutDashboard } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+
 const Navbar = () => {
   const {
     isAuthenticated,
     signOut,
-    userRole
+    userRole,
+    isLoading
   } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -20,6 +23,10 @@ const Navbar = () => {
   // Check if we're on the login or signup page
   const isLoginPage = location.pathname === '/login';
   const isSignupPage = location.pathname === '/signup';
+  
+  // Check if we're in the middle of an OAuth flow by looking for tokens in the URL
+  const isOAuthRedirect = location.hash && location.hash.includes('access_token=');
+  
   return <header className="bg-white shadow-sm sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
@@ -70,7 +77,7 @@ const Navbar = () => {
                 <Link to="/contact" className="text-lg font-medium hover:text-primary transition-colors">
                   Contact
                 </Link>
-                {!isAuthenticated && <>
+                {!isAuthenticated && !isLoading && <>
                     <Link to="/login" className="text-lg font-medium hover:text-primary transition-colors">
                       Sign In
                     </Link>
@@ -113,7 +120,7 @@ const Navbar = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div> : !isLoginPage && !isSignupPage && !isMobile && <div className="flex items-center gap-2">
+            </div> : !isLoginPage && !isSignupPage && !isOAuthRedirect && !isMobile && !isLoading && <div className="flex items-center gap-2">
                 <Link to="/login">
                   <Button variant="outline" size="sm">Sign In</Button>
                 </Link>

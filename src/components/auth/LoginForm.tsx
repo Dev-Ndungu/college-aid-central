@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { X } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -22,6 +24,7 @@ const LoginForm = () => {
   const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
   const { signIn, signInWithGoogle, isLoading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check URL for OAuth related parameters
   useEffect(() => {
@@ -35,6 +38,16 @@ const LoginForm = () => {
     if (hasAuthParams) {
       setIsProcessingOAuth(true);
       // The auth handling will be managed by AuthContext
+    }
+    
+    // Check if there was an error with Google Auth
+    const error = queryParams.get('error');
+    const errorDescription = queryParams.get('error_description');
+    
+    if (error) {
+      console.error("OAuth error:", error, errorDescription);
+      setErrorMessage(errorDescription || "Authentication failed. Please try again.");
+      setIsProcessingOAuth(false);
     }
   }, [location]);
 
@@ -55,8 +68,26 @@ const LoginForm = () => {
       setIsProcessingOAuth(true);
       toast.info("Redirecting to Google for authentication...");
       
-      await signInWithGoogle();
-      // The redirect happens in the signInWithGoogle function
+      // Use the current origin for the redirect URL
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      console.log("Redirect URL for Google sign-in:", redirectUrl);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+      
+      // The redirect happens automatically after calling signInWithOAuth
     } catch (error: any) {
       console.error("Google sign in error:", error);
       setIsProcessingOAuth(false);
