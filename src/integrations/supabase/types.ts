@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       assignments: {
         Row: {
+          assignment_type: string | null
           completed_date: string | null
           created_at: string | null
           description: string | null
@@ -30,6 +31,7 @@ export type Database = {
           writer_id: string | null
         }
         Insert: {
+          assignment_type?: string | null
           completed_date?: string | null
           created_at?: string | null
           description?: string | null
@@ -49,6 +51,7 @@ export type Database = {
           writer_id?: string | null
         }
         Update: {
+          assignment_type?: string | null
           completed_date?: string | null
           created_at?: string | null
           description?: string | null

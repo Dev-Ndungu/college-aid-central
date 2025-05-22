@@ -22,6 +22,7 @@ export interface Assignment {
   student_name?: string;
   student_email?: string;
   student_phone?: string;
+  assignment_type?: string;
 }
 
 export const useAssignments = () => {
