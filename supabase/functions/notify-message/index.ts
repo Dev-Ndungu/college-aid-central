@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
@@ -219,35 +218,45 @@ serve(async (req) => {
       const { assignment, writer } = payload;
       console.log('Processing assignment_taken notification. Assignment ID:', assignment.id);
       
-      // Get the student details - first check if we have user_id
-      if (!assignment.user_id) {
+      // If the assignment has a user_id, get the student details from profiles
+      // Otherwise, use the student information directly from the assignment
+      let studentEmail = null;
+      let studentName = "Student";
+      
+      if (assignment.user_id) {
+        const { data: student, error: studentError } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', assignment.user_id)
+          .single();
+
+        if (studentError || !student) {
+          console.error('Error fetching student from profiles:', studentError);
+        } else {
+          studentEmail = student.email;
+          studentName = student.full_name || "Student";
+          console.log('Found student in profiles:', studentEmail);
+        }
+      }
+      
+      // If no user_id or no student found in profiles, use the direct student info from assignment
+      if (!studentEmail && assignment.student_email) {
+        studentEmail = assignment.student_email;
+        studentName = assignment.student_name || "Student";
+        console.log('Using student info from assignment:', studentEmail);
+      }
+      
+      // If we still don't have an email, we can't send a notification
+      if (!studentEmail) {
+        console.log('No student email found for notification, cannot send email');
         return new Response(
-          JSON.stringify({ warning: 'No user_id associated with this assignment' }),
+          JSON.stringify({ warning: 'No student email found for notification' }),
           { 
             status: 200, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders } 
           }
         );
       }
-      
-      const { data: student, error: studentError } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', assignment.user_id)
-        .single();
-
-      if (studentError || !student) {
-        console.error('Error fetching student:', studentError);
-        return new Response(
-          JSON.stringify({ error: 'Student not found' }),
-          { 
-            status: 404, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-
-      console.log('Found student:', student.email);
 
       // Get writer profile if writer object is not provided
       let writerInfo = writer;
@@ -296,14 +305,14 @@ serve(async (req) => {
         </div>
       `;
       
-      console.log('Sending email to student:', student.email);
+      console.log('Sending email to student:', studentEmail);
       console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
       
       try {
         // Send email using Resend
         const { data, error } = await resend.emails.send({
           from: 'Assignment Hub <info@assignmenthub.org>',
-          to: [student.email],
+          to: [studentEmail],
           subject: emailSubject,
           html: emailBody,
         });
@@ -313,10 +322,25 @@ serve(async (req) => {
         } else {
           console.log('Email sent successfully with Resend:', data);
         }
+        
+        return new Response(
+          JSON.stringify({ success: true, message: 'Notification sent successfully' }),
+          { 
+            status: 200, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
       } catch (emailError) {
         console.error('Exception sending email with Resend:', emailError);
+        
+        return new Response(
+          JSON.stringify({ error: 'Error sending email notification', details: emailError.message }),
+          { 
+            status: 500, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+          }
+        );
       }
-      
     } 
     else if (payload.type === 'assignment_submitted') {
       // This is a new assignment notification for writers
@@ -517,42 +541,61 @@ serve(async (req) => {
       }
       
       console.log(`Email sending summary: ${successCount} successful, ${failureCount} failed`);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Notification sent to ${successCount} writers (${failureCount} failed)` 
+        }),
+        { 
+          status: 200, 
+          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+        }
+      );
     }
     else if (payload.type === 'assignment_status_update') {
       // This is a status update notification for students
       const { assignment, status, writer } = payload;
       console.log('Processing assignment_status_update notification. Assignment ID:', assignment.id);
       
-      if (!assignment.user_id) {
-        console.log('No user_id associated with this assignment, cannot send notification');
+      // Get the student email - either from user_id or from assignment.student_email
+      let studentEmail = null;
+      let studentName = "Student";
+      
+      if (assignment.user_id) {
+        const { data: student, error: studentError } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', assignment.user_id)
+          .single();
+
+        if (studentError || !student) {
+          console.error('Error fetching student from profiles:', studentError);
+        } else {
+          studentEmail = student.email;
+          studentName = student.full_name || "Student";
+          console.log('Found student in profiles:', studentEmail);
+        }
+      }
+      
+      // If no user_id or no student found in profiles, use the direct student info from assignment
+      if (!studentEmail && assignment.student_email) {
+        studentEmail = assignment.student_email;
+        studentName = assignment.student_name || "Student";
+        console.log('Using student info from assignment:', studentEmail);
+      }
+      
+      // If we still don't have an email, we can't send a notification
+      if (!studentEmail) {
+        console.log('No student email found for status update notification, cannot send email');
         return new Response(
-          JSON.stringify({ warning: 'No student associated with this assignment' }),
+          JSON.stringify({ warning: 'No student email found for status update notification' }),
           { 
             status: 200, 
             headers: { 'Content-Type': 'application/json', ...corsHeaders } 
           }
         );
       }
-      
-      // Get the student details
-      const { data: student, error: studentError } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', assignment.user_id)
-        .single();
-
-      if (studentError || !student) {
-        console.error('Error fetching student:', studentError);
-        return new Response(
-          JSON.stringify({ error: 'Student not found' }),
-          { 
-            status: 404, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-
-      console.log('Found student:', student.email);
       
       // Get writer profile if writer object is not provided
       let writerInfo = writer;
@@ -627,24 +670,45 @@ serve(async (req) => {
         </div>
       `;
       
-      console.log('Sending status update email to student:', student.email);
+      console.log('Sending status update email to student:', studentEmail);
       
       try {
         // Send email using Resend
         const { data, error } = await resend.emails.send({
           from: 'Assignment Hub <info@assignmenthub.org>',
-          to: [student.email],
+          to: [studentEmail],
           subject: emailSubject,
           html: emailBody,
         });
 
         if (error) {
           console.error('Error sending status update email with Resend:', error);
+          return new Response(
+            JSON.stringify({ error: 'Error sending status update email', details: error }),
+            { 
+              status: 500, 
+              headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+            }
+          );
         } else {
           console.log('Status update email sent successfully with Resend:', data);
+          return new Response(
+            JSON.stringify({ success: true, message: 'Status update notification sent successfully' }),
+            { 
+              status: 200, 
+              headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+            }
+          );
         }
       } catch (emailError) {
         console.error('Exception sending status update email with Resend:', emailError);
+        return new Response(
+          JSON.stringify({ error: 'Error sending status update email', details: emailError.message }),
+          { 
+            status: 500, 
+            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+            }
+        );
       }
     }
     else {
