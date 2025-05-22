@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -278,19 +279,20 @@ const ProfileTab = () => {
         throw profileError;
       }
       
-      // Delete the actual auth user (this must be last)
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (authError) {
-        console.error("Auth user deletion failed, using sign out instead:", authError);
-        // If admin delete fails (which it might without service role), just sign out
-        await signOut(); 
-      } else {
-        // Sign out after successful auth deletion
-        await signOut();
+      // Try to sign out from Supabase authentication
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutError) {
+        console.error("Error signing out:", signOutError);
       }
       
+      // Call the signOut function from AuthContext to clean up local state
+      await signOut();
+      
       toast("Your account and all related data have been deleted successfully.");
+      
+      // Redirect to home page
+      window.location.href = '/';
     } catch (error: any) {
       console.error("Error deleting profile:", error);
       toast.error(error.message || "An error occurred while deleting your profile.");
