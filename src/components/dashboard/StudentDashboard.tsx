@@ -12,10 +12,12 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 import { Edit2, Clock, CheckCircle, Mail, BookOpen } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const StudentDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading } = useAssignments();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleEmailSupport = () => {
     window.location.href = "mailto:inquiries@assignmenthub.org?subject=Assignment Support Request";
@@ -39,6 +41,49 @@ const StudentDashboard = () => {
           <Button onClick={() => navigate('/submit-assignment')} className="mt-4">
             Submit New Assignment
           </Button>
+        </div>
+      );
+    }
+
+    if (isMobile) {
+      return (
+        <div className="space-y-4">
+          {activeAssignments.map(assignment => (
+            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="mb-2">
+                <h3 className="font-medium">{assignment.title}</h3>
+                {assignment.description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    {assignment.description}
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <div>
+                  <p className="text-gray-500">Subject: {assignment.subject}</p>
+                  <p className="text-gray-500">
+                    Due: {assignment.due_date ? 
+                      new Date(assignment.due_date).toLocaleDateString() : 
+                      'Not set'
+                    }
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 items-end">
+                  <AssignmentStatusBadge status={assignment.status} />
+                  {assignment.status === 'submitted' && !assignment.writer_id && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8"
+                      onClick={() => handleEditAssignment(assignment.id)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       );
     }
@@ -116,6 +161,32 @@ const StudentDashboard = () => {
       );
     }
 
+    if (isMobile) {
+      return (
+        <div className="space-y-4">
+          {completedAssignments.map(assignment => (
+            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="mb-2">
+                <h3 className="font-medium">{assignment.title}</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <p className="text-gray-500">Subject: {assignment.subject}</p>
+                <p className="text-gray-500 text-right">
+                  Grade: {assignment.grade || 'Not graded'}
+                </p>
+                <p className="text-gray-500">
+                  Completed: {assignment.completed_date ? 
+                    new Date(assignment.completed_date).toLocaleDateString() : 
+                    'N/A'
+                  }
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <div className="overflow-auto">
@@ -153,12 +224,12 @@ const StudentDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Email Support Button */}
-      <div className="flex justify-end">
+      {/* Email Support Button - Right aligned on desktop, full-width on mobile */}
+      <div className={`flex ${isMobile ? 'justify-center px-4' : 'justify-end'}`}>
         <Button 
           variant="outline" 
           onClick={handleEmailSupport}
-          className="gap-2"
+          className={`gap-2 ${isMobile ? 'w-full' : ''}`}
         >
           <Mail className="h-4 w-4" />
           Email Support
@@ -166,20 +237,20 @@ const StudentDashboard = () => {
       </div>
 
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid grid-cols-2 mb-8">
+        <TabsList className={`grid grid-cols-2 mb-4 md:mb-8 ${isMobile ? 'mx-4' : ''}`}>
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
         </TabsList>
         
         <TabsContent value="active" className="w-full">
-          <Card>
-            <CardHeader className="pb-4">
+          <Card className={isMobile ? 'rounded-none border-x-0 shadow-none' : ''}>
+            <CardHeader className={`pb-4 ${isMobile ? 'px-4' : ''}`}>
               <CardTitle>Active Assignments</CardTitle>
               <CardDescription>
                 Assignments that are in progress or awaiting a writer.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isMobile ? 'px-4' : ''}>
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -193,14 +264,14 @@ const StudentDashboard = () => {
         </TabsContent>
         
         <TabsContent value="completed" className="w-full">
-          <Card>
-            <CardHeader className="pb-4">
+          <Card className={isMobile ? 'rounded-none border-x-0 shadow-none' : ''}>
+            <CardHeader className={`pb-4 ${isMobile ? 'px-4' : ''}`}>
               <CardTitle>Completed Assignments</CardTitle>
               <CardDescription>
                 Assignments that have been completed by writers.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isMobile ? 'px-4' : ''}>
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>

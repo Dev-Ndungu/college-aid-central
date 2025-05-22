@@ -21,11 +21,13 @@ import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import WriterDashboard from '@/components/dashboard/WriterDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const { isAuthenticated, userEmail, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
   const [userName, setUserName] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -97,30 +99,32 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-grow bg-gray-50 py-8 px-4">
+      <main className="flex-grow bg-gray-50 py-4 md:py-8 px-0 md:px-4">
         <div className="container mx-auto">
-          <header className="mb-8">
+          <header className={`mb-4 md:mb-8 ${isMobile ? 'px-4' : ''}`}>
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-bold">Dashboard</h1>
-                  <span className="bg-brand-100 text-brand-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
-                    <UserRound className="h-3 w-3 mr-1" />
-                    {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                  </span>
-                </div>
+                {!isMobile && (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-3xl font-bold">Dashboard</h1>
+                    <span className="bg-brand-100 text-brand-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                      <UserRound className="h-3 w-3 mr-1" />
+                      {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                    </span>
+                  </div>
+                )}
                 <p className="text-gray-600">Welcome back, {displayName}</p>
               </div>
               
               {userRole === 'student' && (
-                <Button onClick={() => navigate('/submit-assignment')}>
+                <Button onClick={() => navigate('/submit-assignment')} className={isMobile ? 'w-full' : ''}>
                   <Plus className="mr-2 h-4 w-4" /> New Assignment
                 </Button>
               )}
             </div>
           </header>
 
-          {/* Dashboard content without the tabs */}
+          {/* Dashboard content */}
           <div className="dashboard-content">
             {userRole === 'student' ? <StudentDashboard /> : <WriterDashboard />}
           </div>
