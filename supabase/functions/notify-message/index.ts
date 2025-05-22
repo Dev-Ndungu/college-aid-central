@@ -347,6 +347,7 @@ serve(async (req) => {
       const { assignment } = payload;
       console.log('Processing assignment_submitted notification. Assignment title:', assignment.title);
       
+      // First, notify all writers (existing functionality)
       // Get all writers
       const { data: writers, error: writersError } = await supabase
         .from('profiles')
@@ -542,10 +543,105 @@ serve(async (req) => {
       
       console.log(`Email sending summary: ${successCount} successful, ${failureCount} failed`);
       
+      // NEW: Send confirmation email to the student who submitted the assignment
+      // Get the student email either from user_id or from student_email field
+      let studentEmail = null;
+      let studentName = "Student";
+      
+      if (assignment.user_id) {
+        const { data: student, error: studentError } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', assignment.user_id)
+          .single();
+
+        if (studentError || !student) {
+          console.error('Error fetching student from profiles:', studentError);
+        } else {
+          studentEmail = student.email;
+          studentName = student.full_name || "Student";
+          console.log('Found student in profiles for confirmation email:', studentEmail);
+        }
+      }
+      
+      // If no user_id or no student found in profiles, use the direct student info from assignment
+      if (!studentEmail && assignment.student_email) {
+        studentEmail = assignment.student_email;
+        studentName = assignment.student_name || "Student";
+        console.log('Using student info from assignment for confirmation email:', studentEmail);
+      }
+      
+      // If we have a student email, send them a confirmation
+      if (studentEmail) {
+        console.log('Sending confirmation email to student:', studentEmail);
+        
+        // Create the whatsapp link and email address for the buttons
+        const whatsappNumber = "254797280930";
+        const whatsappUrl = `https://wa.me/${whatsappNumber}`;
+        const emailAddress = "queries@assignmenthub.org";
+        
+        const emailSubject = `Your Assignment "${assignment.title}" Has Been Submitted Successfully`;
+        const emailBody = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4338ca;">Assignment Submitted Successfully!</h2>
+            
+            <p>Thank you for submitting your assignment "${assignment.title}". One of our writers will get in touch with you shortly via email or WhatsApp to discuss your requirements in detail.</p>
+            
+            <h3 style="margin-top: 20px;">Assignment details:</h3>
+            <ul>
+              <li><strong>Title:</strong> ${assignment.title}</li>
+              <li><strong>Subject:</strong> ${assignment.subject}</li>
+              ${assignment.assignment_type ? `<li><strong>Type:</strong> ${assignment.assignment_type}</li>` : ''}
+              ${assignment.due_date ? `<li><strong>Due Date:</strong> ${new Date(assignment.due_date).toLocaleDateString()}</li>` : ''}
+            </ul>
+            
+            <div style="background-color: #f9fafb; padding: 20px; margin: 30px 0; border-radius: 8px; text-align: center;">
+              <p style="font-weight: 500; margin-bottom: 15px;">Need immediate assistance?</p>
+              
+              <div style="display: flex; gap: 10px; justify-content: center;">
+                <a href="${whatsappUrl}" style="background-color: #ffffff; border: 1px solid #e2e8f0; color: #4b5563; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; display: inline-flex; align-items: center;">
+                  <span style="margin-right: 8px;">📱</span> WhatsApp
+                </a>
+                
+                <a href="mailto:${emailAddress}" style="background-color: #ffffff; border: 1px solid #e2e8f0; color: #4b5563; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; display: inline-flex; align-items: center;">
+                  <span style="margin-right: 8px;">📧</span> Email
+                </a>
+              </div>
+            </div>
+            
+            <p>To track the progress of your assignment, login to your account.</p>
+            
+            <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+              This is an automated message from Assignment Hub. Please do not reply directly to this email.
+            </p>
+          </div>
+        `;
+        
+        try {
+          // Send email using Resend
+          const { data, error } = await resend.emails.send({
+            from: 'Assignment Hub <info@assignmenthub.org>',
+            to: [studentEmail],
+            subject: emailSubject,
+            html: emailBody,
+          });
+
+          if (error) {
+            console.error('Error sending confirmation email to student:', error);
+          } else {
+            console.log('Confirmation email sent successfully to student:', data);
+          }
+        } catch (emailError) {
+          console.error('Exception sending confirmation email to student:', emailError);
+        }
+      } else {
+        console.log('No student email found, cannot send confirmation email');
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Notification sent to ${successCount} writers (${failureCount} failed)` 
+          message: `Notification sent to writers and student`
         }),
         { 
           status: 200, 
