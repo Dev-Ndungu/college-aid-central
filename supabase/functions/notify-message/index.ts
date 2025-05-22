@@ -46,7 +46,14 @@ serve(async (req) => {
       case 'assignment_submitted':
         // Notification logic for when a student submits a new assignment
         console.log(`Processing assignment_submitted notification. Assignment ID: ${body.assignment?.id}`);
-        await sendSubmissionConfirmationToStudent(body.assignment);
+        
+        // First try to send confirmation to student
+        const studentEmailSent = await sendSubmissionConfirmationToStudent(body.assignment);
+        console.log("Student confirmation email sent:", studentEmailSent);
+        
+        // Then notify writers about the new assignment
+        // This would be a separate function to send notifications to all writers
+        // For now, the notification to writers is handled elsewhere
         break;
 
       case 'assignment_taken':
@@ -136,11 +143,30 @@ async function sendEmail(options: {
 // Email functions - updated to use the native fetch implementation
 async function sendSubmissionConfirmationToStudent(assignment: any) {
   try {
-    // If the assignment has student details, send to their email
-    const studentEmail = assignment.student_email;
-    const studentName = assignment.student_name || "Student";
+    let studentEmail = assignment.student_email;
+    let studentName = assignment.student_name || "Student";
+    
+    // If student email is not directly in the assignment, try to get it from the user profile
+    if (!studentEmail && assignment.user_id) {
+      // Get email from user profile
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('id', assignment.user_id)
+        .single();
+      
+      if (userError) {
+        console.error("Error fetching student profile:", userError);
+      } else if (userData) {
+        studentEmail = userData.email;
+        studentName = userData.full_name || studentName;
+        console.log("Found student email from profile:", studentEmail);
+      }
+    }
     
     if (studentEmail) {
+      console.log("Sending submission confirmation to:", studentEmail);
+      
       // Generate contact links with appropriate UTM parameters
       const whatsappLink = `https://wa.me/+12368801220?text=Hi,%20I%20need%20help%20with%20my%20assignment%20${encodeURIComponent(assignment.title)}`;
       const emailLink = `mailto:write.mefoundation@gmail.com?subject=Help%20with%20assignment:%20${encodeURIComponent(assignment.title)}&body=Hello,%20I%20need%20assistance%20with%20my%20assignment.%0A%0AAssignment%20details:%0A-%20Title:%20${encodeURIComponent(assignment.title)}%0A-%20Subject:%20${encodeURIComponent(assignment.subject)}`;
@@ -211,7 +237,7 @@ async function sendSubmissionConfirmationToStudent(assignment: any) {
       console.log("Submission confirmation email sent successfully");
       return true;
     } else {
-      console.log("No student email provided; skipping submission confirmation");
+      console.log("No student email found; skipping submission confirmation");
       return false;
     }
   } catch (error) {

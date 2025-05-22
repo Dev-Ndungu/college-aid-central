@@ -214,6 +214,19 @@ export const useAssignments = () => {
   // Function to take an assignment
   const takeAssignment = async (assignmentId: string, writerData: any = null) => {
     try {
+      // If we don't have writerData, fetch it
+      if (!writerData && userId) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .eq('id', userId)
+          .single();
+          
+        if (!profileError && profileData) {
+          writerData = profileData;
+        }
+      }
+      
       const updates = {
         writer_id: userId,
         status: 'in_progress',
@@ -268,7 +281,7 @@ export const useAssignments = () => {
           
         if (assignmentError) {
           console.error('Error fetching assignment data:', assignmentError);
-        } else if (assignment && assignment.user_id) {
+        } else if (assignment) {
           // Get writer details for the notification
           const { data: writerData, error: writerError } = await supabase
             .from('profiles')
@@ -325,15 +338,24 @@ export const useAssignments = () => {
   // Function to submit a new assignment
   const submitAssignment = async (assignmentData: any) => {
     try {
+      // Ensure we have student contact info for non-logged in users
+      const finalAssignmentData = {
+        ...assignmentData,
+        user_id: userId,
+        status: 'submitted',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // If the user isn't logged in (no userId) but we have student email,
+      // make sure to include it in the assignment data
+      if (!userId && assignmentData.student_email) {
+        finalAssignmentData.user_id = null;
+      }
+      
       const { data, error } = await supabase
         .from('assignments')
-        .insert({
-          ...assignmentData,
-          user_id: userId,
-          status: 'submitted',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .insert(finalAssignmentData)
         .select();
         
       if (error) {
@@ -343,6 +365,7 @@ export const useAssignments = () => {
       }
       
       // Send notification to all writers about new assignment
+      // and confirmation to student
       if (data && data.length > 0) {
         await sendAssignmentNotification(data[0].id, 'assignment_submitted');
       }
