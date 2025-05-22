@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -9,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Clock, CheckCircle, Mail } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail, BookOpen } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 
 const StudentDashboard = () => {
