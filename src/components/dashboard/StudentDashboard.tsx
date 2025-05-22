@@ -9,31 +9,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Trash2, Clock, CheckCircle, CalendarDays, BookOpen, Mail } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 
 const StudentDashboard = () => {
-  const { activeAssignments, completedAssignments, isLoading, deleteAssignment } = useAssignments();
+  const { activeAssignments, completedAssignments, isLoading } = useAssignments();
   const navigate = useNavigate();
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const handleDelete = async (id: string) => {
-    try {
-      setIsDeleting(true);
-      setDeleteId(id);
-      await deleteAssignment(id);
-      toast.success("Assignment deleted successfully");
-    } catch (error) {
-      console.error("Error deleting assignment:", error);
-      toast.error("Failed to delete assignment");
-    } finally {
-      setIsDeleting(false);
-      setDeleteId(null);
-    }
-  };
 
   const handleEmailSupport = () => {
     window.location.href = "mailto:inquiries@assignmenthub.org?subject=Assignment Support Request";

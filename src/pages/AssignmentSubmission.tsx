@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -229,6 +228,19 @@ const AssignmentSubmission = () => {
         throw new Error("Could not find your user profile. Please log in again.");
       }
 
+      // Check if required fields are filled
+      if (!title.trim()) {
+        toast.error("Please enter an assignment title");
+        setLoading(false);
+        return;
+      }
+      
+      if (!subject.trim()) {
+        toast.error("Please enter a subject");
+        setLoading(false);
+        return;
+      }
+      
       // Upload all files first and collect their URLs
       const fileUrls: string[] = [];
       
@@ -381,111 +393,14 @@ const AssignmentSubmission = () => {
                     
                     <div className="space-y-2">
                       <Label htmlFor="subject">Subject</Label>
-                      <Select required value={subject} onValueChange={setSubject}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select subject" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          {/* Group subjects by category */}
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b">
-                            STEM
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'STEM')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                            Humanities and Social Sciences
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'Humanities')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                            Business and Economics
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'Business')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                            Health and Medicine
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'Health')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                            Education
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'Education')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                            Arts and Design
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'Arts')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                            Law and Legal Studies
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'Law')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <div className="font-semibold text-xs uppercase text-muted-foreground px-2 py-1.5 border-b mt-2">
-                            International and Interdisciplinary Studies
-                          </div>
-                          {subjects
-                            .filter(s => s.category === 'International')
-                            .map(subject => (
-                              <SelectItem key={subject.value} value={subject.value}>
-                                {subject.label}
-                              </SelectItem>
-                            ))
-                          }
-                          
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input 
+                        id="subject"
+                        placeholder="Enter subject (e.g., Mathematics, Physics, etc.)" 
+                        required 
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        className="w-full"
+                      />
                     </div>
                     
                     <div className="space-y-2">

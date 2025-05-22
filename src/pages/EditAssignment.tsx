@@ -14,13 +14,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,26 +28,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
-const SUBJECTS = [
-  'Mathematics',
-  'Physics',
-  'Chemistry',
-  'Biology',
-  'Computer Science',
-  'English Literature',
-  'History',
-  'Geography',
-  'Economics',
-  'Psychology',
-  'Sociology',
-  'Business Studies',
-  'Political Science',
-  'Philosophy',
-  'Art History',
-  'Music',
-  'Other'
-];
 
 const EditAssignment = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,8 +74,8 @@ const EditAssignment = () => {
       return;
     }
     
-    if (!subject) {
-      toast.error("Please select a subject");
+    if (!subject.trim()) {
+      toast.error("Please enter a subject");
       return;
     }
     
@@ -229,21 +202,13 @@ const EditAssignment = () => {
             
             <div className="space-y-2">
               <Label htmlFor="subject">Subject</Label>
-              <Select 
-                value={subject} 
-                onValueChange={setSubject}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUBJECTS.map((subj) => (
-                    <SelectItem key={subj} value={subj}>
-                      {subj}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="subject"
+                placeholder="Enter subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                required
+              />
             </div>
             
             <div className="space-y-2">
