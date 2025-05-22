@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,8 +14,6 @@ import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
 import WriterEmailModal from './WriterEmailModal';
 import ContactMessagesModal from './ContactMessagesModal';
-import { Slider } from "@/components/ui/slider";
-import { Progress } from "@/components/ui/progress";
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
@@ -155,34 +154,6 @@ const WriterDashboard = () => {
     } catch (error) {
       console.error('Error updating assignment status:', error);
       toast.error('Failed to update assignment status');
-    } finally {
-      // Remove from updating state
-      setUpdatingProgressIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(assignmentId);
-        return newSet;
-      });
-    }
-  };
-
-  // New function to handle progress updates
-  const handleProgressUpdate = async (assignmentId: string, progress: number) => {
-    // Add this assignment to updating progress state
-    setUpdatingProgressIds(prev => new Set(prev).add(assignmentId));
-    
-    try {
-      // Update the progress value
-      const updates = {
-        progress,
-        updated_at: new Date().toISOString()
-      };
-      
-      await updateAssignment(assignmentId, updates);
-      
-      toast.success(`Assignment progress updated to ${progress}%`);
-    } catch (error) {
-      console.error('Error updating assignment progress:', error);
-      toast.error('Failed to update assignment progress');
     } finally {
       // Remove from updating state
       setUpdatingProgressIds(prev => {
@@ -427,8 +398,7 @@ const WriterDashboard = () => {
                 <th className="p-3 text-left font-medium text-gray-600">Student Information</th>
                 <th className="p-3 text-left font-medium text-gray-600">Posted</th>
                 <th className="p-3 text-left font-medium text-gray-600">Status</th>
-                <th className="p-3 text-left font-medium text-gray-600">Progress</th>
-                <th className="p-3 text-left font-medium text-gray-600">Update Status</th>
+                <th className="p-3 text-left font-medium text-gray-600">Update Progress</th>
                 <th className="p-3 text-left font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
@@ -465,32 +435,6 @@ const WriterDashboard = () => {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-sm border ${getStatusBadgeClass(assignment.status)}`}>
                       {getStatusDisplay(assignment.status)}
                     </span>
-                  </td>
-                  <td className="p-3 w-48">
-                    <div className="space-y-2">
-                      <Progress value={assignment.progress || 0} className="h-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Progress: {assignment.progress || 0}%</span>
-                      </div>
-                      <div className="pt-2">
-                        <Slider
-                          defaultValue={[assignment.progress || 0]}
-                          max={100}
-                          step={1}
-                          disabled={updatingProgressIds.has(assignment.id)}
-                          onValueChange={(values) => {
-                            if (!updatingProgressIds.has(assignment.id)) {
-                              handleProgressUpdate(assignment.id, values[0]);
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                    {updatingProgressIds.has(assignment.id) && (
-                      <div className="flex justify-center mt-2">
-                        <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
-                      </div>
-                    )}
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-2">

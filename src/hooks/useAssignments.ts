@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -214,19 +215,6 @@ export const useAssignments = () => {
   // Function to take an assignment
   const takeAssignment = async (assignmentId: string, writerData: any = null) => {
     try {
-      // If we don't have writerData, fetch it
-      if (!writerData && userId) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .eq('id', userId)
-          .single();
-          
-        if (!profileError && profileData) {
-          writerData = profileData;
-        }
-      }
-      
       const updates = {
         writer_id: userId,
         status: 'in_progress',
@@ -270,37 +258,25 @@ export const useAssignments = () => {
         return false;
       }
       
-      // If the status or progress was updated, send a notification
-      if (updates.status || updates.progress) {
-        // Get assignment details to check who should receive the notification
-        const { data: assignment, error: assignmentError } = await supabase
-          .from('assignments')
-          .select('*')
-          .eq('id', assignmentId)
+      // If the status was updated, send a notification
+      if (updates.status) {
+        // Get writer details
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', userId)
           .single();
           
-        if (assignmentError) {
-          console.error('Error fetching assignment data:', assignmentError);
-        } else if (assignment) {
-          // Get writer details for the notification
-          const { data: writerData, error: writerError } = await supabase
-            .from('profiles')
-            .select('id, full_name, email')
-            .eq('id', userId)
-            .single();
-            
-          if (writerError) {
-            console.error('Error fetching writer data:', writerError);
-          }
-          
-          // Send notification to the student about the update
-          await sendAssignmentNotification(
-            assignmentId, 
-            'assignment_status_update', 
-            writerData,
-            updates.status
-          );
+        if (writerError) {
+          console.error('Error fetching writer data:', writerError);
         }
+        
+        await sendAssignmentNotification(
+          assignmentId, 
+          'assignment_status_update', 
+          writerData,
+          updates.status
+        );
       }
       
       await fetchAssignments();
@@ -338,24 +314,15 @@ export const useAssignments = () => {
   // Function to submit a new assignment
   const submitAssignment = async (assignmentData: any) => {
     try {
-      // Ensure we have student contact info for non-logged in users
-      const finalAssignmentData = {
-        ...assignmentData,
-        user_id: userId,
-        status: 'submitted',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      // If the user isn't logged in (no userId) but we have student email,
-      // make sure to include it in the assignment data
-      if (!userId && assignmentData.student_email) {
-        finalAssignmentData.user_id = null;
-      }
-      
       const { data, error } = await supabase
         .from('assignments')
-        .insert(finalAssignmentData)
+        .insert({
+          ...assignmentData,
+          user_id: userId,
+          status: 'submitted',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
         .select();
         
       if (error) {
@@ -365,7 +332,6 @@ export const useAssignments = () => {
       }
       
       // Send notification to all writers about new assignment
-      // and confirmation to student
       if (data && data.length > 0) {
         await sendAssignmentNotification(data[0].id, 'assignment_submitted');
       }

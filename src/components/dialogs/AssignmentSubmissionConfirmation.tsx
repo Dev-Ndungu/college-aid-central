@@ -10,9 +10,9 @@ interface AssignmentSubmissionConfirmationProps {
 }
 
 const AssignmentSubmissionConfirmation = ({ open, onOpenChange }: AssignmentSubmissionConfirmationProps) => {
-  const whatsappNumber = "+12368801220"; // Updated to match edge function
+  const whatsappNumber = "254797280930";
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
-  const emailAddress = "write.mefoundation@gmail.com"; // Updated to match edge function
+  const emailAddress = "queries@assignmenthub.org";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -21,11 +21,6 @@ const AssignmentSubmissionConfirmation = ({ open, onOpenChange }: AssignmentSubm
           <DialogTitle className="text-xl">Assignment Submitted Successfully!</DialogTitle>
           <DialogDescription className="pt-4 text-base">
             Thank you for submitting your assignment. One of our writers will get in touch with you shortly via email or WhatsApp to discuss your requirements in detail.
-            
-            {/* Added message about email confirmation */}
-            <p className="mt-3 font-medium">
-              A confirmation email has been sent to your email address. Please check your inbox (and spam folder).
-            </p>
           </DialogDescription>
         </DialogHeader>
         
