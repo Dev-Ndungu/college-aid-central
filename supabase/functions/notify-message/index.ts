@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "https://esm.sh/resend@0.15.0";
 
 // CORS headers
 const corsHeaders = {
@@ -47,19 +46,25 @@ serve(async (req) => {
       case 'assignment_submitted':
         // Notification logic for when a student submits a new assignment
         console.log(`Processing assignment_submitted notification. Assignment ID: ${body.assignment?.id}`);
-        await sendSubmissionConfirmationToStudent(body.assignment, supabase);
+        await sendSubmissionConfirmationToStudent(body.assignment);
         break;
 
       case 'assignment_taken':
         // Notification logic for when a writer takes an assignment
         console.log(`Processing assignment_taken notification. Assignment ID: ${body.assignment?.id}`);
-        await sendWriterTookAssignmentEmail(body.assignment, body.writer, supabase);
+        await sendWriterTookAssignmentEmail(body.assignment, body.writer);
         break;
 
       case 'assignment_status_update':
         // Notification logic for when a writer updates status of an assignment
         console.log(`Processing assignment_status_update notification. Assignment ID: ${body.assignment?.id}`);
-        await sendStatusUpdateEmail(body.assignment, body.writer, body.status, supabase);
+        await sendStatusUpdateEmail(body.assignment, body.writer, body.status);
+        break;
+        
+      case 'writer_direct_email':
+        // Direct email from writer to student
+        console.log(`Processing writer_direct_email notification.`);
+        await sendDirectEmailFromWriter(body);
         break;
         
       default:
@@ -91,21 +96,56 @@ serve(async (req) => {
   }
 });
 
-// Email functions
-async function sendSubmissionConfirmationToStudent(assignment: any, supabase: any) {
+// Helper function to send email using native fetch instead of Resend's axios-based client
+async function sendEmail(options: {
+  from: string;
+  to: string[];
+  subject: string;
+  html: string;
+}) {
+  try {
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`
+      },
+      body: JSON.stringify(options)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Resend API error response:", errorData);
+      throw new Error(`Failed to send email: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log("Email sent successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Error sending email:", error);
+    throw error;
+  }
+}
+
+// Email functions - updated to use the native fetch implementation
+async function sendSubmissionConfirmationToStudent(assignment: any) {
   try {
     // If the assignment has student details, send to their email
     const studentEmail = assignment.student_email;
     const studentName = assignment.student_name || "Student";
     
     if (studentEmail) {
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-      
       // Generate contact links with appropriate UTM parameters
       const whatsappLink = `https://wa.me/+12368801220?text=Hi,%20I%20need%20help%20with%20my%20assignment%20${encodeURIComponent(assignment.title)}`;
       const emailLink = `mailto:write.mefoundation@gmail.com?subject=Help%20with%20assignment:%20${encodeURIComponent(assignment.title)}&body=Hello,%20I%20need%20assistance%20with%20my%20assignment.%0A%0AAssignment%20details:%0A-%20Title:%20${encodeURIComponent(assignment.title)}%0A-%20Subject:%20${encodeURIComponent(assignment.subject)}`;
       
-      const { data, error } = await resend.emails.send({
+      const emailResult = await sendEmail({
         from: "WriterHub <assignments@writerhub.com>",
         to: [studentEmail],
         subject: `Your assignment has been received: ${assignment.title}`,
@@ -168,11 +208,6 @@ async function sendSubmissionConfirmationToStudent(assignment: any, supabase: an
         `,
       });
       
-      if (error) {
-        console.error("Error sending submission confirmation email:", error);
-        return false;
-      }
-      
       console.log("Submission confirmation email sent successfully");
       return true;
     } else {
@@ -185,7 +220,7 @@ async function sendSubmissionConfirmationToStudent(assignment: any, supabase: an
   }
 }
 
-async function sendWriterTookAssignmentEmail(assignment: any, writer: any, supabase: any) {
+async function sendWriterTookAssignmentEmail(assignment: any, writer: any) {
   try {
     // First check if we have a student email to send to
     if (!assignment.user_id && !assignment.student_email) {
@@ -216,9 +251,7 @@ async function sendWriterTookAssignmentEmail(assignment: any, writer: any, supab
     if (studentEmail) {
       console.log("Sending email to student:", studentEmail);
       
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-      
-      const { data, error } = await resend.emails.send({
+      const emailResult = await sendEmail({
         from: "WriterHub <assignments@writerhub.com>",
         to: [studentEmail],
         subject: `A writer has taken your assignment: ${assignment.title}`,
@@ -269,12 +302,7 @@ async function sendWriterTookAssignmentEmail(assignment: any, writer: any, supab
         `,
       });
       
-      if (error) {
-        console.error("Error sending assignment taken email:", error);
-        return false;
-      }
-      
-      console.log("Email sent successfully with Resend:", data);
+      console.log("Email sent successfully");
       return true;
     } else {
       console.log("No student email found; skipping assignment taken notification");
@@ -286,7 +314,7 @@ async function sendWriterTookAssignmentEmail(assignment: any, writer: any, supab
   }
 }
 
-async function sendStatusUpdateEmail(assignment: any, writer: any, status: string, supabase: any) {
+async function sendStatusUpdateEmail(assignment: any, writer: any, status: string) {
   try {
     // First check if we have a student email to send to
     if (!assignment.user_id && !assignment.student_email) {
@@ -317,8 +345,6 @@ async function sendStatusUpdateEmail(assignment: any, writer: any, status: strin
     
     if (studentEmail) {
       console.log("Sending status update email to student:", studentEmail);
-      
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
       
       // Get status display text
       const statusText = (() => {
@@ -354,7 +380,7 @@ async function sendStatusUpdateEmail(assignment: any, writer: any, status: strin
         }
       })();
       
-      const { data, error } = await resend.emails.send({
+      const emailResult = await sendEmail({
         from: "WriterHub <assignments@writerhub.com>",
         to: [studentEmail],
         subject: `Update on your assignment: ${assignment.title}`,
@@ -423,12 +449,7 @@ async function sendStatusUpdateEmail(assignment: any, writer: any, status: strin
         `,
       });
       
-      if (error) {
-        console.error("Error sending status update email:", error);
-        return false;
-      }
-      
-      console.log("Status update email sent successfully with Resend:", data);
+      console.log("Status update email sent successfully");
       return true;
     } else {
       console.log("No student email found; skipping status update notification");
@@ -439,3 +460,65 @@ async function sendStatusUpdateEmail(assignment: any, writer: any, status: strin
     return false;
   }
 }
+
+// Function to handle direct emails from writers to students
+async function sendDirectEmailFromWriter(data: any) {
+  try {
+    const { recipient, sender, message, assignment } = data;
+    
+    if (!recipient || !recipient.email) {
+      console.error("Missing recipient email");
+      return false;
+    }
+    
+    console.log(`Sending direct email to student: ${recipient.email}`);
+    
+    const emailResult = await sendEmail({
+      from: "Assignment Hub <no-reply@writerhub.com>",
+      to: [recipient.email],
+      subject: message.subject,
+      html: `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #4f46e5; }
+            h1 { color: #4f46e5; margin-top: 0; }
+            .message { background-color: #ffffff; padding: 20px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+            .footer { margin-top: 30px; font-size: 12px; color: #777; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Message from Assignment Hub</h1>
+              <p>Hello ${recipient.name || 'Student'},</p>
+              <p>You have received a message regarding your assignment "${assignment.title}".</p>
+            </div>
+            
+            <div class="message">
+              ${message.body.replace(/\n/g, '<br>')}
+            </div>
+            
+            <div class="footer">
+              <p>To reply to this message, please log in to your dashboard or reply directly to this email.</p>
+              <p>This email was sent by the Assignment Hub Team on behalf of your writer.</p>
+              <p>&copy; ${new Date().getFullYear()} Assignment Hub. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+      `,
+    });
+    
+    console.log("Direct email sent successfully");
+    return true;
+  } catch (error) {
+    console.error("Error in sendDirectEmailFromWriter:", error);
+    return false;
+  }
+}
+
+// Add supabase global variable from the earlier template
+let supabase: any;

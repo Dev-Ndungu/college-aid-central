@@ -10,9 +10,9 @@ interface AssignmentSubmissionConfirmationProps {
 }
 
 const AssignmentSubmissionConfirmation = ({ open, onOpenChange }: AssignmentSubmissionConfirmationProps) => {
-  const whatsappNumber = "254797280930";
+  const whatsappNumber = "+12368801220"; // Updated to match edge function
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
-  const emailAddress = "queries@assignmenthub.org";
+  const emailAddress = "write.mefoundation@gmail.com"; // Updated to match edge function
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
