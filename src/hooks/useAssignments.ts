@@ -176,9 +176,57 @@ export const useAssignments = () => {
           return;
         }
         
-        // Combine available assignments with active ones
-        setActiveAssignments([...(available || []), ...(active || [])]);
-        setCompletedAssignments(completed || []);
+        // Process assignments to fetch student information from profiles for verified accounts
+        const allAssignments = [...(available || []), ...(active || [])].map(async (assignment) => {
+          if (assignment.is_verified_account && assignment.user_id) {
+            // Fetch student information from profiles table
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('email, full_name, phone_number')
+              .eq('id', assignment.user_id)
+              .single();
+              
+            if (!profileError && profileData) {
+              // Update assignment with profile information
+              return {
+                ...assignment,
+                student_name: profileData.full_name || 'No name provided',
+                student_email: profileData.email || 'No email provided',
+                student_phone: profileData.phone_number || 'No phone provided'
+              };
+            }
+          }
+          return assignment;
+        });
+        
+        const processedCompletedAssignments = (completed || []).map(async (assignment) => {
+          if (assignment.is_verified_account && assignment.user_id) {
+            // Fetch student information from profiles table
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('email, full_name, phone_number')
+              .eq('id', assignment.user_id)
+              .single();
+              
+            if (!profileError && profileData) {
+              // Update assignment with profile information
+              return {
+                ...assignment,
+                student_name: profileData.full_name || 'No name provided',
+                student_email: profileData.email || 'No email provided',
+                student_phone: profileData.phone_number || 'No phone provided'
+              };
+            }
+          }
+          return assignment;
+        });
+
+        // Resolve all promises and set the state
+        const resolvedAssignments = await Promise.all(allAssignments);
+        const resolvedCompletedAssignments = await Promise.all(processedCompletedAssignments);
+        
+        setActiveAssignments(resolvedAssignments);
+        setCompletedAssignments(resolvedCompletedAssignments);
       }
     } catch (error) {
       console.error('Error in fetchAssignments:', error);
