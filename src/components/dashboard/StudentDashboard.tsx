@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -10,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Clock, CheckCircle, Mail, BookOpen } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -292,25 +291,25 @@ const AssignmentStatusBadge = ({ status }: { status: string }) => {
   switch (status) {
     case 'submitted':
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800">
           <Clock className="mr-1 h-3 w-3" /> Submitted
         </span>
       );
     case 'in_progress':
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
           <Clock className="mr-1 h-3 w-3" /> In Progress
         </span>
       );
     case 'completed':
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="mr-1 h-3 w-3" /> Completed
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
           {status}
         </span>
       );
