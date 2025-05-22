@@ -164,24 +164,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_presence: {
-        Row: {
-          last_seen: string
-          online: boolean
-          user_id: string
-        }
-        Insert: {
-          last_seen?: string
-          online?: boolean
-          user_id: string
-        }
-        Update: {
-          last_seen?: string
-          online?: boolean
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never

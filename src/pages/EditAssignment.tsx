@@ -28,20 +28,26 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Progress } from '@/components/ui/progress';
+import { Slider } from '@/components/ui/slider';
 
 const EditAssignment = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userRole } = useAuth();
   const { activeAssignments, updateAssignment, deleteAssignment } = useAssignments();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [subject, setSubject] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [progress, setProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Check if the current user is a writer
+  const isWriter = userRole === 'writer';
   
   useEffect(() => {
     // Redirect if not authenticated
@@ -58,6 +64,7 @@ const EditAssignment = () => {
         setDescription(assignment.description || '');
         setSubject(assignment.subject || '');
         setDueDate(assignment.due_date ? assignment.due_date.split('T')[0] : '');
+        setProgress(assignment.progress || 0);
         setIsLoading(false);
       } else {
         toast.error("Assignment not found");
@@ -87,6 +94,7 @@ const EditAssignment = () => {
         description,
         subject,
         due_date: dueDate || null,
+        progress: progress,
         updated_at: new Date().toISOString()
       };
       
@@ -231,6 +239,30 @@ const EditAssignment = () => {
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
+            
+            {/* Progress Slider - only visible to writers */}
+            {isWriter && (
+              <div className="space-y-4 pt-2">
+                <div className="border-t border-gray-200 pt-4">
+                  <Label htmlFor="progress" className="flex justify-between">
+                    <span>Progress</span>
+                    <span className="text-sm text-muted-foreground">{progress}%</span>
+                  </Label>
+                  <div className="pt-2">
+                    <Slider
+                      id="progress"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={[progress]}
+                      onValueChange={(values) => setProgress(values[0])}
+                      className="py-4"
+                    />
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                </div>
+              </div>
+            )}
           </CardContent>
           
           <CardFooter className="flex justify-between">
