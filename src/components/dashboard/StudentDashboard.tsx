@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -38,6 +37,10 @@ const StudentDashboard = () => {
 
   const handleEmailSupport = () => {
     window.location.href = "mailto:inquiries@assignmenthub.org?subject=Assignment Support Request";
+  };
+
+  const handleEditAssignment = (id: string) => {
+    navigate(`/edit-assignment/${id}`);
   };
 
   const ActiveAssignments = () => {
@@ -100,48 +103,11 @@ const StudentDashboard = () => {
                           variant="ghost" 
                           size="icon"
                           className="h-8 w-8" 
-                          onClick={() => navigate(`/edit-assignment/${assignment.id}`)}
+                          onClick={() => handleEditAssignment(assignment.id)}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                       )}
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Assignment</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this assignment? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDelete(assignment.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              disabled={isDeleting && deleteId === assignment.id}
-                            >
-                              {isDeleting && deleteId === assignment.id ? (
-                                <>
-                                  <div className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                                  Deleting...
-                                </>
-                              ) : (
-                                'Delete'
-                              )}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
                     </div>
                   </td>
                 </tr>

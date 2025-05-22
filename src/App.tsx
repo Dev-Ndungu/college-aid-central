@@ -21,6 +21,7 @@ import AssignmentSubmission from '@/pages/AssignmentSubmission';
 import ResetPassword from '@/pages/ResetPassword';
 import TermsAndConditions from '@/pages/TermsAndConditions';
 import AssignmentChat from '@/pages/AssignmentChat';
+import EditAssignment from '@/pages/EditAssignment';
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
               <Route path="/profile-completion" element={<ProfileCompletion />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/submit-assignment" element={<AssignmentSubmission />} />
+              <Route path="/edit-assignment/:id" element={<EditAssignment />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
