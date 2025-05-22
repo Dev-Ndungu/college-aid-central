@@ -172,7 +172,7 @@ async function sendSubmissionConfirmationToStudent(assignment: any) {
       const emailLink = `mailto:write.mefoundation@gmail.com?subject=Help%20with%20assignment:%20${encodeURIComponent(assignment.title)}&body=Hello,%20I%20need%20assistance%20with%20my%20assignment.%0A%0AAssignment%20details:%0A-%20Title:%20${encodeURIComponent(assignment.title)}%0A-%20Subject:%20${encodeURIComponent(assignment.subject)}`;
       
       const emailResult = await sendEmail({
-        from: "WriterHub <assignments@writerhub.com>",
+        from: "Assignment Hub <onboarding@resend.dev>", // Using Resend's default domain
         to: [studentEmail],
         subject: `Your assignment has been received: ${assignment.title}`,
         html: `
@@ -226,7 +226,7 @@ async function sendSubmissionConfirmationToStudent(assignment: any) {
               
               <div class="footer">
                 <p>This is an automated message. Please do not reply to this email.</p>
-                <p>&copy; ${new Date().getFullYear()} WriterHub. All rights reserved.</p>
+                <p>&copy; ${new Date().getFullYear()} Assignment Hub. All rights reserved.</p>
               </div>
             </div>
           </body>
@@ -278,7 +278,7 @@ async function sendWriterTookAssignmentEmail(assignment: any, writer: any) {
       console.log("Sending email to student:", studentEmail);
       
       const emailResult = await sendEmail({
-        from: "WriterHub <assignments@writerhub.com>",
+        from: "Assignment Hub <onboarding@resend.dev>", // Using Resend's default domain
         to: [studentEmail],
         subject: `A writer has taken your assignment: ${assignment.title}`,
         html: `
@@ -320,7 +320,7 @@ async function sendWriterTookAssignmentEmail(assignment: any, writer: any) {
               
               <div class="footer">
                 <p>This is an automated message. Please do not reply to this email.</p>
-                <p>&copy; ${new Date().getFullYear()} WriterHub. All rights reserved.</p>
+                <p>&copy; ${new Date().getFullYear()} Assignment Hub. All rights reserved.</p>
               </div>
             </div>
           </body>
@@ -407,7 +407,7 @@ async function sendStatusUpdateEmail(assignment: any, writer: any, status: strin
       })();
       
       const emailResult = await sendEmail({
-        from: "WriterHub <assignments@writerhub.com>",
+        from: "Assignment Hub <onboarding@resend.dev>", // Using Resend's default domain
         to: [studentEmail],
         subject: `Update on your assignment: ${assignment.title}`,
         html: `
@@ -459,15 +459,15 @@ async function sendStatusUpdateEmail(assignment: any, writer: any, status: strin
               
               ${status === 'completed' ? `
                 <p>Your assignment has been completed! Please log in to your account to view and download the completed work.</p>
-                <a href="https://writerhub-ai.vercel.app/dashboard" class="button">View Completed Assignment</a>
+                <a href="https://assignmenthub.org/dashboard" class="button">View Completed Assignment</a>
               ` : `
                 <p>You can log in to your dashboard anytime to check the latest status of your assignment.</p>
-                <a href="https://writerhub-ai.vercel.app/dashboard" class="button">Check Assignment Status</a>
+                <a href="https://assignmenthub.org/dashboard" class="button">Check Assignment Status</a>
               `}
               
               <div class="footer">
                 <p>This is an automated message. Please do not reply to this email.</p>
-                <p>&copy; ${new Date().getFullYear()} WriterHub. All rights reserved.</p>
+                <p>&copy; ${new Date().getFullYear()} Assignment Hub. All rights reserved.</p>
               </div>
             </div>
           </body>
@@ -500,7 +500,7 @@ async function sendDirectEmailFromWriter(data: any) {
     console.log(`Sending direct email to student: ${recipient.email}`);
     
     const emailResult = await sendEmail({
-      from: "Assignment Hub <no-reply@writerhub.com>",
+      from: "Assignment Hub <onboarding@resend.dev>", // Using Resend's default domain
       to: [recipient.email],
       subject: message.subject,
       html: `
@@ -548,3 +548,4 @@ async function sendDirectEmailFromWriter(data: any) {
 
 // Add supabase global variable from the earlier template
 let supabase: any;
+
