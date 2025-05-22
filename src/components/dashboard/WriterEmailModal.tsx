@@ -24,8 +24,34 @@ const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps
   // Reset form when assignment changes or modal opens
   React.useEffect(() => {
     if (isOpen && assignment) {
+      // Create a more detailed email subject
       setSubject(`Update on your assignment: ${assignment.title}`);
-      setBody(`Hello,\n\nI wanted to provide you with an update regarding your assignment "${assignment.title}".\n\n[Your message here]\n\nYou can check your assignment status here: https://assignmenthub.org/dashboard\n\nBest regards,\nThe Assignment Hub Team`);
+      
+      // Format assignment details for the email body
+      const dueDate = assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'Not specified';
+      const progress = assignment.progress ? `${assignment.progress}%` : 'Not started';
+      
+      // Create a more detailed email template with assignment details
+      const emailBody = `Hello ${assignment.student_name || ''},
+
+I wanted to provide you with an update regarding your assignment "${assignment.title}".
+
+Assignment Details:
+- Title: ${assignment.title}
+- Subject: ${assignment.subject}
+- Due Date: ${dueDate}
+- Current Status: ${assignment.status.replace('_', ' ')}
+- Progress: ${progress}
+${assignment.description ? `- Description: ${assignment.description}` : ''}
+
+[Your message to the student here]
+
+You can check your assignment status here: https://assignmenthub.org/dashboard
+
+Best regards,
+The Assignment Hub Team`;
+
+      setBody(emailBody);
     }
   }, [assignment, isOpen]);
 
@@ -153,7 +179,7 @@ const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps
                 value={body} 
                 onChange={(e) => setBody(e.target.value)} 
                 placeholder="Enter your message"
-                rows={8}
+                rows={12}
               />
               {helpText}
             </div>

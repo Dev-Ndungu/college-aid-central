@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
@@ -66,8 +65,103 @@ serve(async (req) => {
         return text.replace(urlRegex, '<a href="$1" style="color: #4338ca; text-decoration: underline;">$1</a>');
       };
       
+      // Format assignment details for rich display
+      const formatAssignmentDetails = (assignment: any) => {
+        if (!assignment) return '';
+        
+        // Format date strings
+        const formatDate = (dateStr: string | null) => {
+          if (!dateStr) return 'Not specified';
+          return new Date(dateStr).toLocaleString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        };
+        
+        const dueDate = formatDate(assignment.due_date);
+        const createdDate = formatDate(assignment.created_at);
+        
+        return `
+          <div style="margin: 20px 0; padding: 15px; background-color: #f5f7ff; border-radius: 8px; border: 1px solid #e0e7ff;">
+            <h3 style="margin-top: 0; color: #4338ca;">Assignment Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Title:</td>
+                <td style="padding: 8px 0;">${assignment.title}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Subject:</td>
+                <td style="padding: 8px 0;">${assignment.subject}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Status:</td>
+                <td style="padding: 8px 0;">${assignment.status.replace('_', ' ')}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Progress:</td>
+                <td style="padding: 8px 0;">${assignment.progress || 0}%</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Due Date:</td>
+                <td style="padding: 8px 0;">${dueDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Created:</td>
+                <td style="padding: 8px 0;">${createdDate}</td>
+              </tr>
+              ${assignment.description ? `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Description:</td>
+                <td style="padding: 8px 0;">${assignment.description}</td>
+              </tr>` : ''}
+              ${assignment.assignment_type ? `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Type:</td>
+                <td style="padding: 8px 0;">${assignment.assignment_type}</td>
+              </tr>` : ''}
+            </table>
+          </div>
+        `;
+      };
+      
+      // Format student information if available
+      const formatStudentInfo = (assignment: any) => {
+        if (!assignment) return '';
+        if (!assignment.student_name && !assignment.student_email && !assignment.student_phone) return '';
+        
+        return `
+          <div style="margin: 20px 0; padding: 15px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7;">
+            <h3 style="margin-top: 0; color: #166534;">Student Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              ${assignment.student_name ? `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Name:</td>
+                <td style="padding: 8px 0;">${assignment.student_name}</td>
+              </tr>` : ''}
+              ${assignment.student_email ? `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Email:</td>
+                <td style="padding: 8px 0;">${assignment.student_email}</td>
+              </tr>` : ''}
+              ${assignment.student_phone ? `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Phone:</td>
+                <td style="padding: 8px 0;">${assignment.student_phone}</td>
+              </tr>` : ''}
+            </table>
+          </div>
+        `;
+      };
+      
       // Format email body with proper HTML formatting and convert URLs to clickable links
       const formattedBody = convertLinksToHtml(message.body.replace(/\n/g, '<br>'));
+      
+      // Create the assignment details and student info sections
+      const assignmentDetailsSection = formatAssignmentDetails(assignment);
+      const studentInfoSection = formatStudentInfo(assignment);
       
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -79,6 +173,8 @@ serve(async (req) => {
               ${formattedBody}
             </div>
           </div>
+          
+          ${assignmentDetailsSection}
           
           <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
             This is an automated message from Assignment Hub. You can reply to this email to communicate with your writer.
