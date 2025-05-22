@@ -12,7 +12,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, 
-  UserRound
+  UserRound,
+  MessageCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -28,12 +29,57 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  
+  // Check if this is an authorized writer email
+  const isAuthorizedWriter = userEmail === 'worldwritingfoundation@gmail.com' || userEmail === 'write.mefoundation@gmail.com';
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/login');
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  // Fetch unread message count for authorized writers
+  useEffect(() => {
+    const fetchUnreadMessageCount = async () => {
+      if (!isAuthorizedWriter || !isAuthenticated) return;
+      
+      try {
+        const { count, error } = await supabase
+          .from('contact_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'unread');
+          
+        if (error) {
+          console.error('Error fetching unread messages:', error);
+          return;
+        }
+        
+        setUnreadMessageCount(count || 0);
+        
+        // Set up real-time listener for new messages
+        const messagesSubscription = supabase
+          .channel('contact-messages-changes')
+          .on('postgres_changes', 
+            { event: '*', schema: 'public', table: 'contact_messages' },
+            () => {
+              // Refetch count when any change happens
+              fetchUnreadMessageCount();
+            }
+          )
+          .subscribe();
+          
+        return () => {
+          supabase.removeChannel(messagesSubscription);
+        };
+      } catch (error) {
+        console.error('Error fetching unread messages:', error);
+      }
+    };
+    
+    fetchUnreadMessageCount();
+  }, [isAuthenticated, isAuthorizedWriter, userEmail]);
 
   // Fetch user name from profile
   useEffect(() => {
@@ -111,6 +157,14 @@ const Dashboard = () => {
                       <UserRound className="h-3 w-3 mr-1" />
                       {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                     </span>
+                    
+                    {/* Message notification for authorized writers */}
+                    {isAuthorizedWriter && unreadMessageCount > 0 && (
+                      <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center ml-2">
+                        <MessageCircle className="h-3 w-3 mr-1" />
+                        {unreadMessageCount} unread message{unreadMessageCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
                 )}
                 <p className="text-gray-600">Welcome back, {displayName}</p>

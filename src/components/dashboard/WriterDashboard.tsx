@@ -7,12 +7,13 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX, MessageCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
 import WriterEmailModal from './WriterEmailModal';
+import ContactMessagesModal from './ContactMessagesModal';
 
 const WriterDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading, takeAssignment, updateAssignment } = useAssignments();
@@ -20,8 +21,12 @@ const WriterDashboard = () => {
   const [updatingProgressIds, setUpdatingProgressIds] = useState<Set<string>>(new Set());
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const [emailingAssignment, setEmailingAssignment] = useState<Assignment | null>(null);
-  const { userId } = useAuth();
+  const [showContactMessages, setShowContactMessages] = useState(false);
+  const { userId, userEmail } = useAuth();
   const navigate = useNavigate();
+
+  // Only show contact messages button for specific writer emails
+  const showMessagesButton = userEmail === 'worldwritingfoundation@gmail.com' || userEmail === 'write.mefoundation@gmail.com';
 
   // Format date helper
   const formatDate = (dateString: string | null) => {
@@ -578,6 +583,19 @@ const WriterDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Contact Messages Button - Only for specific writers */}
+      {showMessagesButton && (
+        <div className="flex justify-end">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowContactMessages(true)}
+            className="mb-2"
+          >
+            <MessageCircle className="mr-2 h-4 w-4" /> View Contact Messages
+          </Button>
+        </div>
+      )}
+
       <Tabs defaultValue="available" className="w-full">
         <TabsList className="grid grid-cols-3 mb-8 bg-gray-100 border border-gray-200">
           <TabsTrigger value="available" className="data-[state=active]:bg-white">Available</TabsTrigger>
@@ -661,6 +679,12 @@ const WriterDashboard = () => {
         assignment={emailingAssignment}
         isOpen={emailingAssignment !== null}
         onClose={() => setEmailingAssignment(null)}
+      />
+
+      {/* Contact Messages Modal */}
+      <ContactMessagesModal
+        isOpen={showContactMessages}
+        onClose={() => setShowContactMessages(false)}
       />
     </div>
   );
