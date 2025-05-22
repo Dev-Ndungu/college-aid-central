@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/cli
 import { useAuth } from "@/contexts/AuthContext";
 import AssignmentSubmissionConfirmation from '@/components/dialogs/AssignmentSubmissionConfirmation';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+
 const Hero = () => {
   const whatsappNumber = "0797280930";
   const whatsappUrl = `https://wa.me/${whatsappNumber}`;
@@ -35,6 +35,26 @@ const Hero = () => {
     userId
   } = useAuth();
   const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Comprehensive assignment types based on the provided list
+  const assignmentTypes = [
+    { value: 'essay', label: 'Essay' },
+    { value: 'research-paper', label: 'Research Paper' },
+    { value: 'case-study', label: 'Case Study' },
+    { value: 'presentation', label: 'Presentation' },
+    { value: 'discussion-post', label: 'Discussion Post' },
+    { value: 'quiz-exam', label: 'Quiz or Exam' },
+    { value: 'lab-report', label: 'Lab Report' },
+    { value: 'group-project', label: 'Group Project' },
+    { value: 'annotated-bibliography', label: 'Annotated Bibliography' },
+    { value: 'reflective-journal', label: 'Reflective Journal' },
+    { value: 'portfolio', label: 'Portfolio' },
+    { value: 'programming', label: 'Programming Assignment' },
+    { value: 'problem-set', label: 'Problem Set' },
+    { value: 'capstone', label: 'Capstone Project' },
+    { value: 'thesis', label: 'Thesis/Dissertation' },
+    { value: 'other', label: 'Other' }
+  ];
 
   // Country code options
   const countryCodes = [{
@@ -71,6 +91,9 @@ const Hero = () => {
     subject: z.string().min(2, {
       message: "Subject is required."
     }),
+    assignment_type: z.string().min(1, {
+      message: "Assignment type is required."
+    }),
     description: z.string().optional(),
     name: z.string().min(2, {
       message: "Your name is required."
@@ -86,12 +109,13 @@ const Hero = () => {
     })
   });
 
-  // Initialize form
+  // Initialize form with updated default values including assignment_type
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       subject: "",
+      assignment_type: "",
       description: "",
       name: "",
       email: "",
@@ -204,6 +228,7 @@ const Hero = () => {
       const assignmentData = {
         title: data.title,
         subject: data.subject,
+        assignment_type: data.assignment_type,
         description: data.description || null,
         status: "submitted",
         student_name: data.name,
@@ -466,6 +491,27 @@ const Hero = () => {
                         <FormControl>
                           <Input placeholder="Enter subject name" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>} />
+                  
+                  <FormField control={form.control} name="assignment_type" render={({
+                  field
+                }) => <FormItem>
+                        <FormLabel>Assignment Type *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select assignment type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {assignmentTypes.map(type => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>} />
                   

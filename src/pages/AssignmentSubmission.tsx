@@ -241,6 +241,12 @@ const AssignmentSubmission = () => {
         return;
       }
       
+      if (!assignmentType) {
+        toast.error("Please select an assignment type");
+        setLoading(false);
+        return;
+      }
+
       // Upload all files first and collect their URLs
       const fileUrls: string[] = [];
       
@@ -270,6 +276,7 @@ const AssignmentSubmission = () => {
       const assignmentData = {
         title,
         subject,
+        assignment_type: assignmentType,
         description,
         due_date: date ? date.toISOString() : null,
         user_id: profileData.id,
