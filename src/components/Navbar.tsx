@@ -1,48 +1,33 @@
-
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import UserAvatar from '@/components/profile/UserAvatar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Menu, LayoutDashboard } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 const Navbar = () => {
-  const { isAuthenticated, signOut, userRole } = useAuth();
+  const {
+    isAuthenticated,
+    signOut,
+    userRole
+  } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const location = useLocation();
-  
+
   // Check if we're on the login or signup page
   const isLoginPage = location.pathname === '/login';
   const isSignupPage = location.pathname === '/signup';
-  
-  return (
-    <header className="bg-white shadow-sm sticky top-0 z-10">
+  return <header className="bg-white shadow-sm sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
-          <img 
-            src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" 
-            alt="Assignment Hub ✒️ Logo" 
-            className="h-12 w-12 rounded-lg p-0.5 shadow-sm"
-          />
-          <span className="text-2xl font-bold text-[#0d2241]">Assignment Hub ✒️</span>
+          <img src="/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png" alt="Assignment Hub ✒️ Logo" className="h-12 w-12 rounded-lg p-0.5 shadow-sm" />
+          <span className="font-bold text-[#0d2241] text-xl">Assignment Hub ✒️</span>
         </Link>
         
-        {!isMobile ? (
-          <nav>
+        {!isMobile ? <nav>
             <ul className="flex items-center space-x-6">
               <li>
                 <Link to="/" className="hover:text-primary transition-colors">
@@ -65,9 +50,7 @@ const Navbar = () => {
                 </Link>
               </li>
             </ul>
-          </nav>
-        ) : (
-          <Sheet>
+          </nav> : <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="p-1">
                 <Menu className="h-8 w-8" />
@@ -87,36 +70,25 @@ const Navbar = () => {
                 <Link to="/contact" className="text-lg font-medium hover:text-primary transition-colors">
                   Contact
                 </Link>
-                {!isAuthenticated && (
-                  <>
+                {!isAuthenticated && <>
                     <Link to="/login" className="text-lg font-medium hover:text-primary transition-colors">
                       Sign In
                     </Link>
                     <Link to="/signup" className="text-lg font-medium hover:text-primary transition-colors">
                       Sign Up
                     </Link>
-                  </>
-                )}
+                  </>}
               </div>
             </SheetContent>
-          </Sheet>
-        )}
+          </Sheet>}
         
         <div className="flex items-center gap-2">
-          {isAuthenticated ? (
-            <div className="flex items-center gap-2">
+          {isAuthenticated ? <div className="flex items-center gap-2">
               {/* Dashboard button - always visible on desktop, hidden on mobile */}
-              {!isMobile && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="flex items-center gap-1" 
-                  onClick={() => navigate('/dashboard')}
-                >
+              {!isMobile && <Button variant="outline" size="sm" className="flex items-center gap-1" onClick={() => navigate('/dashboard')}>
                   <LayoutDashboard className="h-4 w-4" />
                   <span>Dashboard</span>
-                </Button>
-              )}
+                </Button>}
               
               {/* User dropdown with avatar */}
               <DropdownMenu>
@@ -126,14 +98,12 @@ const Navbar = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {isMobile && (
-                    <>
+                  {isMobile && <>
                       <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                         Dashboard
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                    </>
-                  )}
+                    </>}
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     Profile
                   </DropdownMenuItem>
@@ -143,23 +113,16 @@ const Navbar = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          ) : (
-            !isLoginPage && !isSignupPage && !isMobile && (
-              <div className="flex items-center gap-2">
+            </div> : !isLoginPage && !isSignupPage && !isMobile && <div className="flex items-center gap-2">
                 <Link to="/login">
                   <Button variant="outline" size="sm">Sign In</Button>
                 </Link>
                 <Link to="/signup">
                   <Button size="sm">Sign Up</Button>
                 </Link>
-              </div>
-            )
-          )}
+              </div>}
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default Navbar;
