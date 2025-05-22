@@ -10,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Trash2, Clock, CheckCircle, CalendarDays, BookOpen } from "lucide-react";
+import { Edit2, Trash2, Clock, CheckCircle, CalendarDays, BookOpen, Mail } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -34,6 +34,10 @@ const StudentDashboard = () => {
       setIsDeleting(false);
       setDeleteId(null);
     }
+  };
+
+  const handleEmailSupport = () => {
+    window.location.href = "mailto:inquiries@assignmenthub.org?subject=Assignment Support Request";
   };
 
   const ActiveAssignments = () => {
@@ -201,6 +205,18 @@ const StudentDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Email Support Button */}
+      <div className="flex justify-end">
+        <Button 
+          variant="outline" 
+          onClick={handleEmailSupport}
+          className="gap-2"
+        >
+          <Mail className="h-4 w-4" />
+          Email Support
+        </Button>
+      </div>
+
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid grid-cols-2 mb-8">
           <TabsTrigger value="active">Active</TabsTrigger>
