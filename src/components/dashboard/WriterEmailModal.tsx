@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Mail, Percent } from "lucide-react";
 import { toast } from "sonner";
 import { Assignment } from '@/hooks/useAssignments';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,17 +20,53 @@ interface WriterEmailModalProps {
 const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps) => {
   const [subject, setSubject] = useState<string>('');
   const [body, setBody] = useState<string>('');
+  const [progress, setProgress] = useState<number>(0);
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isUpdatingProgress, setIsUpdatingProgress] = useState<boolean>(false);
+
+  // Fetch student profile data if the student has an account
+  useEffect(() => {
+    const fetchStudentProfile = async () => {
+      if (!assignment || !assignment.is_verified_account || !assignment.user_id) return;
+      
+      try {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('full_name, email, phone_number')
+          .eq('id', assignment.user_id)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching student profile:', error);
+          return;
+        }
+        
+        // Update assignment with profile data for the email template
+        if (profileData) {
+          assignment.student_name = profileData.full_name || assignment.student_name;
+          assignment.student_email = profileData.email || assignment.student_email;
+          assignment.student_phone = profileData.phone_number || assignment.student_phone;
+        }
+      } catch (err) {
+        console.error('Error in fetchStudentProfile:', err);
+      }
+    };
+    
+    if (isOpen && assignment) {
+      fetchStudentProfile();
+      setProgress(assignment.progress || 0);
+    }
+  }, [assignment, isOpen]);
 
   // Reset form when assignment changes or modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && assignment) {
       // Create a more detailed email subject
       setSubject(`Update on your assignment: ${assignment.title}`);
       
       // Format assignment details for the email body
       const dueDate = assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'Not specified';
-      const progress = assignment.progress ? `${assignment.progress}%` : 'Not started';
+      const assignmentProgress = assignment.progress ? `${assignment.progress}%` : 'Not started';
       
       // Create a more detailed email template with assignment details
       const emailBody = `Hello ${assignment.student_name || ''},
@@ -41,7 +78,7 @@ Assignment Details:
 - Subject: ${assignment.subject}
 - Due Date: ${dueDate}
 - Current Status: ${assignment.status.replace('_', ' ')}
-- Progress: ${progress}
+- Progress: ${assignmentProgress}
 ${assignment.description ? `- Description: ${assignment.description}` : ''}
 
 [Your message to the student here]
@@ -129,6 +166,66 @@ The Assignment Hub Team`;
     }
   };
 
+  // New function to update assignment progress
+  const handleUpdateProgress = async () => {
+    if (!assignment) return;
+    
+    try {
+      setIsUpdatingProgress(true);
+      
+      // Update assignment progress in the database
+      const { error } = await supabase
+        .from('assignments')
+        .update({
+          progress: progress,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', assignment.id);
+        
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Notify the student about the progress update
+      const projectRef = "ihvgtaxvrqdnrgdddhdx";
+      
+      // Get writer details
+      const { data: writerData, error: writerError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('id', assignment.writer_id)
+        .single();
+        
+      if (writerError) {
+        console.error('Error fetching writer data:', writerError);
+      }
+      
+      // Send notification to student about progress update
+      await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'assignment_progress_update',
+          assignment: {
+            ...assignment,
+            progress: progress
+          },
+          writer: writerData,
+          progress: progress
+        }),
+      });
+      
+      toast.success(`Assignment progress updated to ${progress}%`);
+    } catch (error) {
+      console.error('Error updating progress:', error);
+      toast.error(`Failed to update progress: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsUpdatingProgress(false);
+    }
+  };
+
   // Helper text to explain link functionality
   const helpText = (
     <div className="text-xs text-gray-500 mt-1">
@@ -143,9 +240,47 @@ The Assignment Hub Team`;
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5" />
-            Send Email to Student
+            {assignment?.student_email ? "Send Email to Student" : "Student Communication"}
           </DialogTitle>
         </DialogHeader>
+
+        {/* Progress Update Section */}
+        <div className="border-b pb-4 mb-4">
+          <h3 className="text-sm font-medium mb-2">Update Assignment Progress</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="progress" className="min-w-20">Progress: {progress}%</Label>
+              <Slider
+                id="progress"
+                value={[progress]}
+                onValueChange={(value) => setProgress(value[0])}
+                min={0}
+                max={100}
+                step={5}
+                className="flex-1"
+              />
+              <span className="flex items-center bg-gray-100 px-2 py-1 rounded text-sm">
+                <Percent className="h-3 w-3 mr-1" /> {progress}
+              </span>
+            </div>
+            <Button 
+              onClick={handleUpdateProgress}
+              disabled={isUpdatingProgress || !assignment}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {isUpdatingProgress ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                  Updating...
+                </span>
+              ) : (
+                "Update Progress"
+              )}
+            </Button>
+          </div>
+        </div>
 
         {assignment?.student_email ? (
           <div className="space-y-4 py-2">
@@ -199,25 +334,27 @@ The Assignment Hub Team`;
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSending}>
-            Cancel
+            Close
           </Button>
-          <Button 
-            onClick={handleSendEmail} 
-            disabled={isSending || !assignment?.student_email}
-            className="gap-2"
-          >
-            {isSending ? (
-              <>
-                <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
-                Sending...
-              </>
-            ) : (
-              <>
-                <Mail className="h-4 w-4" />
-                Send Email
-              </>
-            )}
-          </Button>
+          {assignment?.student_email && (
+            <Button 
+              onClick={handleSendEmail} 
+              disabled={isSending || !assignment?.student_email}
+              className="gap-2"
+            >
+              {isSending ? (
+                <>
+                  <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></span>
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
