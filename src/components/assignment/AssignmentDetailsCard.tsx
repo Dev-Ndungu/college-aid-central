@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,6 @@ import { Clock, Calendar, BookOpen, User, Circle, AlertCircle } from 'lucide-rea
 import { Badge } from '@/components/ui/badge';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import FileAttachments from './FileAttachments';
-import { Progress } from '@/components/ui/progress';
 
 interface AssignmentDetailsProps {
   id: string;
@@ -117,17 +117,6 @@ const AssignmentDetailsCard: React.FC<AssignmentDetailsProps> = ({
           <p className="text-sm text-gray-500 line-clamp-2 mb-4">
             {description}
           </p>
-        )}
-        
-        {/* Progress bar - new addition */}
-        {status !== 'submitted' && (
-          <div className="mb-4">
-            <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-              <span>Progress</span>
-              <span>{progress || 0}%</span>
-            </div>
-            <Progress value={progress || 0} className="h-2" />
-          </div>
         )}
         
         <div className="space-y-2 text-sm">

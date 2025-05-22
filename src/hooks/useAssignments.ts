@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,58 +31,12 @@ export const useAssignments = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { userRole, userId } = useAuth();
 
-  // Function to update an assignment
-  const updateAssignment = async (assignmentId: string, updates: any) => {
-    try {
-      const { error } = await supabase
-        .from('assignments')
-        .update(updates)
-        .eq('id', assignmentId);
-        
-      if (error) {
-        console.error('Error updating assignment:', error);
-        toast.error('Failed to update assignment');
-        return false;
-      }
-      
-      // If the status or progress was updated, send a notification
-      if (updates.status || updates.progress !== undefined) {
-        // Get writer details
-        const { data: writerData, error: writerError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', userId)
-          .single();
-          
-        if (writerError) {
-          console.error('Error fetching writer data:', writerError);
-        }
-        
-        await sendAssignmentNotification(
-          assignmentId, 
-          'assignment_status_update', 
-          writerData,
-          updates.status || null,
-          updates.progress
-        );
-      }
-      
-      await fetchAssignments();
-      return true;
-    } catch (error) {
-      console.error('Error in updateAssignment:', error);
-      toast.error('Failed to update assignment');
-      return false;
-    }
-  };
-
   // Helper function to send email notification when a writer takes an assignment
   const sendAssignmentNotification = async (
     assignmentId: string,
     type: string,
     writerData: any = null,
-    status: string | null = null,
-    progress: number | null = null
+    status: string | null = null
   ) => {
     try {
       // Get assignment details
@@ -114,11 +69,6 @@ export const useAssignments = () => {
       // Add status if available
       if (status) {
         payload.status = status;
-      }
-      
-      // Add progress if available
-      if (progress !== null && progress !== undefined) {
-        payload.progress = progress;
       }
 
       const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
@@ -290,6 +240,50 @@ export const useAssignments = () => {
     } catch (error) {
       console.error('Error in takeAssignment:', error);
       toast.error('Failed to take assignment');
+      return false;
+    }
+  };
+
+  // Function to update an assignment
+  const updateAssignment = async (assignmentId: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('assignments')
+        .update(updates)
+        .eq('id', assignmentId);
+        
+      if (error) {
+        console.error('Error updating assignment:', error);
+        toast.error('Failed to update assignment');
+        return false;
+      }
+      
+      // If the status was updated, send a notification
+      if (updates.status) {
+        // Get writer details
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .eq('id', userId)
+          .single();
+          
+        if (writerError) {
+          console.error('Error fetching writer data:', writerError);
+        }
+        
+        await sendAssignmentNotification(
+          assignmentId, 
+          'assignment_status_update', 
+          writerData,
+          updates.status
+        );
+      }
+      
+      await fetchAssignments();
+      return true;
+    } catch (error) {
+      console.error('Error in updateAssignment:', error);
+      toast.error('Failed to update assignment');
       return false;
     }
   };

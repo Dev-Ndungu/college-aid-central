@@ -12,7 +12,6 @@ import FileAttachments from './FileAttachments';
 import { Calendar, Clock, BookOpen, User, Circle, Mail, Phone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Progress } from "@/components/ui/progress";
 
 interface AssignmentDetailsModalProps {
   assignment: Assignment | null;
@@ -88,19 +87,6 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
               </div>
             )}
           </div>
-          
-          {/* Add Progress Bar */}
-          {assignment.status !== 'submitted' && (
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
-              <h3 className="font-medium text-base mb-2">Progress</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Completion: {assignment.progress || 0}%</span>
-                </div>
-                <Progress value={assignment.progress || 0} className="h-3" />
-              </div>
-            </div>
-          )}
           
           {/* Enhanced student information display */}
           <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
