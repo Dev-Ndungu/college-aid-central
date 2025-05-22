@@ -56,15 +56,23 @@ serve(async (req) => {
         );
       }
       
-      const writerName = sender?.full_name || (sender?.email ? sender.email.split('@')[0] : 'Your Writer');
+      // Use the custom sender name if provided, otherwise default to "Assignment Hub"
+      const senderName = sender?.full_name || 'Assignment Hub';
       
-      // Format email body with proper HTML formatting
-      const formattedBody = message.body.replace(/\n/g, '<br>');
+      // Function to convert plain text URLs to HTML links
+      const convertLinksToHtml = (text: string) => {
+        // This regex will match http(s) URLs
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, '<a href="$1" style="color: #4338ca; text-decoration: underline;">$1</a>');
+      };
+      
+      // Format email body with proper HTML formatting and convert URLs to clickable links
+      const formattedBody = convertLinksToHtml(message.body.replace(/\n/g, '<br>'));
       
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #4338ca;">Message from your Writer</h2>
-          <p>You have received a message from ${writerName} regarding your assignment "${assignment.title}".</p>
+          <h2 style="color: #4338ca;">Message from Assignment Hub</h2>
+          <p>You have received a message regarding your assignment "${assignment.title}".</p>
           
           <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
             <div style="margin-bottom: 10px;">

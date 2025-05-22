@@ -25,7 +25,7 @@ const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps
   React.useEffect(() => {
     if (isOpen && assignment) {
       setSubject(`Update on your assignment: ${assignment.title}`);
-      setBody(`Hello,\n\nI wanted to provide you with an update regarding your assignment "${assignment.title}".\n\n[Your message here]\n\nBest regards,\nYour Assignment Writer`);
+      setBody(`Hello,\n\nI wanted to provide you with an update regarding your assignment "${assignment.title}".\n\n[Your message here]\n\nYou can check your assignment status here: https://assignmenthub.org/dashboard\n\nBest regards,\nThe Assignment Hub Team`);
     }
   }, [assignment, isOpen]);
 
@@ -51,10 +51,10 @@ const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps
       // Use the notify-message edge function to send the email
       const projectRef = "ihvgtaxvrqdnrgdddhdx";
       
-      // Get writer details
+      // Get writer details - but we won't show them to the student
       const { data: writerData, error: writerError } = await supabase
         .from('profiles')
-        .select('id, full_name, email')
+        .select('id, email')
         .eq('id', assignment.writer_id)
         .single();
         
@@ -76,7 +76,10 @@ const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps
             email: assignment.student_email,
             name: assignment.student_name || 'Student'
           },
-          sender: writerData,
+          sender: {
+            ...writerData,
+            full_name: 'Assignment Hub Team' // Override the writer's name
+          },
           assignment: assignment,
           message: {
             subject: subject,
@@ -99,6 +102,14 @@ const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps
       setIsSending(false);
     }
   };
+
+  // Helper text to explain link functionality
+  const helpText = (
+    <div className="text-xs text-gray-500 mt-1">
+      <p>You can include URLs in your message and they will be clickable in the email.</p>
+      <p>Example: https://assignmenthub.org/dashboard</p>
+    </div>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -144,6 +155,13 @@ const WriterEmailModal = ({ isOpen, onClose, assignment }: WriterEmailModalProps
                 placeholder="Enter your message"
                 rows={8}
               />
+              {helpText}
+            </div>
+
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+              <p className="text-xs text-blue-700">
+                <strong>Note:</strong> Your email will be sent with "Assignment Hub Team" as the sender name, not your personal name. Students can reply to this email to communicate with you.
+              </p>
             </div>
           </div>
         ) : (
