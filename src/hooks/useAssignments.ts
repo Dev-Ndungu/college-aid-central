@@ -94,34 +94,6 @@ export const useAssignments = () => {
     }
   };
 
-  // Enhanced function to fetch student details from profiles for verified accounts
-  const fetchStudentProfileData = async (assignment) => {
-    if (assignment.is_verified_account && assignment.user_id) {
-      try {
-        // Fetch student information from profiles table
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('email, full_name, phone_number')
-          .eq('id', assignment.user_id)
-          .single();
-          
-        if (!profileError && profileData) {
-          // Update assignment with profile information
-          return {
-            ...assignment,
-            student_name: profileData.full_name || 'No name provided',
-            student_email: profileData.email || 'No email provided',
-            student_phone: profileData.phone_number || 'No phone provided'
-          };
-        }
-      } catch (error) {
-        console.error('Error fetching student profile:', error);
-      }
-    }
-    // Return original assignment if not verified or error occurred
-    return assignment;
-  };
-
   // Fetch assignments based on user role
   const fetchAssignments = useCallback(async () => {
     setIsLoading(true);
@@ -203,32 +175,58 @@ export const useAssignments = () => {
           toast.error('Failed to fetch completed assignments');
           return;
         }
+        
+        // Process assignments to fetch student information from profiles for verified accounts
+        const allAssignments = [...(available || []), ...(active || [])].map(async (assignment) => {
+          if (assignment.is_verified_account && assignment.user_id) {
+            // Fetch student information from profiles table
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('email, full_name, phone_number')
+              .eq('id', assignment.user_id)
+              .single();
+              
+            if (!profileError && profileData) {
+              // Update assignment with profile information
+              return {
+                ...assignment,
+                student_name: profileData.full_name || 'No name provided',
+                student_email: profileData.email || 'No email provided',
+                student_phone: profileData.phone_number || 'No phone provided'
+              };
+            }
+          }
+          return assignment;
+        });
+        
+        const processedCompletedAssignments = (completed || []).map(async (assignment) => {
+          if (assignment.is_verified_account && assignment.user_id) {
+            // Fetch student information from profiles table
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('email, full_name, phone_number')
+              .eq('id', assignment.user_id)
+              .single();
+              
+            if (!profileError && profileData) {
+              // Update assignment with profile information
+              return {
+                ...assignment,
+                student_name: profileData.full_name || 'No name provided',
+                student_email: profileData.email || 'No email provided',
+                student_phone: profileData.phone_number || 'No phone provided'
+              };
+            }
+          }
+          return assignment;
+        });
 
-        console.log('Available assignments before processing:', available);
-        console.log('Active assignments before processing:', active);
+        // Resolve all promises and set the state
+        const resolvedAssignments = await Promise.all(allAssignments);
+        const resolvedCompletedAssignments = await Promise.all(processedCompletedAssignments);
         
-        // Process all assignments to fetch student information
-        const processAssignments = async (assignments) => {
-          if (!assignments || assignments.length === 0) return [];
-          
-          const processedAssignments = await Promise.all(
-            assignments.map(async (assignment) => await fetchStudentProfileData(assignment))
-          );
-          
-          return processedAssignments;
-        };
-        
-        // Process all categories of assignments
-        const processedAvailable = await processAssignments(available || []);
-        const processedActive = await processAssignments(active || []);
-        const processedCompleted = await processAssignments(completed || []);
-        
-        console.log('Available assignments after processing:', processedAvailable);
-        console.log('Active assignments after processing:', processedActive);
-        
-        // Combine available and active assignments for active view
-        setActiveAssignments([...processedAvailable, ...processedActive]);
-        setCompletedAssignments(processedCompleted);
+        setActiveAssignments(resolvedAssignments);
+        setCompletedAssignments(resolvedCompletedAssignments);
       }
     } catch (error) {
       console.error('Error in fetchAssignments:', error);
@@ -372,8 +370,7 @@ export const useAssignments = () => {
           user_id: userId,
           status: 'submitted',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_verified_account: true // Set this to true for logged-in users
+          updated_at: new Date().toISOString()
         })
         .select();
         

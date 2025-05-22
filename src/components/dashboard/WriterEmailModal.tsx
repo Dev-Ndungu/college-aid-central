@@ -56,15 +56,7 @@ The Assignment Hub Team`;
   }, [assignment, isOpen]);
 
   const handleSendEmail = async () => {
-    if (!assignment) {
-      toast.error("Cannot send email - assignment details are missing");
-      return;
-    }
-    
-    // Determine the correct email to use
-    const studentEmail = assignment.student_email;
-    
-    if (!studentEmail) {
+    if (!assignment || !assignment.student_email) {
       toast.error("Cannot send email - student does not have an email address");
       return;
     }
@@ -107,7 +99,7 @@ The Assignment Hub Team`;
         body: JSON.stringify({
           type: 'writer_direct_email',
           recipient: {
-            email: studentEmail,
+            email: assignment.student_email,
             name: assignment.student_name || 'Student'
           },
           sender: {
@@ -123,17 +115,8 @@ The Assignment Hub Team`;
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Email API error response:', errorText);
-        
-        // Try to parse the error as JSON if possible
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || 'Failed to send email');
-        } catch (parseError) {
-          // If we can't parse as JSON, just use the text
-          throw new Error(`Failed to send email: ${errorText}`);
-        }
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send email');
       }
 
       toast.success("Email sent successfully to student");
@@ -204,12 +187,6 @@ The Assignment Hub Team`;
             <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
               <p className="text-xs text-blue-700">
                 <strong>Note:</strong> Your email will be sent with "Assignment Hub Team" as the sender name, not your personal name. Students can reply to this email to communicate with you.
-              </p>
-            </div>
-            
-            <div className="bg-amber-50 p-3 rounded-md border border-amber-100">
-              <p className="text-xs text-amber-700">
-                <strong>Important:</strong> During development mode, all emails will be redirected to the developer's email address. In production, these will go directly to students.
               </p>
             </div>
           </div>
