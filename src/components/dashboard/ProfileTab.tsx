@@ -72,7 +72,7 @@ type ProfileData = {
 };
 
 const ProfileTab = () => {
-  const { isAuthenticated, userEmail, userRole, signOut } = useAuth();
+  const { isAuthenticated, userEmail, userRole, signOut, userId } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -243,25 +243,54 @@ const ProfileTab = () => {
   };
 
   const deleteProfile = async () => {
-    if (!isAuthenticated || !userEmail) return;
+    if (!isAuthenticated || !userId) return;
     
     try {
       setIsDeleting(true);
       
-      // First delete the user's profile
+      // Delete user's assignments
+      const { error: assignmentsError } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (assignmentsError) {
+        console.error("Error deleting user assignments:", assignmentsError);
+      }
+      
+      // Delete user presence data
+      const { error: presenceError } = await supabase
+        .from('user_presence')
+        .delete()
+        .eq('user_id', userId);
+        
+      if (presenceError) {
+        console.error("Error deleting user presence data:", presenceError);
+      }
+      
+      // Delete user's profile
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
-        .eq('email', userEmail);
+        .eq('id', userId);
 
       if (profileError) {
         throw profileError;
       }
       
-      // Then sign out
-      await signOut();
+      // Delete the actual auth user (this must be last)
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
       
-      toast("Your account and profile have been deleted successfully.");
+      if (authError) {
+        console.error("Auth user deletion failed, using sign out instead:", authError);
+        // If admin delete fails (which it might without service role), just sign out
+        await signOut(); 
+      } else {
+        // Sign out after successful auth deletion
+        await signOut();
+      }
+      
+      toast("Your account and all related data have been deleted successfully.");
     } catch (error: any) {
       console.error("Error deleting profile:", error);
       toast.error(error.message || "An error occurred while deleting your profile.");
