@@ -68,8 +68,9 @@ const LoginForm = () => {
       setIsProcessingOAuth(true);
       toast.info("Redirecting to Google for authentication...");
       
-      // Use the current origin for the redirect URL
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      // Use the current origin as the base, but handle the fact we're using HashRouter
+      // The hash (#) is important since we're using HashRouter
+      const redirectUrl = `${window.location.origin}/#/dashboard`;
       console.log("Redirect URL for Google sign-in:", redirectUrl);
       
       const { error } = await supabase.auth.signInWithOAuth({

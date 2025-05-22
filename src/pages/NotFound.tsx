@@ -19,22 +19,23 @@ const NotFound = () => {
   // Improved handling for auth redirects
   useEffect(() => {
     const processAuthRedirect = async () => {
-      // Check if we're on a page that looks like a redirect URL with an access token
+      // Check if we're on an OAuth redirect
       const isAccessTokenInHash = window.location.hash && window.location.hash.includes('access_token=');
-      const isGoogleCallback = window.location.pathname.includes('/dashboard') && window.location.hash.includes('access_token=');
+      const isGoogleCallback = location.pathname.includes('/dashboard') && window.location.hash.includes('access_token=');
       
       console.log("URL check for auth:", { 
         hash: window.location.hash,
-        pathname: window.location.pathname,
+        pathname: location.pathname,
         isAccessTokenInHash,
         isGoogleCallback,
-        fullUrl: window.location.href
+        fullUrl: window.location.href,
+        isHashRouter: true // We're using HashRouter which affects path handling
       });
       
-      // Special handling for Google OAuth redirects
-      if (isGoogleCallback || isAccessTokenInHash) {
-        console.log("Detected potential Google OAuth redirect", window.location.hash);
-        toast.info("Processing your Google sign-in...");
+      // Handle OAuth redirects
+      if (isAccessTokenInHash || isGoogleCallback) {
+        console.log("Detected OAuth redirect with access token", window.location.hash);
+        toast.info("Processing your authentication...");
         
         try {
           // Extract the access token from the URL hash
@@ -57,7 +58,7 @@ const NotFound = () => {
               navigate('/login', { replace: true });
             } else if (data?.session) {
               console.log("Session set successfully from redirect");
-              toast.success("Successfully signed in with Google");
+              toast.success("Successfully signed in");
               
               // Get user profile to check if profile is complete
               const { data: profile } = await supabase
@@ -68,9 +69,9 @@ const NotFound = () => {
               
               // Redirect based on profile completion
               if (profile && profile.full_name) {
-                navigate('/dashboard', { replace: true });
+                navigate('/#/dashboard', { replace: true });
               } else {
-                navigate('/profile-completion', { replace: true });
+                navigate('/#/profile-completion', { replace: true });
               }
               return;
             }
@@ -80,7 +81,7 @@ const NotFound = () => {
             
             if (session) {
               console.log("Found valid session after OAuth redirect");
-              navigate('/dashboard', { replace: true });
+              navigate('/#/dashboard', { replace: true });
               return;
             }
           }
@@ -112,7 +113,7 @@ const NotFound = () => {
               <Loader2 className="h-12 w-12 animate-spin mx-auto text-brand-500" />
               <h2 className="text-2xl font-semibold">Processing Sign In</h2>
               <p className="text-gray-600">
-                We're processing your Google authentication. You'll be redirected automatically in a moment...
+                We're processing your authentication. You'll be redirected automatically in a moment...
               </p>
             </div>
           ) : (
