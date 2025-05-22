@@ -1,3 +1,4 @@
+
 // Edge function that handles sending notifications for assignment-related events
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -17,6 +18,9 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Developer email for when domain verification is not set up
+const DEVELOPER_EMAIL = "kelvinnj104@gmail.com"; // This matches your Resend account email
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -58,6 +62,9 @@ serve(async (req) => {
     } else if (payload.type === "assignment_status_update") {
       console.log("Processing assignment_status_update notification");
       await handleAssignmentStatusUpdate(payload.assignment, payload.writer, payload.status);
+    } else if (payload.type === "writer_direct_email") {
+      console.log("Processing writer_direct_email notification");
+      await handleWriterDirectEmail(payload);
     } else {
       console.log("Unknown notification type:", payload.type);
     }
@@ -78,6 +85,93 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to safely send email and handle domain verification errors
+async function safelySendEmail(emailOptions) {
+  try {
+    if (!resend) {
+      console.error("Resend API key not configured");
+      return { success: false, error: "Resend API key not configured" };
+    }
+
+    // Try to send the email as requested
+    const result = await resend.emails.send(emailOptions);
+    
+    // Log the result for debugging
+    console.log(`Email send attempt result:`, result);
+    
+    if (result.error) {
+      // If there's a domain verification error, we'll send to the developer instead
+      if (result.error.statusCode === 403 && result.error.name === "validation_error") {
+        console.log("Domain validation error detected. Sending notification to developer instead");
+        
+        // Clone the email options but change recipient to developer
+        const devEmailOptions = {
+          ...emailOptions,
+          to: DEVELOPER_EMAIL,
+          subject: `[DOMAIN NOT VERIFIED] ${emailOptions.subject}`,
+          html: `
+            <div style="background-color: #ffecb3; padding: 10px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
+              <p><strong>TESTING MODE:</strong> This email was meant for: ${Array.isArray(emailOptions.to) ? emailOptions.to.join(', ') : emailOptions.to}</p>
+              <p>To send emails to actual students, verify a domain at <a href="https://resend.com/domains">resend.com/domains</a></p>
+            </div>
+            ${emailOptions.html}
+          `
+        };
+        
+        // Send to developer instead
+        const devResult = await resend.emails.send(devEmailOptions);
+        console.log(`Developer notification email result:`, devResult);
+        
+        // Return original error but with additional info
+        return { 
+          success: false,
+          error: result.error,
+          devEmailSent: !devResult.error
+        };
+      }
+      
+      // For other errors, just return the error
+      return { success: false, error: result.error };
+    }
+    
+    return { success: true, data: result.data };
+  } catch (err) {
+    console.error("Error in safelySendEmail:", err);
+    return { success: false, error: err };
+  }
+}
+
+// Handle writer direct emails to students
+async function handleWriterDirectEmail(payload) {
+  try {
+    const { recipient, sender, message, assignment } = payload;
+    
+    if (!recipient || !recipient.email) {
+      throw new Error("Recipient email is missing");
+    }
+    
+    console.log(`Processing direct email from writer to student: ${recipient.email}`);
+    
+    const emailResult = await safelySendEmail({
+      from: 'Assignment Hub <onboarding@resend.dev>',
+      to: recipient.email,
+      subject: message.subject,
+      html: message.body,
+      // Add reply-to header so replies go back to the writer
+      replyTo: sender.email
+    });
+    
+    if (!emailResult.success) {
+      console.log("Email sending failed but handled gracefully:", emailResult.error);
+    }
+    
+    return emailResult.success;
+  } catch (error) {
+    console.error("Error handling writer direct email:", error);
+    throw error;
+  }
+}
 
 // Handle notifications for new assignment submissions
 async function handleAssignmentSubmitted(assignment) {
@@ -102,7 +196,7 @@ async function handleAssignmentSubmitted(assignment) {
       try {
         console.log(`Sending email to writer ${writer.email} about new assignment`);
         
-        const emailResult = await resend?.emails.send({
+        const emailResult = await safelySendEmail({
           from: 'Assignment Notification <onboarding@resend.dev>',
           to: writer.email,
           subject: 'New Assignment Submitted',
@@ -148,7 +242,7 @@ async function handleAssignmentSubmitted(assignment) {
           
           // Send confirmation email to the student
           console.log(`Sending confirmation email to student: ${studentProfile.email}`);
-          const studentEmailResult = await resend?.emails.send({
+          const studentEmailResult = await safelySendEmail({
             from: 'Assignment Confirmation <onboarding@resend.dev>',
             to: studentProfile.email,
             subject: 'Your Assignment Was Submitted Successfully',
@@ -164,6 +258,8 @@ async function handleAssignmentSubmitted(assignment) {
           });
           
           console.log(`Confirmation email sent successfully to student:`, studentEmailResult);
+        } else {
+          console.log("Student profile found but email is missing");
         }
       } catch (err) {
         console.error("Error sending confirmation email to student:", err);
@@ -173,7 +269,7 @@ async function handleAssignmentSubmitted(assignment) {
     else if (assignment.student_email) {
       try {
         console.log(`Sending confirmation email to anonymous student: ${assignment.student_email}`);
-        const studentEmailResult = await resend?.emails.send({
+        const studentEmailResult = await safelySendEmail({
           from: 'Assignment Confirmation <onboarding@resend.dev>',
           to: assignment.student_email,
           subject: 'Your Assignment Was Submitted Successfully',
@@ -192,6 +288,8 @@ async function handleAssignmentSubmitted(assignment) {
       } catch (err) {
         console.error("Error sending confirmation email to anonymous student:", err);
       }
+    } else {
+      console.log("No student email found to send confirmation");
     }
     
   } catch (error) {
@@ -238,7 +336,7 @@ async function handleAssignmentTaken(assignment, writer) {
     // Send email to student
     console.log(`Sending assignment taken notification to student: ${studentEmail}`);
     
-    const emailResult = await resend?.emails.send({
+    const emailResult = await safelySendEmail({
       from: 'Assignment Update <onboarding@resend.dev>',
       to: studentEmail,
       subject: 'Your Assignment Has Been Taken',
@@ -319,7 +417,7 @@ async function handleAssignmentStatusUpdate(assignment, writer, status) {
     // Send email to student
     console.log(`Sending status update notification to student: ${studentEmail}`);
     
-    const emailResult = await resend?.emails.send({
+    const emailResult = await safelySendEmail({
       from: 'Assignment Update <onboarding@resend.dev>',
       to: studentEmail,
       subject: `Assignment Status Update: ${statusDisplay}`,

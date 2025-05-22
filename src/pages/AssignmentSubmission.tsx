@@ -210,24 +210,6 @@ const AssignmentSubmission = () => {
     setLoading(true);
     
     try {
-      // Get the current user from profiles
-      if (!userEmail) {
-        toast.error("User email not available. Please log in again.");
-        navigate('/login');
-        return;
-      }
-
-      // Get the user ID from profiles using email
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userEmail)
-        .single();
-
-      if (profileError || !profileData) {
-        throw new Error("Could not find your user profile. Please log in again.");
-      }
-
       // Check if required fields are filled
       if (!title.trim()) {
         toast.error("Please enter an assignment title");
@@ -269,20 +251,19 @@ const AssignmentSubmission = () => {
           }
         }
       }
-
-      console.log("Creating assignment with user ID:", profileData.id);
-
-      // Create the assignment in the database with more logging
+      
+      // Prepare assignment data based on authentication status
       const assignmentData = {
         title,
         subject,
         assignment_type: assignmentType,
         description,
         due_date: date ? date.toISOString() : null,
-        user_id: profileData.id,
         status: 'submitted',
         progress: 0,
-        file_urls: fileUrls.length > 0 ? fileUrls : null
+        file_urls: fileUrls.length > 0 ? fileUrls : null,
+        user_id: userId, // This will be set for logged-in users
+        is_verified_account: !!userId // Set to true for logged-in users
       };
       
       console.log("Assignment data to submit:", assignmentData);
@@ -299,15 +280,11 @@ const AssignmentSubmission = () => {
 
       console.log("Assignment created successfully:", data);
       
-      // Manually trigger the notification to writers
+      // Trigger notification to writers
       try {
         console.log("Triggering notification to writers");
         
-        // Get Supabase URL directly from the client configuration
-        const supabaseUrl = "https://ihvgtaxvrqdnrgdddhdx.supabase.co";
-        console.log('Using Supabase URL:', supabaseUrl);
-        
-        // Extract project ref from URL
+        // Extract project ref for the functions URL
         const projectRef = "ihvgtaxvrqdnrgdddhdx";
         console.log('Project ref:', projectRef);
         
@@ -326,7 +303,6 @@ const AssignmentSubmission = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // We're now calling a public function that doesn't require JWT verification
           },
           body: JSON.stringify(notificationPayload),
         });
@@ -334,14 +310,12 @@ const AssignmentSubmission = () => {
         if (!notifyResponse.ok) {
           const responseText = await notifyResponse.text();
           console.error("Notification API error:", notifyResponse.status, responseText);
-          console.error("This might indicate an issue with the edge function or the URL construction");
         } else {
           const responseJson = await notifyResponse.json();
           console.log("Notification sent successfully:", responseJson);
         }
       } catch (notifyError) {
         console.error("Error sending assignment notification:", notifyError);
-        console.error("Full error details:", notifyError);
       }
 
       // Show success message
