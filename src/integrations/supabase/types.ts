@@ -19,6 +19,7 @@ export type Database = {
           file_urls: string[] | null
           grade: string | null
           id: string
+          is_verified_account: boolean | null
           progress: number | null
           status: string
           student_email: string | null
@@ -39,6 +40,7 @@ export type Database = {
           file_urls?: string[] | null
           grade?: string | null
           id?: string
+          is_verified_account?: boolean | null
           progress?: number | null
           status?: string
           student_email?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           file_urls?: string[] | null
           grade?: string | null
           id?: string
+          is_verified_account?: boolean | null
           progress?: number | null
           status?: string
           student_email?: string | null
@@ -161,24 +164,6 @@ export type Database = {
           updated_at?: string | null
           writer_bio?: string | null
           writer_skills?: string[] | null
-        }
-        Relationships: []
-      }
-      user_presence: {
-        Row: {
-          last_seen: string
-          online: boolean
-          user_id: string
-        }
-        Insert: {
-          last_seen?: string
-          online?: boolean
-          user_id: string
-        }
-        Update: {
-          last_seen?: string
-          online?: boolean
-          user_id?: string
         }
         Relationships: []
       }

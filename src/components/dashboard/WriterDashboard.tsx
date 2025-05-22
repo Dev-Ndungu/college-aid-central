@@ -200,10 +200,10 @@ const WriterDashboard = () => {
     setEmailingAssignment(assignment);
   };
 
-  // Student information display component
+  // Updated Student information display component to use is_verified_account flag
   const StudentInformation = ({ assignment }: { assignment: Assignment }) => {
-    // If student has an account (email is present), show student details
-    if (assignment.student_email) {
+    // If student has a verified account, fetch details from database 
+    if (assignment.is_verified_account) {
       return (
         <div className="flex flex-col gap-1">
           <div className="flex items-center text-sm font-medium">
@@ -227,12 +227,12 @@ const WriterDashboard = () => {
         </div>
       );
     } else {
-      // If student does not have an account, show anonymous information
+      // If student does not have a verified account, show details provided during submission
       return (
         <div className="flex flex-col gap-1">
           <div className="flex items-center text-sm font-medium">
             <User className="h-3 w-3 mr-1 text-gray-500" />
-            Anonymous Student
+            {assignment.student_name || 'Anonymous Student'}
             <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
               <UserX className="h-3 w-3 mr-1" />
               No Account
@@ -240,11 +240,11 @@ const WriterDashboard = () => {
           </div>
           <div className="flex items-center text-xs text-gray-500">
             <Mail className="h-3 w-3 mr-1" />
-            No email provided
+            {assignment.student_email || 'No email provided'}
           </div>
           <div className="flex items-center text-xs text-gray-500">
             <Phone className="h-3 w-3 mr-1" />
-            No phone provided
+            {assignment.student_phone || 'No phone provided'}
           </div>
         </div>
       );

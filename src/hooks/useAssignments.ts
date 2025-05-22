@@ -23,6 +23,7 @@ export interface Assignment {
   student_email?: string;
   student_phone?: string;
   assignment_type?: string;
+  is_verified_account?: boolean;
 }
 
 export const useAssignments = () => {
