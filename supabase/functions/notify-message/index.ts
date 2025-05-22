@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
 import { Resend } from "https://esm.sh/resend@2.0.0";
@@ -352,17 +353,121 @@ serve(async (req) => {
         );
       }
 
+      // Format student information for the email
+      const formatStudentInfo = (assignment: any) => {
+        if (!assignment) return '';
+        
+        let studentInfoHtml = '';
+        
+        if (assignment.student_name || assignment.student_email || assignment.student_phone) {
+          studentInfoHtml = `
+            <div style="margin: 20px 0; padding: 15px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7;">
+              <h3 style="margin-top: 0; color: #166534;">Student Information</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+          `;
+          
+          if (assignment.student_name) {
+            studentInfoHtml += `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Name:</td>
+                <td style="padding: 8px 0;">${assignment.student_name}</td>
+              </tr>
+            `;
+          }
+          
+          if (assignment.student_email) {
+            studentInfoHtml += `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Email:</td>
+                <td style="padding: 8px 0;">${assignment.student_email}</td>
+              </tr>
+            `;
+          }
+          
+          if (assignment.student_phone) {
+            studentInfoHtml += `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Phone:</td>
+                <td style="padding: 8px 0;">${assignment.student_phone}</td>
+              </tr>
+            `;
+          }
+          
+          studentInfoHtml += `
+              </table>
+            </div>
+          `;
+        }
+        
+        return studentInfoHtml;
+      };
+      
+      // Format assignment details for rich display
+      const formatAssignmentDetails = (assignment: any) => {
+        if (!assignment) return '';
+        
+        // Format date strings
+        const formatDate = (dateStr: string | null) => {
+          if (!dateStr) return 'Not specified';
+          return new Date(dateStr).toLocaleString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        };
+        
+        const dueDate = formatDate(assignment.due_date);
+        const createdDate = formatDate(assignment.created_at);
+        
+        return `
+          <div style="margin: 20px 0; padding: 15px; background-color: #f5f7ff; border-radius: 8px; border: 1px solid #e0e7ff;">
+            <h3 style="margin-top: 0; color: #4338ca;">Assignment Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Title:</td>
+                <td style="padding: 8px 0;">${assignment.title}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Subject:</td>
+                <td style="padding: 8px 0;">${assignment.subject}</td>
+              </tr>
+              ${assignment.assignment_type ? `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Type:</td>
+                <td style="padding: 8px 0;">${assignment.assignment_type}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Due Date:</td>
+                <td style="padding: 8px 0;">${dueDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Created:</td>
+                <td style="padding: 8px 0;">${createdDate}</td>
+              </tr>
+              ${assignment.description ? `
+              <tr>
+                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Description:</td>
+                <td style="padding: 8px 0;">${assignment.description}</td>
+              </tr>` : ''}
+            </table>
+          </div>
+        `;
+      };
+      
+      // Create the student info and assignment details sections
+      const studentInfoSection = formatStudentInfo(assignment);
+      const assignmentDetailsSection = formatAssignmentDetails(assignment);
+
       const emailSubject = `📚 New Assignment Alert: "${assignment.title}"`;
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #4338ca;">New Assignment Available</h2>
           <p>A new assignment is available for you to take:</p>
           
-          <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">${assignment.title}</h3>
-            <p><strong>Subject:</strong> ${assignment.subject}</p>
-            <p><strong>Description:</strong> ${assignment.description || 'No description provided.'}</p>
-          </div>
+          ${assignmentDetailsSection}
+          ${studentInfoSection}
           
           <div style="margin: 30px 0; text-align: center;">
             <a href="${supabaseUrl.replace('.supabase.co', '')}/dashboard" 
