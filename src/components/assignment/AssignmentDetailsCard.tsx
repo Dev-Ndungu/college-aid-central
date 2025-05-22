@@ -6,6 +6,7 @@ import { Clock, Calendar, BookOpen, User, Circle, AlertCircle } from 'lucide-rea
 import { Badge } from '@/components/ui/badge';
 import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
 import FileAttachments from './FileAttachments';
+import { Progress } from '@/components/ui/progress';
 
 interface AssignmentDetailsProps {
   id: string;
@@ -117,6 +118,17 @@ const AssignmentDetailsCard: React.FC<AssignmentDetailsProps> = ({
           <p className="text-sm text-gray-500 line-clamp-2 mb-4">
             {description}
           </p>
+        )}
+        
+        {/* Add progress bar */}
+        {progress !== undefined && progress !== null && (
+          <div className="mb-3 space-y-1">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Progress:</span>
+              <span>{progress}%</span>
+            </div>
+            <Progress value={progress} className="h-1.5" />
+          </div>
         )}
         
         <div className="space-y-2 text-sm">

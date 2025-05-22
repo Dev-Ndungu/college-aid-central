@@ -12,6 +12,7 @@ import FileAttachments from './FileAttachments';
 import { Calendar, Clock, BookOpen, User, Circle, Mail, Phone } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { Progress } from '@/components/ui/progress';
 
 interface AssignmentDetailsModalProps {
   assignment: Assignment | null;
@@ -86,6 +87,15 @@ const AssignmentDetailsModal: React.FC<AssignmentDetailsModalProps> = ({
                 <span>Completed: {formatDate(assignment.completed_date)}</span>
               </div>
             )}
+          </div>
+          
+          {/* Progress indicator */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="font-medium">Progress</span>
+              <span>{assignment.progress || 0}%</span>
+            </div>
+            <Progress value={assignment.progress || 0} className="h-2" />
           </div>
           
           {/* Enhanced student information display */}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -258,25 +257,37 @@ export const useAssignments = () => {
         return false;
       }
       
-      // If the status was updated, send a notification
-      if (updates.status) {
-        // Get writer details
-        const { data: writerData, error: writerError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', userId)
+      // If the status or progress was updated, send a notification
+      if (updates.status || updates.progress) {
+        // Get assignment details to check who should receive the notification
+        const { data: assignment, error: assignmentError } = await supabase
+          .from('assignments')
+          .select('*')
+          .eq('id', assignmentId)
           .single();
           
-        if (writerError) {
-          console.error('Error fetching writer data:', writerError);
+        if (assignmentError) {
+          console.error('Error fetching assignment data:', assignmentError);
+        } else if (assignment && assignment.user_id) {
+          // Get writer details for the notification
+          const { data: writerData, error: writerError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', userId)
+            .single();
+            
+          if (writerError) {
+            console.error('Error fetching writer data:', writerError);
+          }
+          
+          // Send notification to the student about the update
+          await sendAssignmentNotification(
+            assignmentId, 
+            'assignment_status_update', 
+            writerData,
+            updates.status
+          );
         }
-        
-        await sendAssignmentNotification(
-          assignmentId, 
-          'assignment_status_update', 
-          writerData,
-          updates.status
-        );
       }
       
       await fetchAssignments();
