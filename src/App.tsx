@@ -24,6 +24,7 @@ import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import RefundPolicy from '@/pages/RefundPolicy';
 import AssignmentChat from '@/pages/AssignmentChat';
 import EditAssignment from '@/pages/EditAssignment';
+import Checkout from '@/pages/Checkout';
 
 // ScrollToTop component to reset scroll position
 function ScrollToTop() {
@@ -60,6 +61,7 @@ function App() {
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/refund-policy" element={<RefundPolicy />} />
               <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
+              <Route path="/checkout/:assignmentId" element={<Checkout />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <Toaster />

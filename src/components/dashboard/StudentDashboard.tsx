@@ -10,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Clock, CheckCircle, Mail, BookOpen, DollarSign } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail, BookOpen, DollarSign, CreditCard } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -25,6 +25,10 @@ const StudentDashboard = () => {
 
   const handleEditAssignment = (id: string) => {
     navigate(`/edit-assignment/${id}`);
+  };
+  
+  const handlePayment = (assignmentId: string) => {
+    navigate(`/checkout/${assignmentId}`);
   };
 
   const ActiveAssignments = () => {
@@ -71,6 +75,24 @@ const StudentDashboard = () => {
                     <p className="text-gray-500 flex items-center">
                       <DollarSign className="h-3 w-3 mr-1" />
                       Price: ${assignment.price}
+                      {!assignment.paid && assignment.price > 0 && (
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          className="ml-2 h-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePayment(assignment.id);
+                          }}
+                        >
+                          Pay Now
+                        </Button>
+                      )}
+                      {assignment.paid && (
+                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          Paid
+                        </span>
+                      )}
                     </p>
                   )}
                 </div>
@@ -130,13 +152,35 @@ const StudentDashboard = () => {
                     }
                   </td>
                   <td className="p-3">
-                    {assignment.price !== null && assignment.price !== undefined ? 
-                      `$${assignment.price}` : 
-                      'Not set'
-                    }
+                    {assignment.price !== null && assignment.price !== undefined ? (
+                      <div className="flex items-center">
+                        ${assignment.price}
+                        {assignment.paid && (
+                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                            Paid
+                          </span>
+                        )}
+                      </div>
+                    ) : 'Not set'}
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-2">
+                      {/* Payment button if price is set and not paid yet */}
+                      {assignment.price !== null && 
+                        assignment.price !== undefined && 
+                        assignment.price > 0 && 
+                        !assignment.paid && (
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          className="h-8"
+                          onClick={() => handlePayment(assignment.id)}
+                        >
+                          <CreditCard className="h-4 w-4 mr-1" />
+                          Pay Now
+                        </Button>
+                      )}
+
                       {/* Only allow editing if the assignment is still in submitted status */}
                       {assignment.status === 'submitted' && !assignment.writer_id && (
                         <Button 

@@ -20,6 +20,7 @@ export type Database = {
           grade: string | null
           id: string
           is_verified_account: boolean | null
+          paid: boolean | null
           price: number | null
           progress: number | null
           status: string
@@ -42,6 +43,7 @@ export type Database = {
           grade?: string | null
           id?: string
           is_verified_account?: boolean | null
+          paid?: boolean | null
           price?: number | null
           progress?: number | null
           status?: string
@@ -64,6 +66,7 @@ export type Database = {
           grade?: string | null
           id?: string
           is_verified_account?: boolean | null
+          paid?: boolean | null
           price?: number | null
           progress?: number | null
           status?: string
