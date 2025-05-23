@@ -7,14 +7,13 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX, MessageCircle, DollarSign } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX, MessageCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
 import WriterEmailModal from './WriterEmailModal';
 import ContactMessagesModal from './ContactMessagesModal';
-import { Input } from '@/components/ui/input';
 import { 
   Table,
   TableBody,
@@ -34,11 +33,9 @@ const WriterDashboard = () => {
   } = useAssignments();
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [updatingProgressIds, setUpdatingProgressIds] = useState<Set<string>>(new Set());
-  const [updatingPriceIds, setUpdatingPriceIds] = useState<Set<string>>(new Set());
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const [emailingAssignment, setEmailingAssignment] = useState<Assignment | null>(null);
   const [showContactMessages, setShowContactMessages] = useState(false);
-  const [priceValues, setPriceValues] = useState<Record<string, string>>({});
   const {
     userId,
     userEmail
@@ -59,15 +56,6 @@ const WriterDashboard = () => {
     if (!dateString) return 'N/A';
     return formatRelative(new Date(dateString), new Date());
   };
-
-  // Initialize price values from assignments
-  React.useEffect(() => {
-    const prices: Record<string, string> = {};
-    activeAssignments.forEach(assignment => {
-      prices[assignment.id] = assignment.price ? assignment.price.toString() : '';
-    });
-    setPriceValues(prices);
-  }, [activeAssignments]);
 
   const handleTakeAssignment = async (assignmentId: string) => {
     setProcessingIds(prev => new Set(prev).add(assignmentId));
@@ -125,42 +113,6 @@ const WriterDashboard = () => {
       toast.error('Failed to update assignment status');
     } finally {
       setUpdatingProgressIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(assignmentId);
-        return newSet;
-      });
-    }
-  };
-
-  // Handle price changes
-  const handlePriceChange = (assignmentId: string, value: string) => {
-    setPriceValues(prev => ({ ...prev, [assignmentId]: value }));
-  };
-
-  // Handle price update
-  const handleUpdatePrice = async (assignmentId: string) => {
-    const priceValue = priceValues[assignmentId];
-    
-    if (!priceValue || isNaN(parseFloat(priceValue))) {
-      toast.error('Please enter a valid price');
-      return;
-    }
-    
-    setUpdatingPriceIds(prev => new Set(prev).add(assignmentId));
-    
-    try {
-      const updates = {
-        price: parseFloat(priceValue),
-        updated_at: new Date().toISOString()
-      };
-      
-      await updateAssignment(assignmentId, updates);
-      toast.success('Price updated successfully');
-    } catch (error) {
-      console.error('Error updating price:', error);
-      toast.error('Failed to update price');
-    } finally {
-      setUpdatingPriceIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(assignmentId);
         return newSet;
@@ -381,7 +333,6 @@ const WriterDashboard = () => {
                 <TableHead>Student Information</TableHead>
                 <TableHead>Posted</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Set Price ($)</TableHead>
                 <TableHead>Update Progress</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -419,33 +370,6 @@ const WriterDashboard = () => {
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-sm border ${getStatusBadgeClass(assignment.status)}`}>
                       {getStatusDisplay(assignment.status)}
                     </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center relative">
-                        <DollarSign className="h-3.5 w-3.5 text-gray-400 absolute left-2" />
-                        <Input 
-                          className="pl-7 w-24" 
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={priceValues[assignment.id] || ''}
-                          onChange={(e) => handlePriceChange(assignment.id, e.target.value)}
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleUpdatePrice(assignment.id)}
-                        disabled={updatingPriceIds.has(assignment.id)}
-                      >
-                        {updatingPriceIds.has(assignment.id) ? (
-                          <span className="flex items-center">
-                            <span className="animate-spin h-3 w-3 border-2 border-gray-500 border-t-transparent rounded-full mr-1"></span>
-                          </span>
-                        ) : 'Save'}
-                      </Button>
-                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -515,7 +439,6 @@ const WriterDashboard = () => {
                 <TableHead>Student Information</TableHead>
                 <TableHead>Posted</TableHead>
                 <TableHead>Completed Date</TableHead>
-                <TableHead>Price ($)</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -545,9 +468,6 @@ const WriterDashboard = () => {
                   </TableCell>
                   <TableCell className="text-gray-700">
                     {assignment.completed_date ? formatDate(assignment.completed_date) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-gray-700">
-                    {assignment.price ? `$${assignment.price}` : 'Not set'}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

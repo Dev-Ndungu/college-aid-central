@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Clock, CheckCircle, Mail, BookOpen, DollarSign, CreditCard } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -24,10 +24,6 @@ const StudentDashboard = () => {
 
   const handleEditAssignment = (id: string) => {
     navigate(`/edit-assignment/${id}`);
-  };
-  
-  const handlePayment = (assignmentId: string) => {
-    navigate(`/checkout/${assignmentId}`);
   };
 
   const ActiveAssignments = () => {
@@ -50,73 +46,41 @@ const StudentDashboard = () => {
 
     if (isMobile) {
       return (
-        <div className="space-y-3 -mx-4">
+        <div className="space-y-4">
           {activeAssignments.map(assignment => (
-            <div key={assignment.id} className="bg-white border-l-0 border-r-0 border-t border-b border-gray-200 px-4 py-4 shadow-sm">
-              <div className="mb-3">
-                <h3 className="font-semibold text-lg leading-tight mb-1">{assignment.title}</h3>
+            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="mb-2">
+                <h3 className="font-medium">{assignment.title}</h3>
                 {assignment.description && (
-                  <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     {assignment.description}
                   </p>
                 )}
               </div>
-              
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500">Subject: {assignment.subject}</p>
+              <div className="flex justify-between items-center text-sm">
+                <div>
+                  <p className="text-gray-500">Subject: {assignment.subject}</p>
+                  <p className="text-gray-500">
+                    Due: {assignment.due_date ? 
+                      new Date(assignment.due_date).toLocaleDateString() : 
+                      'Not set'
+                    }
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 items-end">
                   <AssignmentStatusBadge status={assignment.status} />
+                  {assignment.status === 'submitted' && !assignment.writer_id && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="h-8"
+                      onClick={() => handleEditAssignment(assignment.id)}
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                  )}
                 </div>
-                
-                <p className="text-sm text-gray-500">
-                  Due: {assignment.due_date ? 
-                    new Date(assignment.due_date).toLocaleDateString() : 
-                    'Not set'
-                  }
-                </p>
-                
-                {assignment.price !== null && assignment.price !== undefined && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500 flex items-center">
-                      <DollarSign className="h-3 w-3 mr-1" />
-                      Price: ${assignment.price}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {assignment.paid && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                          Paid
-                        </span>
-                      )}
-                      {!assignment.paid && assignment.price > 0 && (
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          className="h-7 px-3 text-xs font-medium"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePayment(assignment.id);
-                          }}
-                        >
-                          Pay Now
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
-              
-              {assignment.status === 'submitted' && !assignment.writer_id && (
-                <div className="flex justify-end">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="h-8 px-3 text-xs"
-                    onClick={() => handleEditAssignment(assignment.id)}
-                  >
-                    <Edit2 className="h-3 w-3 mr-1" /> Edit
-                  </Button>
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -133,7 +97,6 @@ const StudentDashboard = () => {
                 <th className="p-3 text-left font-medium">Subject</th>
                 <th className="p-3 text-left font-medium">Status</th>
                 <th className="p-3 text-left font-medium">Due Date</th>
-                <th className="p-3 text-left font-medium">Price</th>
                 <th className="p-3 text-left font-medium">Actions</th>
               </tr>
             </thead>
@@ -159,35 +122,7 @@ const StudentDashboard = () => {
                     }
                   </td>
                   <td className="p-3">
-                    {assignment.price !== null && assignment.price !== undefined ? (
-                      <div className="flex items-center">
-                        ${assignment.price}
-                        {assignment.paid && (
-                          <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                            Paid
-                          </span>
-                        )}
-                      </div>
-                    ) : 'Not set'}
-                  </td>
-                  <td className="p-3">
                     <div className="flex items-center gap-2">
-                      {/* Payment button if price is set and not paid yet */}
-                      {assignment.price !== null && 
-                        assignment.price !== undefined && 
-                        assignment.price > 0 && 
-                        !assignment.paid && (
-                        <Button 
-                          variant="default" 
-                          size="sm"
-                          className="h-8"
-                          onClick={() => handlePayment(assignment.id)}
-                        >
-                          <CreditCard className="h-4 w-4 mr-1" />
-                          Pay Now
-                        </Button>
-                      )}
-
                       {/* Only allow editing if the assignment is still in submitted status */}
                       {assignment.status === 'submitted' && !assignment.writer_id && (
                         <Button 
@@ -227,11 +162,11 @@ const StudentDashboard = () => {
 
     if (isMobile) {
       return (
-        <div className="space-y-3 -mx-4">
+        <div className="space-y-4">
           {completedAssignments.map(assignment => (
-            <div key={assignment.id} className="bg-white border-l-0 border-r-0 border-t border-b border-gray-200 px-4 py-4 shadow-sm">
-              <div className="mb-3">
-                <h3 className="font-semibold text-lg leading-tight">{assignment.title}</h3>
+            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="mb-2">
+                <h3 className="font-medium">{assignment.title}</h3>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <p className="text-gray-500">Subject: {assignment.subject}</p>
@@ -243,11 +178,6 @@ const StudentDashboard = () => {
                     new Date(assignment.completed_date).toLocaleDateString() : 
                     'N/A'
                   }
-                </p>
-                <p className="text-gray-500 text-right">
-                  Price: {assignment.price !== null && assignment.price !== undefined ? 
-                    `$${assignment.price}` : 
-                    'Not set'}
                 </p>
               </div>
             </div>
@@ -266,7 +196,6 @@ const StudentDashboard = () => {
                 <th className="p-3 text-left font-medium">Subject</th>
                 <th className="p-3 text-left font-medium">Completed Date</th>
                 <th className="p-3 text-left font-medium">Grade</th>
-                <th className="p-3 text-left font-medium">Price</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -283,12 +212,6 @@ const StudentDashboard = () => {
                     }
                   </td>
                   <td className="p-3">{assignment.grade || 'Not graded'}</td>
-                  <td className="p-3">
-                    {assignment.price !== null && assignment.price !== undefined ? 
-                      `$${assignment.price}` : 
-                      'Not set'
-                    }
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -326,7 +249,7 @@ const StudentDashboard = () => {
                 Assignments that are in progress or awaiting a writer.
               </CardDescription>
             </CardHeader>
-            <CardContent className={isMobile ? 'px-0' : ''}>
+            <CardContent className={isMobile ? 'px-4' : ''}>
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -347,7 +270,7 @@ const StudentDashboard = () => {
                 Assignments that have been completed by writers.
               </CardDescription>
             </CardHeader>
-            <CardContent className={isMobile ? 'px-0' : ''}>
+            <CardContent className={isMobile ? 'px-4' : ''}>
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>

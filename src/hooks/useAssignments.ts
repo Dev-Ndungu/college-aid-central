@@ -11,7 +11,6 @@ export interface Assignment {
   description?: string;
   status: string;
   progress: number;
-  price?: number;
   due_date?: string;
   completed_date?: string;
   grade?: string;
@@ -25,7 +24,6 @@ export interface Assignment {
   student_phone?: string;
   assignment_type?: string;
   is_verified_account?: boolean;
-  paid?: boolean;
 }
 
 export const useAssignments = () => {
@@ -39,8 +37,7 @@ export const useAssignments = () => {
     assignmentId: string,
     type: string,
     writerData: any = null,
-    status: string | null = null,
-    priceUpdate: boolean = false
+    status: string | null = null
   ) => {
     try {
       // Get assignment details
@@ -73,11 +70,6 @@ export const useAssignments = () => {
       // Add status if available
       if (status) {
         payload.status = status;
-      }
-      
-      // Add price update flag if this is a price update notification
-      if (priceUpdate) {
-        payload.priceUpdate = true;
       }
 
       const response = await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
@@ -258,20 +250,6 @@ export const useAssignments = () => {
   // Function to update an assignment
   const updateAssignment = async (assignmentId: string, updates: any) => {
     try {
-      // Check if this is a price update by comparing with current data
-      let isPriceUpdate = false;
-      if (updates.price !== undefined) {
-        const { data: currentAssignment } = await supabase
-          .from('assignments')
-          .select('price')
-          .eq('id', assignmentId)
-          .single();
-          
-        if (currentAssignment && currentAssignment.price !== updates.price) {
-          isPriceUpdate = true;
-        }
-      }
-      
       const { error } = await supabase
         .from('assignments')
         .update(updates)
@@ -283,10 +261,10 @@ export const useAssignments = () => {
         return false;
       }
       
-      // Get writer details if needed for notification
-      let writerData = null;
-      if (isPriceUpdate || updates.status) {
-        const { data: writer, error: writerError } = await supabase
+      // If the status was updated, send a notification
+      if (updates.status) {
+        // Get writer details
+        const { data: writerData, error: writerError } = await supabase
           .from('profiles')
           .select('id, full_name, email')
           .eq('id', userId)
@@ -294,23 +272,8 @@ export const useAssignments = () => {
           
         if (writerError) {
           console.error('Error fetching writer data:', writerError);
-        } else {
-          writerData = writer;
         }
-      }
-      
-      // If this is a price update, send a specific price update notification
-      if (isPriceUpdate) {
-        await sendAssignmentNotification(
-          assignmentId,
-          'assignment_price_update',
-          writerData,
-          null,
-          true
-        );
-      }
-      // If the status was updated, send a notification
-      else if (updates.status) {
+        
         await sendAssignmentNotification(
           assignmentId, 
           'assignment_status_update', 
