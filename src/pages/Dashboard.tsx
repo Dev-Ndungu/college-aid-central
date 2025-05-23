@@ -87,11 +87,12 @@ const Dashboard = () => {
       if (!isAuthenticated || !userEmail) return;
 
       try {
+        // Use maybeSingle instead of single to prevent errors when no data is found
         const { data, error } = await supabase
           .from('profiles')
           .select('full_name')
           .eq('email', userEmail)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("Error fetching user name:", error);
