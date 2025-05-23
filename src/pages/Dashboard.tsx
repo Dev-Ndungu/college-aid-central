@@ -23,13 +23,15 @@ import WriterDashboard from '@/components/dashboard/WriterDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { checkDatabaseConfig } from '@/utils/dbCheck';
 
 const Dashboard = () => {
-  const { isAuthenticated, userEmail, userRole, isLoading } = useAuth();
+  const { isAuthenticated, userEmail, userRole, isLoading, userId } = useAuth();
   const navigate = useNavigate();
   const [userName, setUserName] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
   
   // Check if this is an authorized writer email
   const isAuthorizedWriter = userEmail === 'worldwritingfoundation@gmail.com' || userEmail === 'write.mefoundation@gmail.com';
@@ -81,6 +83,26 @@ const Dashboard = () => {
     fetchUnreadMessageCount();
   }, [isAuthenticated, isAuthorizedWriter, userEmail]);
 
+  // Verify database configuration
+  useEffect(() => {
+    const verifyDbConfig = async () => {
+      if (userRole === 'writer') {
+        try {
+          const result = await checkDatabaseConfig();
+          if (!result.success) {
+            console.warn('Database configuration issue:', result.message);
+          }
+        } catch (error) {
+          console.error('Error checking database config:', error);
+        }
+      }
+    };
+    
+    if (isAuthenticated && userRole) {
+      verifyDbConfig();
+    }
+  }, [isAuthenticated, userRole]);
+
   // Fetch user name from profile
   useEffect(() => {
     const fetchUserName = async () => {
@@ -91,7 +113,7 @@ const Dashboard = () => {
           .from('profiles')
           .select('full_name')
           .eq('email', userEmail)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("Error fetching user name:", error);
@@ -109,23 +131,25 @@ const Dashboard = () => {
     fetchUserName();
 
     // Set up real-time listener for profile updates
-    const profileSubscription = supabase
-      .channel('profile-name-updates')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles', filter: `email=eq.${userEmail}` },
-        (payload) => {
-          const newData = payload.new as any;
-          if (newData && typeof newData === 'object' && 'full_name' in newData) {
-            setUserName(newData.full_name);
+    if (userId) {
+      const profileSubscription = supabase
+        .channel('profile-name-updates')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+          (payload) => {
+            const newData = payload.new as any;
+            if (newData && typeof newData === 'object' && 'full_name' in newData) {
+              setUserName(newData.full_name);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(profileSubscription);
-    };
-  }, [isAuthenticated, userEmail]);
+      return () => {
+        supabase.removeChannel(profileSubscription);
+      };
+    }
+  }, [isAuthenticated, userEmail, userId]);
 
   if (isLoading) {
     return (
@@ -141,6 +165,21 @@ const Dashboard = () => {
 
   // Display either user name if available, or fall back to email's prefix
   const displayName = userName || (userEmail ? userEmail.split('@')[0] : "User");
+
+  const renderDashboardContent = () => {
+    try {
+      if (userRole === 'student') {
+        return <StudentDashboard />;
+      } else if (userRole === 'writer') {
+        return <WriterDashboard />;
+      }
+      return <div>Unknown role: {userRole}</div>;
+    } catch (error) {
+      console.error('Error rendering dashboard content:', error);
+      setDashboardError(`Error loading dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return <div className="text-red-500 p-4">Error loading dashboard. Please try refreshing the page.</div>;
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -180,7 +219,15 @@ const Dashboard = () => {
 
           {/* Dashboard content */}
           <div className="dashboard-content">
-            {userRole === 'student' ? <StudentDashboard /> : <WriterDashboard />}
+            {dashboardError ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-red-500">{dashboardError}</div>
+                </CardContent>
+              </Card>
+            ) : (
+              renderDashboardContent()
+            )}
           </div>
         </div>
       </main>

@@ -30,6 +30,7 @@ export const useAssignments = () => {
   const [activeAssignments, setActiveAssignments] = useState<Assignment[]>([]);
   const [completedAssignments, setCompletedAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const { userRole, userId } = useAuth();
 
   // Helper function to send email notification when a writer takes an assignment
@@ -97,7 +98,15 @@ export const useAssignments = () => {
   // Fetch assignments based on user role
   const fetchAssignments = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
+      if (!userId || !userRole) {
+        console.error('No user ID or role available');
+        setError('Authentication information missing');
+        return;
+      }
+      
       let query;
       
       if (userRole === 'student') {
@@ -113,7 +122,7 @@ export const useAssignments = () => {
         
         if (activeError) {
           console.error('Error fetching active assignments:', activeError);
-          toast.error('Failed to fetch assignments');
+          setError('Failed to fetch assignments');
           return;
         }
         
@@ -127,7 +136,7 @@ export const useAssignments = () => {
         
         if (completedError) {
           console.error('Error fetching completed assignments:', completedError);
-          toast.error('Failed to fetch completed assignments');
+          setError('Failed to fetch completed assignments');
           return;
         }
         
@@ -144,7 +153,7 @@ export const useAssignments = () => {
           
         if (availableError) {
           console.error('Error fetching available assignments:', availableError);
-          toast.error('Failed to fetch assignments');
+          setError('Failed to fetch assignments');
           return;
         }
         
@@ -158,7 +167,7 @@ export const useAssignments = () => {
           
         if (activeError) {
           console.error('Error fetching writer assignments:', activeError);
-          toast.error('Failed to fetch your assignments');
+          setError('Failed to fetch your assignments');
           return;
         }
         
@@ -172,65 +181,53 @@ export const useAssignments = () => {
           
         if (completedError) {
           console.error('Error fetching completed assignments:', completedError);
-          toast.error('Failed to fetch completed assignments');
+          setError('Failed to fetch completed assignments');
           return;
         }
         
         // Process assignments to fetch student information from profiles for verified accounts
-        const allAssignments = [...(available || []), ...(active || [])].map(async (assignment) => {
-          if (assignment.is_verified_account && assignment.user_id) {
-            // Fetch student information from profiles table
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('email, full_name, phone_number')
-              .eq('id', assignment.user_id)
-              .single();
-              
-            if (!profileError && profileData) {
-              // Update assignment with profile information
-              return {
-                ...assignment,
-                student_name: profileData.full_name || 'No name provided',
-                student_email: profileData.email || 'No email provided',
-                student_phone: profileData.phone_number || 'No phone provided'
-              };
+        const processAssignment = async (assignment: Assignment) => {
+          try {
+            if (assignment.is_verified_account && assignment.user_id) {
+              // Try to fetch student information from profiles table with error handling
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('email, full_name, phone_number')
+                .eq('id', assignment.user_id)
+                .maybeSingle();
+                
+              if (!profileError && profileData) {
+                // Update assignment with profile information
+                return {
+                  ...assignment,
+                  student_name: profileData.full_name || 'No name provided',
+                  student_email: profileData.email || 'No email provided',
+                  student_phone: profileData.phone_number || 'No phone provided'
+                };
+              }
             }
+            return assignment;
+          } catch (error) {
+            console.error('Error processing assignment profile data:', error);
+            return assignment;
           }
-          return assignment;
-        });
+        };
         
-        const processedCompletedAssignments = (completed || []).map(async (assignment) => {
-          if (assignment.is_verified_account && assignment.user_id) {
-            // Fetch student information from profiles table
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('email, full_name, phone_number')
-              .eq('id', assignment.user_id)
-              .single();
-              
-            if (!profileError && profileData) {
-              // Update assignment with profile information
-              return {
-                ...assignment,
-                student_name: profileData.full_name || 'No name provided',
-                student_email: profileData.email || 'No email provided',
-                student_phone: profileData.phone_number || 'No phone provided'
-              };
-            }
-          }
-          return assignment;
-        });
-
-        // Resolve all promises and set the state
-        const resolvedAssignments = await Promise.all(allAssignments);
-        const resolvedCompletedAssignments = await Promise.all(processedCompletedAssignments);
-        
-        setActiveAssignments(resolvedAssignments);
-        setCompletedAssignments(resolvedCompletedAssignments);
+        try {
+          const allAssignments = [...(available || []), ...(active || [])];
+          const processedAssignments = await Promise.all(allAssignments.map(processAssignment));
+          const processedCompletedAssignments = await Promise.all((completed || []).map(processAssignment));
+          
+          setActiveAssignments(processedAssignments);
+          setCompletedAssignments(processedCompletedAssignments);
+        } catch (error) {
+          console.error('Error processing assignments:', error);
+          setError('Error processing assignments');
+        }
       }
     } catch (error) {
       console.error('Error in fetchAssignments:', error);
-      toast.error('Failed to fetch assignments');
+      setError('Failed to fetch assignments');
     } finally {
       setIsLoading(false);
     }
@@ -240,24 +237,28 @@ export const useAssignments = () => {
     if (userId) {
       fetchAssignments();
       
-      // Subscribe to changes in assignments table
-      const assignmentsSubscription = supabase
-        .channel('assignments-changes')
-        .on('postgres_changes', 
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'assignments'
-          }, 
-          () => {
-            fetchAssignments();
-          }
-        )
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(assignmentsSubscription);
-      };
+      try {
+        // Subscribe to changes in assignments table
+        const assignmentsSubscription = supabase
+          .channel('assignments-changes')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'assignments'
+            }, 
+            () => {
+              fetchAssignments();
+            }
+          )
+          .subscribe();
+          
+        return () => {
+          supabase.removeChannel(assignmentsSubscription);
+        };
+      } catch (error) {
+        console.error('Error setting up realtime subscription:', error);
+      }
     }
   }, [userId, fetchAssignments]);
 
@@ -398,6 +399,7 @@ export const useAssignments = () => {
     activeAssignments,
     completedAssignments,
     isLoading,
+    error,
     takeAssignment,
     updateAssignment,
     deleteAssignment,
