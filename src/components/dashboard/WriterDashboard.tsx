@@ -58,28 +58,28 @@ const WriterDashboard = () => {
   };
 
   const handleTakeAssignment = async (assignmentId: string) => {
-    // Add this assignment to processing state
     setProcessingIds(prev => new Set(prev).add(assignmentId));
     try {
       // Get writer profile data to include in the notification
-      const {
-        data: writerData,
-        error: writerError
-      } = await supabase.from('profiles').select('id, full_name, email').eq('id', userId).single();
+      const { data: writerData, error: writerError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('id', userId)
+        .single();
+        
       if (writerError) {
         console.error('Error fetching writer data:', writerError);
       }
+      
       const result = await takeAssignment(assignmentId, writerData);
       if (result) {
         toast.success('Assignment taken successfully!');
-        // Navigate to the chat page for this assignment
         navigate(`/assignment-chat/${assignmentId}`);
       }
     } catch (error) {
       console.error('Error taking assignment:', error);
       toast.error('Failed to take assignment');
     } finally {
-      // Remove from processing state
       setProcessingIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(assignmentId);
@@ -89,10 +89,8 @@ const WriterDashboard = () => {
   };
 
   const handleStatusUpdate = async (assignmentId: string, status: string) => {
-    // Add this assignment to updating progress state
     setUpdatingProgressIds(prev => new Set(prev).add(assignmentId));
     try {
-      // Update status and completed_date if status is 'completed'
       const updates: {
         status: string;
         completed_date?: string | null;
@@ -102,64 +100,18 @@ const WriterDashboard = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Set completed date if status is completed
       if (status === 'completed') {
         updates.completed_date = new Date().toISOString();
       } else {
         updates.completed_date = null;
       }
+      
       await updateAssignment(assignmentId, updates);
-
-      // Find the assignment user_id to send notification
-      const assignment = activeAssignments.find(a => a.id === assignmentId);
-      if (assignment && assignment.user_id) {
-        // Send notification to student about status change
-        const statusMessages = {
-          'in_progress': `I'm currently working on your assignment "${assignment.title}".`,
-          'almost_done': `I'm almost done with your assignment "${assignment.title}". It should be completed soon.`,
-          'completed': `Great news! I've completed your assignment "${assignment.title}". Please review it and let me know if you have any questions.`
-        };
-        const message = statusMessages[status as keyof typeof statusMessages];
-
-        // Send email notification to student about the status change
-        try {
-          console.log('Sending email notification about status change');
-
-          // Use the full URL with the correct project reference for the function call
-          const projectRef = "ihvgtaxvrqdnrgdddhdx";
-
-          // Get writer details
-          const {
-            data: writerData,
-            error: writerError
-          } = await supabase.from('profiles').select('id, full_name, email').eq('id', userId).single();
-          if (writerError) {
-            console.error('Error fetching writer data:', writerError);
-          }
-          await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-              // No authorization header needed since we've made the function public
-            },
-            body: JSON.stringify({
-              type: 'assignment_status_update',
-              assignment: assignment,
-              status: status,
-              writer: writerData
-            })
-          });
-          console.log('Status update notification sent');
-        } catch (notifyError) {
-          console.error('Error sending status update notification:', notifyError);
-        }
-      }
       toast.success(`Assignment status updated to ${status.replace('_', ' ')}`);
     } catch (error) {
       console.error('Error updating assignment status:', error);
       toast.error('Failed to update assignment status');
     } finally {
-      // Remove from updating state
       setUpdatingProgressIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(assignmentId);
@@ -204,15 +156,11 @@ const WriterDashboard = () => {
     setEmailingAssignment(assignment);
   };
 
-  // Updated Student information display component to use is_verified_account flag
-  const StudentInformation = ({
-    assignment
-  }: {
-    assignment: Assignment;
-  }) => {
-    // If student has a verified account, fetch details from database 
+  // Student information display component
+  const StudentInformation = ({ assignment }: { assignment: Assignment }) => {
     if (assignment.is_verified_account) {
-      return <div className="flex flex-col gap-1">
+      return (
+        <div className="flex flex-col gap-1">
           <div className="flex items-center text-sm font-medium">
             <User className="h-3 w-3 mr-1 text-gray-500" />
             {assignment.student_name || 'Student'}
@@ -225,14 +173,17 @@ const WriterDashboard = () => {
             <Mail className="h-3 w-3 mr-1" />
             {assignment.student_email}
           </div>
-          {assignment.student_phone && <div className="flex items-center text-xs text-gray-500">
+          {assignment.student_phone && (
+            <div className="flex items-center text-xs text-gray-500">
               <Phone className="h-3 w-3 mr-1" />
               {assignment.student_phone}
-            </div>}
-        </div>;
+            </div>
+          )}
+        </div>
+      );
     } else {
-      // If student does not have a verified account, show details provided during submission
-      return <div className="flex flex-col gap-1">
+      return (
+        <div className="flex flex-col gap-1">
           <div className="flex items-center text-sm font-medium">
             <User className="h-3 w-3 mr-1 text-gray-500" />
             {assignment.student_name || 'Anonymous Student'}
@@ -249,25 +200,32 @@ const WriterDashboard = () => {
             <Phone className="h-3 w-3 mr-1" />
             {assignment.student_phone || 'No phone provided'}
           </div>
-        </div>;
+        </div>
+      );
     }
   };
 
   const AvailableAssignments = () => {
-    // Filter for assignments that have not been taken yet
-    const availableAssignments = activeAssignments.filter(assignment => assignment.status === 'submitted' && !assignment.writer_id);
+    const availableAssignments = activeAssignments.filter(assignment => 
+      assignment.status === 'submitted' && !assignment.writer_id
+    );
+    
     if (availableAssignments.length === 0) {
-      return <div className="text-center py-12">
-          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4 dark:bg-gray-800">
-            <BookOpen className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
+            <BookOpen className="h-8 w-8 text-gray-500" />
           </div>
           <h3 className="text-lg font-medium">No Available Assignments</h3>
-          <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mt-1">
+          <p className="text-gray-500 max-w-sm mx-auto mt-1">
             There are currently no available assignments to take. Check back later!
           </p>
-        </div>;
+        </div>
+      );
     }
-    return <div className="space-y-4">
+    
+    return (
+      <div className="space-y-4">
         <div className="overflow-auto">
           <Table>
             <TableHeader>
@@ -281,16 +239,21 @@ const WriterDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {availableAssignments.map(assignment => <TableRow key={assignment.id}>
+              {availableAssignments.map(assignment => (
+                <TableRow key={assignment.id}>
                   <TableCell>
                     <div className="font-medium text-gray-800">{assignment.title}</div>
-                    {assignment.description && <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    {assignment.description && (
+                      <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                         {assignment.description}
-                      </div>}
-                    {assignment.file_urls && assignment.file_urls.length > 0 && <div className="mt-1 text-xs text-gray-500 flex items-center">
+                      </div>
+                    )}
+                    {assignment.file_urls && assignment.file_urls.length > 0 && (
+                      <div className="mt-1 text-xs text-gray-500 flex items-center">
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
-                      </div>}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-gray-700">{assignment.subject}</TableCell>
                   <TableCell>
@@ -311,11 +274,19 @@ const WriterDashboard = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button onClick={() => handleTakeAssignment(assignment.id)} disabled={processingIds.has(assignment.id)} size="sm">
-                        {processingIds.has(assignment.id) ? <span className="flex items-center gap-1">
-                              <span className="animate-spin h-3 w-3 border-2 border-primary-foreground border-t-transparent rounded-full mr-1"></span>
-                              Processing...
-                            </span> : 'Take Assignment'}
+                      <Button 
+                        onClick={() => handleTakeAssignment(assignment.id)} 
+                        disabled={processingIds.has(assignment.id)} 
+                        size="sm"
+                      >
+                        {processingIds.has(assignment.id) ? (
+                          <span className="flex items-center gap-1">
+                            <span className="animate-spin h-3 w-3 border-2 border-primary-foreground border-t-transparent rounded-full mr-1"></span>
+                            Processing...
+                          </span>
+                        ) : (
+                          'Take Assignment'
+                        )}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleViewAssignment(assignment)}>
                         <Eye className="mr-1 h-3 w-3" />
@@ -323,28 +294,36 @@ const WriterDashboard = () => {
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>)}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
-      </div>;
+      </div>
+    );
   };
 
   const MyAssignments = () => {
-    // Filter for assignments that have been taken by this writer
-    const myAssignments = activeAssignments.filter(assignment => assignment.writer_id === userId && assignment.status !== 'completed');
+    const myAssignments = activeAssignments.filter(assignment => 
+      assignment.writer_id === userId && assignment.status !== 'completed'
+    );
+    
     if (myAssignments.length === 0) {
-      return <div className="text-center py-12">
-          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4 dark:bg-gray-800">
-            <Clock className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
+            <Clock className="h-8 w-8 text-gray-500" />
           </div>
           <h3 className="text-lg font-medium">No Active Assignments</h3>
-          <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mt-1">
+          <p className="text-gray-500 max-w-sm mx-auto mt-1">
             You haven't taken any assignments yet. Browse available assignments to get started.
           </p>
-        </div>;
+        </div>
+      );
     }
-    return <div className="space-y-4">
+    
+    return (
+      <div className="space-y-4">
         <div className="overflow-auto">
           <Table>
             <TableHeader>
@@ -359,16 +338,21 @@ const WriterDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {myAssignments.map(assignment => <TableRow key={assignment.id}>
+              {myAssignments.map(assignment => (
+                <TableRow key={assignment.id}>
                   <TableCell>
                     <div className="font-medium text-gray-800">{assignment.title}</div>
-                    {assignment.description && <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    {assignment.description && (
+                      <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                         {assignment.description}
-                      </div>}
-                    {assignment.file_urls && assignment.file_urls.length > 0 && <div className="mt-1 text-xs text-gray-500 flex items-center">
+                      </div>
+                    )}
+                    {assignment.file_urls && assignment.file_urls.length > 0 && (
+                      <div className="mt-1 text-xs text-gray-500 flex items-center">
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
-                      </div>}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-gray-700">{assignment.subject}</TableCell>
                   <TableCell>
@@ -389,7 +373,11 @@ const WriterDashboard = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Select value={assignment.status} onValueChange={value => handleStatusUpdate(assignment.id, value)} disabled={updatingProgressIds.has(assignment.id)}>
+                      <Select 
+                        value={assignment.status} 
+                        onValueChange={(value) => handleStatusUpdate(assignment.id, value)} 
+                        disabled={updatingProgressIds.has(assignment.id)}
+                      >
                         <SelectTrigger className="w-[140px] bg-white">
                           <SelectValue placeholder="Update Status" />
                         </SelectTrigger>
@@ -399,7 +387,9 @@ const WriterDashboard = () => {
                           <SelectItem value="completed">Completed</SelectItem>
                         </SelectContent>
                       </Select>
-                      {updatingProgressIds.has(assignment.id) && <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>}
+                      {updatingProgressIds.has(assignment.id) && (
+                        <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -414,26 +404,32 @@ const WriterDashboard = () => {
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>)}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
-      </div>;
+      </div>
+    );
   };
 
   const CompletedAssignments = () => {
     if (completedAssignments.length === 0) {
-      return <div className="text-center py-12">
-          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4 dark:bg-gray-800">
-            <CheckCircle className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto bg-gray-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
+            <CheckCircle className="h-8 w-8 text-gray-500" />
           </div>
           <h3 className="text-lg font-medium">No Completed Assignments</h3>
-          <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto mt-1">
+          <p className="text-gray-500 max-w-sm mx-auto mt-1">
             You haven't completed any assignments yet.
           </p>
-        </div>;
+        </div>
+      );
     }
-    return <div className="space-y-4">
+    
+    return (
+      <div className="space-y-4">
         <div className="overflow-auto">
           <Table>
             <TableHeader>
@@ -447,13 +443,16 @@ const WriterDashboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {completedAssignments.map(assignment => <TableRow key={assignment.id}>
+              {completedAssignments.map(assignment => (
+                <TableRow key={assignment.id}>
                   <TableCell>
                     <div className="font-medium text-gray-800">{assignment.title}</div>
-                    {assignment.file_urls && assignment.file_urls.length > 0 && <div className="mt-1 text-xs text-gray-500 flex items-center">
+                    {assignment.file_urls && assignment.file_urls.length > 0 && (
+                      <div className="mt-1 text-xs text-gray-500 flex items-center">
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
-                      </div>}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-gray-700">{assignment.subject}</TableCell>
                   <TableCell>
@@ -482,20 +481,25 @@ const WriterDashboard = () => {
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>)}
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </div>
-      </div>;
+      </div>
+    );
   };
 
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       {/* Contact Messages Button - Only for specific writers */}
-      {showMessagesButton && <div className="flex justify-end">
+      {showMessagesButton && (
+        <div className="flex justify-end">
           <Button variant="outline" onClick={() => setShowContactMessages(true)} className="mb-2">
             <MessageCircle className="mr-2 h-4 w-4" /> View Contact Messages
           </Button>
-        </div>}
+        </div>
+      )}
 
       <Tabs defaultValue="available" className="w-full">
         <TabsList className="grid grid-cols-3 mb-8 bg-gray-100 border border-gray-200">
@@ -507,13 +511,17 @@ const WriterDashboard = () => {
         <TabsContent value="available" className="w-full">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
+              <p className="text-gray-600 text-sm mb-6">
                 These assignments have been submitted by students and are available for you to take.
               </p>
-              {isLoading ? <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
-                </div> : <AvailableAssignments />}
+                  <p className="mt-2 text-sm text-gray-500">Loading assignments...</p>
+                </div>
+              ) : (
+                <AvailableAssignments />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -521,13 +529,17 @@ const WriterDashboard = () => {
         <TabsContent value="active" className="w-full">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
+              <p className="text-gray-600 text-sm mb-6">
                 These are assignments you've taken and are currently working on.
               </p>
-              {isLoading ? <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
-                </div> : <MyAssignments />}
+                  <p className="mt-2 text-sm text-gray-500">Loading assignments...</p>
+                </div>
+              ) : (
+                <MyAssignments />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -535,27 +547,43 @@ const WriterDashboard = () => {
         <TabsContent value="completed" className="w-full">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
+              <p className="text-gray-600 text-sm mb-6">
                 These are assignments you've successfully completed.
               </p>
-              {isLoading ? <div className="text-center py-8">
+              {isLoading ? (
+                <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
-                </div> : <CompletedAssignments />}
+                  <p className="mt-2 text-sm text-gray-500">Loading assignments...</p>
+                </div>
+              ) : (
+                <CompletedAssignments />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* Assignment Details Modal */}
-      <AssignmentDetailsModal assignment={viewingAssignment} isOpen={viewingAssignment !== null} onClose={() => setViewingAssignment(null)} />
+      <AssignmentDetailsModal 
+        assignment={viewingAssignment} 
+        isOpen={viewingAssignment !== null} 
+        onClose={() => setViewingAssignment(null)} 
+      />
 
       {/* Email Student Modal */}
-      <WriterEmailModal assignment={emailingAssignment} isOpen={emailingAssignment !== null} onClose={() => setEmailingAssignment(null)} />
+      <WriterEmailModal 
+        assignment={emailingAssignment} 
+        isOpen={emailingAssignment !== null} 
+        onClose={() => setEmailingAssignment(null)} 
+      />
 
       {/* Contact Messages Modal */}
-      <ContactMessagesModal isOpen={showContactMessages} onClose={() => setShowContactMessages(false)} />
-    </div>;
+      <ContactMessagesModal 
+        isOpen={showContactMessages} 
+        onClose={() => setShowContactMessages(false)} 
+      />
+    </div>
+  );
 };
 
 export default WriterDashboard;
