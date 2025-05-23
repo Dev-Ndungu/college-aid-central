@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -51,35 +50,48 @@ const StudentDashboard = () => {
 
     if (isMobile) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-3 -mx-4">
           {activeAssignments.map(assignment => (
-            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
-              <div className="mb-2">
-                <h3 className="font-medium">{assignment.title}</h3>
+            <div key={assignment.id} className="bg-white border-l-0 border-r-0 border-t border-b border-gray-200 px-4 py-4 shadow-sm">
+              <div className="mb-3">
+                <h3 className="font-semibold text-lg leading-tight mb-1">{assignment.title}</h3>
                 {assignment.description && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
                     {assignment.description}
                   </p>
                 )}
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <div>
-                  <p className="text-gray-500">Subject: {assignment.subject}</p>
-                  <p className="text-gray-500">
-                    Due: {assignment.due_date ? 
-                      new Date(assignment.due_date).toLocaleDateString() : 
-                      'Not set'
-                    }
-                  </p>
-                  {assignment.price !== null && assignment.price !== undefined && (
-                    <p className="text-gray-500 flex items-center">
+              
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">Subject: {assignment.subject}</p>
+                  <AssignmentStatusBadge status={assignment.status} />
+                </div>
+                
+                <p className="text-sm text-gray-500">
+                  Due: {assignment.due_date ? 
+                    new Date(assignment.due_date).toLocaleDateString() : 
+                    'Not set'
+                  }
+                </p>
+                
+                {assignment.price !== null && assignment.price !== undefined && (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500 flex items-center">
                       <DollarSign className="h-3 w-3 mr-1" />
                       Price: ${assignment.price}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {assignment.paid && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                          Paid
+                        </span>
+                      )}
                       {!assignment.paid && assignment.price > 0 && (
                         <Button 
                           variant="default" 
                           size="sm"
-                          className="ml-2 h-6"
+                          className="h-7 px-3 text-xs font-medium"
                           onClick={(e) => {
                             e.stopPropagation();
                             handlePayment(assignment.id);
@@ -88,28 +100,23 @@ const StudentDashboard = () => {
                           Pay Now
                         </Button>
                       )}
-                      {assignment.paid && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                          Paid
-                        </span>
-                      )}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  <AssignmentStatusBadge status={assignment.status} />
-                  {assignment.status === 'submitted' && !assignment.writer_id && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8"
-                      onClick={() => handleEditAssignment(assignment.id)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-1" /> Edit
-                    </Button>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                )}
               </div>
+              
+              {assignment.status === 'submitted' && !assignment.writer_id && (
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="h-8 px-3 text-xs"
+                    onClick={() => handleEditAssignment(assignment.id)}
+                  >
+                    <Edit2 className="h-3 w-3 mr-1" /> Edit
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -220,11 +227,11 @@ const StudentDashboard = () => {
 
     if (isMobile) {
       return (
-        <div className="space-y-4">
+        <div className="space-y-3 -mx-4">
           {completedAssignments.map(assignment => (
-            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
-              <div className="mb-2">
-                <h3 className="font-medium">{assignment.title}</h3>
+            <div key={assignment.id} className="bg-white border-l-0 border-r-0 border-t border-b border-gray-200 px-4 py-4 shadow-sm">
+              <div className="mb-3">
+                <h3 className="font-semibold text-lg leading-tight">{assignment.title}</h3>
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <p className="text-gray-500">Subject: {assignment.subject}</p>
@@ -319,7 +326,7 @@ const StudentDashboard = () => {
                 Assignments that are in progress or awaiting a writer.
               </CardDescription>
             </CardHeader>
-            <CardContent className={isMobile ? 'px-4' : ''}>
+            <CardContent className={isMobile ? 'px-0' : ''}>
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -340,7 +347,7 @@ const StudentDashboard = () => {
                 Assignments that have been completed by writers.
               </CardDescription>
             </CardHeader>
-            <CardContent className={isMobile ? 'px-4' : ''}>
+            <CardContent className={isMobile ? 'px-0' : ''}>
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
