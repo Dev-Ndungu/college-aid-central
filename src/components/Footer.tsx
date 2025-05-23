@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Mail, Phone } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Mail, Phone, FileText } from 'lucide-react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -75,6 +75,28 @@ const Footer = () => {
                 <a href="tel:+1234567890" className="text-gray-200 hover:text-white transition-colors">
                   (123) 456-7890
                 </a>
+              </li>
+            </ul>
+
+            <h3 className="text-lg font-semibold mt-6 mb-4">Legal</h3>
+            <ul className="space-y-2">
+              <li className="flex items-center gap-2">
+                <FileText size={16} />
+                <Link to="/terms-and-conditions" className="text-gray-200 hover:text-white transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li className="flex items-center gap-2">
+                <FileText size={16} />
+                <Link to="/privacy-policy" className="text-gray-200 hover:text-white transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li className="flex items-center gap-2">
+                <FileText size={16} />
+                <Link to="/refund-policy" className="text-gray-200 hover:text-white transition-colors">
+                  Refund Policy
+                </Link>
               </li>
             </ul>
           </div>

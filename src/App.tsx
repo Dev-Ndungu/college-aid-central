@@ -20,6 +20,8 @@ import HowItWorksPage from '@/pages/HowItWorks';
 import AssignmentSubmission from '@/pages/AssignmentSubmission';
 import ResetPassword from '@/pages/ResetPassword';
 import TermsAndConditions from '@/pages/TermsAndConditions';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import RefundPolicy from '@/pages/RefundPolicy';
 import AssignmentChat from '@/pages/AssignmentChat';
 import EditAssignment from '@/pages/EditAssignment';
 
@@ -43,6 +45,8 @@ function App() {
               <Route path="/edit-assignment/:id" element={<EditAssignment />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
               <Route path="/assignment-chat/:assignmentId" element={<AssignmentChat />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
