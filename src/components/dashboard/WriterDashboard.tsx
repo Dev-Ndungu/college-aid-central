@@ -14,6 +14,14 @@ import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
 import WriterEmailModal from './WriterEmailModal';
 import ContactMessagesModal from './ContactMessagesModal';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
 
 const WriterDashboard = () => {
   const {
@@ -261,20 +269,20 @@ const WriterDashboard = () => {
     }
     return <div className="space-y-4">
         <div className="overflow-auto">
-          <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-gray-100/70">
-              <tr>
-                <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
-                <th className="p-3 text-left font-medium text-gray-600">Subject</th>
-                <th className="p-3 text-left font-medium text-gray-600">Student Information</th>
-                <th className="p-3 text-left font-medium text-gray-600">Posted</th>
-                <th className="p-3 text-left font-medium text-gray-600">Status</th>
-                <th className="p-3 text-left font-medium text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {availableAssignments.map(assignment => <tr key={assignment.id} className="border-b border-gray-200">
-                  <td className="p-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Assignment</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Student Information</TableHead>
+                <TableHead>Posted</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {availableAssignments.map(assignment => <TableRow key={assignment.id}>
+                  <TableCell>
                     <div className="font-medium text-gray-800">{assignment.title}</div>
                     {assignment.description && <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                         {assignment.description}
@@ -283,25 +291,25 @@ const WriterDashboard = () => {
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
                       </div>}
-                  </td>
-                  <td className="p-3 text-gray-700">{assignment.subject}</td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell className="text-gray-700">{assignment.subject}</TableCell>
+                  <TableCell>
                     <StudentInformation assignment={assignment} />
-                  </td>
-                  <td className="p-3 text-gray-600 text-xs">
+                  </TableCell>
+                  <TableCell className="text-gray-600 text-xs">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span title={formatDate(assignment.created_at)}>
                         {formatRelativeDate(assignment.created_at)}
                       </span>
                     </div>
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
                       Submitted
                     </span>
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex gap-2">
                       <Button onClick={() => handleTakeAssignment(assignment.id)} disabled={processingIds.has(assignment.id)} size="sm">
                         {processingIds.has(assignment.id) ? <span className="flex items-center gap-1">
@@ -314,10 +322,10 @@ const WriterDashboard = () => {
                         View Details
                       </Button>
                     </div>
-                  </td>
-                </tr>)}
-            </tbody>
-          </table>
+                  </TableCell>
+                </TableRow>)}
+            </TableBody>
+          </Table>
         </div>
       </div>;
   };
@@ -338,21 +346,21 @@ const WriterDashboard = () => {
     }
     return <div className="space-y-4">
         <div className="overflow-auto">
-          <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-gray-100/70">
-              <tr>
-                <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
-                <th className="p-3 text-left font-medium text-gray-600">Subject</th>
-                <th className="p-3 text-left font-medium text-gray-600">Student Information</th>
-                <th className="p-3 text-left font-medium text-gray-600">Posted</th>
-                <th className="p-3 text-left font-medium text-gray-600">Status</th>
-                <th className="p-3 text-left font-medium text-gray-600">Update Progress</th>
-                <th className="p-3 text-left font-medium text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {myAssignments.map(assignment => <tr key={assignment.id} className="border-b border-gray-200">
-                  <td className="p-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Assignment</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Student Information</TableHead>
+                <TableHead>Posted</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Update Progress</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {myAssignments.map(assignment => <TableRow key={assignment.id}>
+                  <TableCell>
                     <div className="font-medium text-gray-800">{assignment.title}</div>
                     {assignment.description && <div className="text-xs text-gray-500 mt-1 line-clamp-2">
                         {assignment.description}
@@ -361,25 +369,25 @@ const WriterDashboard = () => {
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
                       </div>}
-                  </td>
-                  <td className="p-3 text-gray-700">{assignment.subject}</td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell className="text-gray-700">{assignment.subject}</TableCell>
+                  <TableCell>
                     <StudentInformation assignment={assignment} />
-                  </td>
-                  <td className="p-3 text-gray-600 text-xs">
+                  </TableCell>
+                  <TableCell className="text-gray-600 text-xs">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span title={formatDate(assignment.created_at)}>
                         {formatRelativeDate(assignment.created_at)}
                       </span>
                     </div>
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-sm border ${getStatusBadgeClass(assignment.status)}`}>
                       {getStatusDisplay(assignment.status)}
                     </span>
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <Select value={assignment.status} onValueChange={value => handleStatusUpdate(assignment.id, value)} disabled={updatingProgressIds.has(assignment.id)}>
                         <SelectTrigger className="w-[140px] bg-white">
@@ -393,8 +401,8 @@ const WriterDashboard = () => {
                       </Select>
                       {updatingProgressIds.has(assignment.id) && <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>}
                     </div>
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleViewAssignment(assignment)}>
                         <Eye className="mr-1 h-3 w-3" />
@@ -405,10 +413,10 @@ const WriterDashboard = () => {
                         Email Student
                       </Button>
                     </div>
-                  </td>
-                </tr>)}
-            </tbody>
-          </table>
+                  </TableCell>
+                </TableRow>)}
+            </TableBody>
+          </Table>
         </div>
       </div>;
   };
@@ -427,42 +435,42 @@ const WriterDashboard = () => {
     }
     return <div className="space-y-4">
         <div className="overflow-auto">
-          <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-gray-100/70">
-              <tr>
-                <th className="p-3 text-left font-medium text-gray-600">Assignment</th>
-                <th className="p-3 text-left font-medium text-gray-600">Subject</th>
-                <th className="p-3 text-left font-medium text-gray-600">Student Information</th>
-                <th className="p-3 text-left font-medium text-gray-600">Posted</th>
-                <th className="p-3 text-left font-medium text-gray-600">Completed Date</th>
-                <th className="p-3 text-left font-medium text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {completedAssignments.map(assignment => <tr key={assignment.id} className="border-b border-gray-200">
-                  <td className="p-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Assignment</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>Student Information</TableHead>
+                <TableHead>Posted</TableHead>
+                <TableHead>Completed Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {completedAssignments.map(assignment => <TableRow key={assignment.id}>
+                  <TableCell>
                     <div className="font-medium text-gray-800">{assignment.title}</div>
                     {assignment.file_urls && assignment.file_urls.length > 0 && <div className="mt-1 text-xs text-gray-500 flex items-center">
                         <BookOpen className="h-3 w-3 mr-1" />
                         {assignment.file_urls.length} attachment{assignment.file_urls.length !== 1 ? 's' : ''}
                       </div>}
-                  </td>
-                  <td className="p-3 text-gray-700">{assignment.subject}</td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell className="text-gray-700">{assignment.subject}</TableCell>
+                  <TableCell>
                     <StudentInformation assignment={assignment} />
-                  </td>
-                  <td className="p-3 text-gray-600 text-xs">
+                  </TableCell>
+                  <TableCell className="text-gray-600 text-xs">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       <span title={formatDate(assignment.created_at)}>
                         {formatRelativeDate(assignment.created_at)}
                       </span>
                     </div>
-                  </td>
-                  <td className="p-3 text-gray-700">
+                  </TableCell>
+                  <TableCell className="text-gray-700">
                     {assignment.completed_date ? formatDate(assignment.completed_date) : 'N/A'}
-                  </td>
-                  <td className="p-3">
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleViewAssignment(assignment)}>
                         <Eye className="mr-1 h-3 w-3" />
@@ -473,10 +481,10 @@ const WriterDashboard = () => {
                         Email Student
                       </Button>
                     </div>
-                  </td>
-                </tr>)}
-            </tbody>
-          </table>
+                  </TableCell>
+                </TableRow>)}
+            </TableBody>
+          </Table>
         </div>
       </div>;
   };
@@ -499,7 +507,6 @@ const WriterDashboard = () => {
         <TabsContent value="available" className="w-full">
           <Card>
             <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Available Assignments</h2>
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
                 These assignments have been submitted by students and are available for you to take.
               </p>
@@ -514,7 +521,6 @@ const WriterDashboard = () => {
         <TabsContent value="active" className="w-full">
           <Card>
             <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">My Active Assignments</h2>
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
                 These are assignments you've taken and are currently working on.
               </p>
@@ -529,7 +535,6 @@ const WriterDashboard = () => {
         <TabsContent value="completed" className="w-full">
           <Card>
             <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold mb-4">Completed Assignments</h2>
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
                 These are assignments you've successfully completed.
               </p>
