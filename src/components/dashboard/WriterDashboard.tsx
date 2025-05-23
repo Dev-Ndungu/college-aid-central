@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX, MessageCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +14,7 @@ import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
 import WriterEmailModal from './WriterEmailModal';
 import ContactMessagesModal from './ContactMessagesModal';
+
 const WriterDashboard = () => {
   const {
     activeAssignments,
@@ -46,6 +48,7 @@ const WriterDashboard = () => {
     if (!dateString) return 'N/A';
     return formatRelative(new Date(dateString), new Date());
   };
+
   const handleTakeAssignment = async (assignmentId: string) => {
     // Add this assignment to processing state
     setProcessingIds(prev => new Set(prev).add(assignmentId));
@@ -76,6 +79,7 @@ const WriterDashboard = () => {
       });
     }
   };
+
   const handleStatusUpdate = async (assignmentId: string, status: string) => {
     // Add this assignment to updating progress state
     setUpdatingProgressIds(prev => new Set(prev).add(assignmentId));
@@ -183,9 +187,11 @@ const WriterDashboard = () => {
         return "Submitted";
     }
   };
+
   const handleViewAssignment = (assignment: Assignment) => {
     setViewingAssignment(assignment);
   };
+
   const handleOpenEmailModal = (assignment: Assignment) => {
     setEmailingAssignment(assignment);
   };
@@ -238,6 +244,7 @@ const WriterDashboard = () => {
         </div>;
     }
   };
+
   const AvailableAssignments = () => {
     // Filter for assignments that have not been taken yet
     const availableAssignments = activeAssignments.filter(assignment => assignment.status === 'submitted' && !assignment.writer_id);
@@ -253,13 +260,6 @@ const WriterDashboard = () => {
         </div>;
     }
     return <div className="space-y-4">
-        <div className="bg-gray-100/60 border border-gray-200 p-3 rounded-lg text-sm">
-          <h3 className="font-medium mb-1 text-gray-700">Available Assignments</h3>
-          <p className="text-gray-600 dark:text-gray-300 text-xs">
-            These assignments have been submitted by students and are available for you to take.
-          </p>
-        </div>
-
         <div className="overflow-auto">
           <table className="w-full min-w-[800px] text-sm">
             <thead className="bg-gray-100/70">
@@ -321,6 +321,7 @@ const WriterDashboard = () => {
         </div>
       </div>;
   };
+
   const MyAssignments = () => {
     // Filter for assignments that have been taken by this writer
     const myAssignments = activeAssignments.filter(assignment => assignment.writer_id === userId && assignment.status !== 'completed');
@@ -336,13 +337,6 @@ const WriterDashboard = () => {
         </div>;
     }
     return <div className="space-y-4">
-        <div className="bg-gray-100/60 p-3 rounded-lg border border-gray-200 text-sm">
-          <h3 className="font-medium mb-1 text-gray-700">My Active Assignments</h3>
-          <p className="text-gray-600 text-xs">
-            These are assignments you've taken and are currently working on.
-          </p>
-        </div>
-
         <div className="overflow-auto">
           <table className="w-full min-w-[800px] text-sm">
             <thead className="bg-gray-100/70">
@@ -418,6 +412,7 @@ const WriterDashboard = () => {
         </div>
       </div>;
   };
+
   const CompletedAssignments = () => {
     if (completedAssignments.length === 0) {
       return <div className="text-center py-12">
@@ -431,13 +426,6 @@ const WriterDashboard = () => {
         </div>;
     }
     return <div className="space-y-4">
-        <div className="bg-gray-100/60 dark:bg-gray-100/20 p-3 rounded-lg border border-gray-200 text-sm">
-          <h3 className="font-medium mb-1 text-gray-700">Completed Assignments</h3>
-          <p className="text-gray-600 dark:text-green-300/70 text-xs">
-            These are assignments you've successfully completed.
-          </p>
-        </div>
-
         <div className="overflow-auto">
           <table className="w-full min-w-[800px] text-sm">
             <thead className="bg-gray-100/70">
@@ -492,6 +480,7 @@ const WriterDashboard = () => {
         </div>
       </div>;
   };
+
   return <div className="space-y-6">
       {/* Contact Messages Button - Only for specific writers */}
       {showMessagesButton && <div className="flex justify-end">
@@ -509,8 +498,11 @@ const WriterDashboard = () => {
         
         <TabsContent value="available" className="w-full">
           <Card>
-            
-            <CardContent className="pt-0">
+            <CardContent className="pt-6">
+              <h2 className="text-xl font-semibold mb-4">Available Assignments</h2>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
+                These assignments have been submitted by students and are available for you to take.
+              </p>
               {isLoading ? <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
@@ -521,8 +513,11 @@ const WriterDashboard = () => {
         
         <TabsContent value="active" className="w-full">
           <Card>
-            
-            <CardContent className="pt-0">
+            <CardContent className="pt-6">
+              <h2 className="text-xl font-semibold mb-4">My Active Assignments</h2>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
+                These are assignments you've taken and are currently working on.
+              </p>
               {isLoading ? <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
@@ -533,8 +528,11 @@ const WriterDashboard = () => {
         
         <TabsContent value="completed" className="w-full">
           <Card>
-            
-            <CardContent className="pt-0">
+            <CardContent className="pt-6">
+              <h2 className="text-xl font-semibold mb-4">Completed Assignments</h2>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
+                These are assignments you've successfully completed.
+              </p>
               {isLoading ? <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading assignments...</p>
@@ -554,4 +552,5 @@ const WriterDashboard = () => {
       <ContactMessagesModal isOpen={showContactMessages} onClose={() => setShowContactMessages(false)} />
     </div>;
 };
+
 export default WriterDashboard;
