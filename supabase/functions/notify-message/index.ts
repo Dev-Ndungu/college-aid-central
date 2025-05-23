@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -14,6 +15,8 @@ serve(async (req) => {
 
   try {
     const { type, assignment, writer, status, priceUpdate } = await req.json();
+    
+    console.log(`Processing notification type: ${type}`);
     
     // Initialize Supabase client with service role to bypass RLS
     const supabaseAdmin = createClient(
@@ -96,8 +99,8 @@ serve(async (req) => {
         recipientEmail = assignmentData.student_email;
         emailSubject = `Writer Assigned to Your Assignment: ${assignmentData.title}`;
     
-        const writerName = writer?.full_name || 'A writer';
-        const writerEmail = writer?.email || 'the writer';
+        const assignmentTakenWriterName = writer?.full_name || 'A writer';
+        const assignmentTakenWriterEmail = writer?.email || 'the writer';
     
         emailBody = `
 <!DOCTYPE html>
@@ -119,8 +122,8 @@ serve(async (req) => {
     </div>
     <div class="content">
       <p>Hello ${assignmentData.student_name || assignmentData.student_email},</p>
-      <p>${writerName} has been assigned to your assignment <strong>${assignmentData.title}</strong>.</p>
-      <p>You can communicate with the writer at ${writerEmail} for any clarifications or updates.</p>
+      <p>${assignmentTakenWriterName} has been assigned to your assignment <strong>${assignmentData.title}</strong>.</p>
+      <p>You can communicate with the writer at ${assignmentTakenWriterEmail} for any clarifications or updates.</p>
     </div>
     <div class="footer">
       <p>This email was sent from AssignmentHub. If you have any questions, please contact us at inquiries@assignmenthub.org</p>
@@ -139,7 +142,7 @@ serve(async (req) => {
         recipientEmail = assignmentData.student_email;
         emailSubject = `Assignment Status Updated: ${assignmentData.title}`;
     
-        const writerName = writer?.full_name || 'Your writer';
+        const statusUpdateWriterName = writer?.full_name || 'Your writer';
         const statusText = status ? `to ${status}` : 'with an update';
     
         emailBody = `
@@ -162,7 +165,7 @@ serve(async (req) => {
     </div>
     <div class="content">
       <p>Hello ${assignmentData.student_name || assignmentData.student_email},</p>
-      <p>${writerName} has updated the status of your assignment <strong>${assignmentData.title}</strong> ${statusText}.</p>
+      <p>${statusUpdateWriterName} has updated the status of your assignment <strong>${assignmentData.title}</strong> ${statusText}.</p>
       <p>Please check your dashboard for more details.</p>
       <p style="text-align: center; margin-top: 30px;">
         <a href="https://assignmenthub.org/#/dashboard" class="button">View Dashboard</a>
@@ -187,7 +190,7 @@ serve(async (req) => {
         recipientEmail = assignmentData.student_email;
         emailSubject = `Price Update for Your Assignment: ${assignmentData.title}`;
         
-        const writerName = writer?.full_name || 'Your writer';
+        const priceUpdateWriterName = writer?.full_name || 'Your writer';
         
         emailBody = `
 <!DOCTYPE html>
@@ -209,7 +212,7 @@ serve(async (req) => {
     </div>
     <div class="content">
       <p>Hello ${assignmentData.student_name || assignmentData.student_email},</p>
-      <p>${writerName} has updated the price for your assignment <strong>${assignmentData.title}</strong>.</p>
+      <p>${priceUpdateWriterName} has updated the price for your assignment <strong>${assignmentData.title}</strong>.</p>
       <p><strong>New Price:</strong> ${formattedPrice}</p>
       <p>You can now proceed with payment on your dashboard to complete the transaction.</p>
       <p style="text-align: center; margin-top: 30px;">
@@ -224,10 +227,101 @@ serve(async (req) => {
 </html>
         `;
         break;
+
+      case 'assignment_progress_update':
+        if (!assignmentData.student_email) {
+          throw new Error(`No student email available for assignment ${assignmentData.id}`);
+        }
+        
+        recipientEmail = assignmentData.student_email;
+        emailSubject = `Progress Update for Your Assignment: ${assignmentData.title}`;
+        
+        const progressUpdateWriterName = writer?.full_name || 'Your writer';
+        const progressPercent = assignmentData.progress || 0;
+        
+        emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #4F46E5; padding: 15px; text-align: center; color: white; }
+    .content { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; }
+    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+    .button { background-color: #4F46E5; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block; }
+    .progress-bar { width: 100%; height: 20px; background-color: #e0e0e0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+    .progress-fill { height: 100%; background-color: #4F46E5; width: ${progressPercent}%; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Assignment Progress Update</h2>
+    </div>
+    <div class="content">
+      <p>Hello ${assignmentData.student_name || assignmentData.student_email},</p>
+      <p>${progressUpdateWriterName} has updated the progress on your assignment <strong>${assignmentData.title}</strong>.</p>
+      <p><strong>Current Progress:</strong> ${progressPercent}%</p>
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+      <p>You can check your dashboard for more details about your assignment.</p>
+      <p style="text-align: center; margin-top: 30px;">
+        <a href="https://assignmenthub.org/#/dashboard" class="button">View Dashboard</a>
+      </p>
+    </div>
+    <div class="footer">
+      <p>This email was sent from AssignmentHub. If you have any questions, please contact us at inquiries@assignmenthub.org</p>
+    </div>
+  </div>
+</body>
+</html>
+        `;
+        break;
+
+      case 'writer_direct_email':
+        const { recipient, sender, message } = await req.json();
+        
+        recipientEmail = recipient.email;
+        emailSubject = message.subject;
+        
+        emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #4F46E5; padding: 15px; text-align: center; color: white; }
+    .content { padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; }
+    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #777; }
+    .message-body { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Message from Assignment Hub</h2>
+    </div>
+    <div class="content">
+      <div class="message-body">${message.body}</div>
+    </div>
+    <div class="footer">
+      <p>This email was sent from AssignmentHub. If you have any questions, please contact us at inquiries@assignmenthub.org</p>
+    </div>
+  </div>
+</body>
+</html>
+        `;
+        break;
         
       default:
         throw new Error(`Unknown notification type: ${type}`);
     }
+    
+    console.log(`Sending email to: ${recipientEmail}`);
+    console.log(`Email subject: ${emailSubject}`);
     
     // Send email notification using the appropriate email service
     const emailService = Deno.env.get("EMAIL_SERVICE") || "zoho";
@@ -260,9 +354,11 @@ serve(async (req) => {
         const errorText = await res.text();
         throw new Error(`Failed to send email via Zoho: ${errorText}`);
       }
+      
+      console.log("Email sent successfully via Zoho");
     } else {
       // Use resend.com as fallback or alternative
-      // Implementation would go here
+      console.log("Resend.com email service not implemented yet");
     }
     
     // Return success response
