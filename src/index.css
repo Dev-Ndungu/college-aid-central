@@ -125,4 +125,12 @@
   .writers-hub-btn {
     @apply bg-[#0d2241] text-white hover:bg-[#193764] transition-colors;
   }
+  
+  /* New styles for subtle background gradient */
+  .home-bg {
+    background: linear-gradient(180deg, 
+      rgba(236, 242, 253, 0.8) 0%,
+      rgba(247, 249, 252, 0.5) 40%,
+      rgba(255, 255, 255, 0.2) 100%);
+  }
 }

@@ -378,7 +378,7 @@ const Hero = () => {
       clearInterval(autoplayInterval);
     };
   }, [api, onSelect]);
-  return <section className="hero bg-gradient-to-br from-gray-50 to-white">
+  return <section className="hero home-bg">
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="animate-fade-in">
