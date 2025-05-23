@@ -521,12 +521,7 @@ const WriterDashboard = () => {
         
         <TabsContent value="active" className="w-full">
           <Card>
-            <CardHeader className="pb-4">
-              <CardTitle>My Active Assignments</CardTitle>
-              <CardDescription>
-                Assignments you've taken and are currently working on.
-              </CardDescription>
-            </CardHeader>
+            
             <CardContent className="pt-0">
               {isLoading ? <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
