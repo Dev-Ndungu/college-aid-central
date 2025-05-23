@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -9,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail, BookOpen, DollarSign } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -66,6 +67,12 @@ const StudentDashboard = () => {
                       'Not set'
                     }
                   </p>
+                  {assignment.price !== null && assignment.price !== undefined && (
+                    <p className="text-gray-500 flex items-center">
+                      <DollarSign className="h-3 w-3 mr-1" />
+                      Price: ${assignment.price}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2 items-end">
                   <AssignmentStatusBadge status={assignment.status} />
@@ -97,6 +104,7 @@ const StudentDashboard = () => {
                 <th className="p-3 text-left font-medium">Subject</th>
                 <th className="p-3 text-left font-medium">Status</th>
                 <th className="p-3 text-left font-medium">Due Date</th>
+                <th className="p-3 text-left font-medium">Price</th>
                 <th className="p-3 text-left font-medium">Actions</th>
               </tr>
             </thead>
@@ -118,6 +126,12 @@ const StudentDashboard = () => {
                   <td className="p-3">
                     {assignment.due_date ? 
                       new Date(assignment.due_date).toLocaleDateString() : 
+                      'Not set'
+                    }
+                  </td>
+                  <td className="p-3">
+                    {assignment.price !== null && assignment.price !== undefined ? 
+                      `$${assignment.price}` : 
                       'Not set'
                     }
                   </td>
@@ -179,6 +193,11 @@ const StudentDashboard = () => {
                     'N/A'
                   }
                 </p>
+                <p className="text-gray-500 text-right">
+                  Price: {assignment.price !== null && assignment.price !== undefined ? 
+                    `$${assignment.price}` : 
+                    'Not set'}
+                </p>
               </div>
             </div>
           ))}
@@ -196,6 +215,7 @@ const StudentDashboard = () => {
                 <th className="p-3 text-left font-medium">Subject</th>
                 <th className="p-3 text-left font-medium">Completed Date</th>
                 <th className="p-3 text-left font-medium">Grade</th>
+                <th className="p-3 text-left font-medium">Price</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -212,6 +232,12 @@ const StudentDashboard = () => {
                     }
                   </td>
                   <td className="p-3">{assignment.grade || 'Not graded'}</td>
+                  <td className="p-3">
+                    {assignment.price !== null && assignment.price !== undefined ? 
+                      `$${assignment.price}` : 
+                      'Not set'
+                    }
+                  </td>
                 </tr>
               ))}
             </tbody>

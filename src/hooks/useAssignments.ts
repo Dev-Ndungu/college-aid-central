@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +10,7 @@ export interface Assignment {
   description?: string;
   status: string;
   progress: number;
+  price?: number;
   due_date?: string;
   completed_date?: string;
   grade?: string;
