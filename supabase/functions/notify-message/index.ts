@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+    
+    // Initialize Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     
     let emailBody: string;
     let emailSubject: string;
@@ -323,47 +327,24 @@ serve(async (req) => {
     console.log(`Sending email to: ${recipientEmail}`);
     console.log(`Email subject: ${emailSubject}`);
     
-    // Send email notification using the appropriate email service
-    const emailService = Deno.env.get("EMAIL_SERVICE") || "zoho";
+    // Send email using Resend
+    const { data, error } = await resend.emails.send({
+      from: 'Assignment Hub <onboarding@resend.dev>',
+      to: [recipientEmail],
+      subject: emailSubject,
+      html: emailBody,
+    });
     
-    if (emailService === "zoho") {
-      // Send using Zoho
-      const zohoEmail = Deno.env.get("ZOHO_EMAIL");
-      const zohoPass = Deno.env.get("ZOHO_PASSWORD");
-      
-      if (!zohoEmail || !zohoPass) {
-        throw new Error("Zoho email credentials not configured");
-      }
-      
-      const res = await fetch("https://mail.zoho.com/api/accounts/self/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Zoho-oauthtoken ${zohoPass}`,
-        },
-        body: JSON.stringify({
-          fromAddress: zohoEmail,
-          toAddress: recipientEmail,
-          subject: emailSubject,
-          htmlBody: emailBody,
-          askReceipt: true,
-        }),
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to send email via Zoho: ${errorText}`);
-      }
-      
-      console.log("Email sent successfully via Zoho");
-    } else {
-      // Use resend.com as fallback or alternative
-      console.log("Resend.com email service not implemented yet");
+    if (error) {
+      console.error('Resend error:', error);
+      throw new Error(`Failed to send email via Resend: ${error.message}`);
     }
+    
+    console.log("Email sent successfully via Resend:", data);
     
     // Return success response
     return new Response(
-      JSON.stringify({ success: true, message: "Notification sent successfully" }),
+      JSON.stringify({ success: true, message: "Notification sent successfully", data }),
       {
         status: 200,
         headers: {
