@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
@@ -25,12 +25,24 @@ import RefundPolicy from '@/pages/RefundPolicy';
 import AssignmentChat from '@/pages/AssignmentChat';
 import EditAssignment from '@/pages/EditAssignment';
 
+// ScrollToTop component to reset scroll position
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+}
+
 function App() {
   return (
     <React.StrictMode>
       <ThemeProvider>
         <Router>
           <AuthProvider>
+            <ScrollToTop />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
