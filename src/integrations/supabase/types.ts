@@ -20,6 +20,9 @@ export type Database = {
           grade: string | null
           id: string
           is_verified_account: boolean | null
+          paid: boolean | null
+          payment_date: string | null
+          price: number | null
           progress: number | null
           status: string
           student_email: string | null
@@ -41,6 +44,9 @@ export type Database = {
           grade?: string | null
           id?: string
           is_verified_account?: boolean | null
+          paid?: boolean | null
+          payment_date?: string | null
+          price?: number | null
           progress?: number | null
           status?: string
           student_email?: string | null
@@ -62,6 +68,9 @@ export type Database = {
           grade?: string | null
           id?: string
           is_verified_account?: boolean | null
+          paid?: boolean | null
+          payment_date?: string | null
+          price?: number | null
           progress?: number | null
           status?: string
           student_email?: string | null
@@ -118,6 +127,56 @@ export type Database = {
           subject?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          assignment_id: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          payment_method: string | null
+          status: string | null
+          stripe_payment_intent_id: string | null
+          student_id: string | null
+          updated_at: string | null
+          writer_id: string | null
+        }
+        Insert: {
+          amount: number
+          assignment_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          payment_method?: string | null
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          student_id?: string | null
+          updated_at?: string | null
+          writer_id?: string | null
+        }
+        Update: {
+          amount?: number
+          assignment_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          payment_method?: string | null
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          student_id?: string | null
+          updated_at?: string | null
+          writer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

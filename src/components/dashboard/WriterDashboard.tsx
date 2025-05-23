@@ -14,6 +14,7 @@ import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
 import WriterEmailModal from './WriterEmailModal';
 import ContactMessagesModal from './ContactMessagesModal';
+import PriceInput from '../assignment/PriceInput';
 import { 
   Table,
   TableBody,
@@ -117,6 +118,43 @@ const WriterDashboard = () => {
         newSet.delete(assignmentId);
         return newSet;
       });
+    }
+  };
+
+  const handlePriceUpdate = async (assignmentId: string, price: number) => {
+    try {
+      const updates = {
+        price,
+        updated_at: new Date().toISOString()
+      };
+      
+      await updateAssignment(assignmentId, updates);
+      
+      // Send price update notification to student
+      try {
+        const response = await fetch(`https://ihvgtaxvrqdnrgdddhdx.supabase.co/functions/v1/notify-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'price_update',
+            assignment_id: assignmentId,
+            price: price
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('Failed to send price update notification');
+        }
+      } catch (notificationError) {
+        console.error('Error sending price update notification:', notificationError);
+      }
+      
+      toast.success('Price updated successfully');
+    } catch (error) {
+      console.error('Error updating price:', error);
+      throw error;
     }
   };
 
@@ -332,6 +370,7 @@ const WriterDashboard = () => {
                 <TableHead>Subject</TableHead>
                 <TableHead>Student Information</TableHead>
                 <TableHead>Posted</TableHead>
+                <TableHead>Price</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Update Progress</TableHead>
                 <TableHead>Actions</TableHead>
@@ -365,6 +404,13 @@ const WriterDashboard = () => {
                         {formatRelativeDate(assignment.created_at)}
                       </span>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <PriceInput
+                      assignmentId={assignment.id}
+                      currentPrice={assignment.price}
+                      onPriceUpdate={handlePriceUpdate}
+                    />
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium backdrop-blur-sm border ${getStatusBadgeClass(assignment.status)}`}>
@@ -438,6 +484,7 @@ const WriterDashboard = () => {
                 <TableHead>Subject</TableHead>
                 <TableHead>Student Information</TableHead>
                 <TableHead>Posted</TableHead>
+                <TableHead>Price</TableHead>
                 <TableHead>Completed Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -464,6 +511,18 @@ const WriterDashboard = () => {
                       <span title={formatDate(assignment.created_at)}>
                         {formatRelativeDate(assignment.created_at)}
                       </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {assignment.price ? `$${assignment.price.toFixed(2)}` : 'Not set'}
+                      </span>
+                      {assignment.paid && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Paid
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-gray-700">
@@ -530,7 +589,7 @@ const WriterDashboard = () => {
           <Card>
             <CardContent className="pt-6">
               <p className="text-gray-600 text-sm mb-6">
-                These are assignments you've taken and are currently working on.
+                These are assignments you've taken and are currently working on. You can set prices for students.
               </p>
               {isLoading ? (
                 <div className="text-center py-8">

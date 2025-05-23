@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -9,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square, DollarSign, CreditCard } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -24,6 +25,10 @@ const StudentDashboard = () => {
 
   const handleEditAssignment = (id: string) => {
     navigate(`/edit-assignment/${id}`);
+  };
+
+  const handlePayNow = (assignmentId: string) => {
+    navigate(`/checkout/${assignmentId}`);
   };
 
   const ActiveAssignments = () => {
@@ -57,6 +62,36 @@ const StudentDashboard = () => {
                   </p>
                 )}
               </div>
+              
+              {/* Price and Payment Section */}
+              {assignment.price && (
+                <div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold text-green-800">
+                        ${assignment.price.toFixed(2)}
+                      </span>
+                    </div>
+                    {!assignment.paid && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => handlePayNow(assignment.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CreditCard className="h-3 w-3 mr-1" />
+                        Pay Now
+                      </Button>
+                    )}
+                    {assignment.paid && (
+                      <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-800 rounded">
+                        Paid
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between items-center text-sm">
                 <div>
                   <p className="text-gray-500">Subject: {assignment.subject}</p>
@@ -95,6 +130,7 @@ const StudentDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium">Assignment</th>
                 <th className="p-3 text-left font-medium">Subject</th>
+                <th className="p-3 text-left font-medium">Price</th>
                 <th className="p-3 text-left font-medium">Status</th>
                 <th className="p-3 text-left font-medium">Due Date</th>
                 <th className="p-3 text-left font-medium">Actions</th>
@@ -113,6 +149,23 @@ const StudentDashboard = () => {
                   </td>
                   <td className="p-3">{assignment.subject}</td>
                   <td className="p-3">
+                    {assignment.price ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3 text-green-600" />
+                          <span className="font-semibold">${assignment.price.toFixed(2)}</span>
+                        </div>
+                        {assignment.paid && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Paid
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Not set</span>
+                    )}
+                  </td>
+                  <td className="p-3">
                     <AssignmentStatusBadge status={assignment.status} />
                   </td>
                   <td className="p-3">
@@ -123,6 +176,18 @@ const StudentDashboard = () => {
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-2">
+                      {/* Show Pay Now button if price is set and not paid */}
+                      {assignment.price && !assignment.paid && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handlePayNow(assignment.id)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <CreditCard className="h-3 w-3 mr-1" />
+                          Pay Now
+                        </Button>
+                      )}
+                      
                       {/* Only allow editing if the assignment is still in submitted status */}
                       {assignment.status === 'submitted' && !assignment.writer_id && (
                         <Button 
@@ -179,6 +244,11 @@ const StudentDashboard = () => {
                     'N/A'
                   }
                 </p>
+                {assignment.price && (
+                  <p className="text-gray-500 text-right">
+                    Price: ${assignment.price.toFixed(2)}
+                  </p>
+                )}
               </div>
             </div>
           ))}
@@ -194,6 +264,7 @@ const StudentDashboard = () => {
               <tr>
                 <th className="p-3 text-left font-medium">Assignment</th>
                 <th className="p-3 text-left font-medium">Subject</th>
+                <th className="p-3 text-left font-medium">Price</th>
                 <th className="p-3 text-left font-medium">Completed Date</th>
                 <th className="p-3 text-left font-medium">Grade</th>
               </tr>
@@ -205,6 +276,21 @@ const StudentDashboard = () => {
                     <div className="font-medium">{assignment.title}</div>
                   </td>
                   <td className="p-3">{assignment.subject}</td>
+                  <td className="p-3">
+                    {assignment.price ? (
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3 text-green-600" />
+                        <span className="font-semibold">${assignment.price.toFixed(2)}</span>
+                        {assignment.paid && (
+                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Paid
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Not set</span>
+                    )}
+                  </td>
                   <td className="p-3">
                     {assignment.completed_date ? 
                       new Date(assignment.completed_date).toLocaleDateString() : 
@@ -246,7 +332,7 @@ const StudentDashboard = () => {
             <CardHeader className={`pb-4 ${isMobile ? 'px-4' : ''}`}>
               <CardTitle>Active Assignments</CardTitle>
               <CardDescription>
-                Assignments that are in progress or awaiting a writer.
+                Assignments that are in progress or awaiting a writer. Pay for assignments when writers set a price.
               </CardDescription>
             </CardHeader>
             <CardContent className={isMobile ? 'px-4' : ''}>

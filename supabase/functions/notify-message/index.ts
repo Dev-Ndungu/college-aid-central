@@ -1,841 +1,353 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.1";
-import { Resend } from "https://esm.sh/resend@2.0.0";
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Resend } from 'npm:resend@4.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Initialize Resend client with the API key
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+}
 
 serve(async (req) => {
   console.log('📨 Notification endpoint called. Method:', req.method);
   console.log('Full request URL:', req.url);
   
-  // Handle CORS preflight requests
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     console.log('Handling OPTIONS request (CORS preflight)');
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') as string;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string;
+    console.log('Creating Supabase client with URL:', Deno.env.get('SUPABASE_URL') ? 'URL exists' : 'URL missing');
+    console.log('Service role key exists:', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ? 'Yes' : 'No');
     
-    console.log('Creating Supabase client with URL:', supabaseUrl ? 'URL exists' : 'URL missing');
-    console.log('Service role key exists:', supabaseServiceKey ? 'Yes' : 'No');
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { persistSession: false } }
+    )
 
-    // Parse and log the full request payload
-    const rawPayload = await req.text();
-    console.log('Raw request payload:', rawPayload);
-    
-    // Parse the payload into JSON
-    const payload = JSON.parse(rawPayload);
+    const payload = await req.json()
+    console.log('Raw request payload:', JSON.stringify(payload));
     console.log('Request payload type:', payload.type);
     console.log('Full payload:', JSON.stringify(payload));
-    
-    // Handle different types of notifications
-    if (payload.type === 'writer_direct_email') {
-      // This is a direct email from writer to student
-      const { recipient, sender, assignment, message } = payload;
-      console.log('Processing writer_direct_email. Recipient:', recipient.email);
-      
-      if (!recipient || !recipient.email) {
-        console.error('No recipient email provided');
-        return new Response(
-          JSON.stringify({ error: 'No recipient email provided' }),
-          { 
-            status: 400, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-      
-      // Use the custom sender name if provided, otherwise default to "Assignment Hub"
-      const senderName = sender?.full_name || 'Assignment Hub';
-      
-      // Function to convert plain text URLs to HTML links
-      const convertLinksToHtml = (text: string) => {
-        // This regex will match http(s) URLs
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, '<a href="$1" style="color: #4338ca; text-decoration: underline;">$1</a>');
-      };
-      
-      // Format assignment details for rich display
-      const formatAssignmentDetails = (assignment: any) => {
-        if (!assignment) return '';
-        
-        // Format date strings
-        const formatDate = (dateStr: string | null) => {
-          if (!dateStr) return 'Not specified';
-          return new Date(dateStr).toLocaleString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-        };
-        
-        const dueDate = formatDate(assignment.due_date);
-        const createdDate = formatDate(assignment.created_at);
-        
-        return `
-          <div style="margin: 20px 0; padding: 15px; background-color: #f5f7ff; border-radius: 8px; border: 1px solid #e0e7ff;">
-            <h3 style="margin-top: 0; color: #4338ca;">Assignment Details</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Title:</td>
-                <td style="padding: 8px 0;">${assignment.title}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Subject:</td>
-                <td style="padding: 8px 0;">${assignment.subject}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Status:</td>
-                <td style="padding: 8px 0;">${assignment.status.replace('_', ' ')}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Progress:</td>
-                <td style="padding: 8px 0;">${assignment.progress || 0}%</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Due Date:</td>
-                <td style="padding: 8px 0;">${dueDate}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Created:</td>
-                <td style="padding: 8px 0;">${createdDate}</td>
-              </tr>
-              ${assignment.description ? `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Description:</td>
-                <td style="padding: 8px 0;">${assignment.description}</td>
-              </tr>` : ''}
-              ${assignment.assignment_type ? `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Type:</td>
-                <td style="padding: 8px 0;">${assignment.assignment_type}</td>
-              </tr>` : ''}
-            </table>
-          </div>
-        `;
-      };
-      
-      // Format student information if available
-      const formatStudentInfo = (assignment: any) => {
-        if (!assignment) return '';
-        if (!assignment.student_name && !assignment.student_email && !assignment.student_phone) return '';
-        
-        return `
-          <div style="margin: 20px 0; padding: 15px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7;">
-            <h3 style="margin-top: 0; color: #166534;">Student Information</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              ${assignment.student_name ? `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Name:</td>
-                <td style="padding: 8px 0;">${assignment.student_name}</td>
-              </tr>` : ''}
-              ${assignment.student_email ? `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Email:</td>
-                <td style="padding: 8px 0;">${assignment.student_email}</td>
-              </tr>` : ''}
-              ${assignment.student_phone ? `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Phone:</td>
-                <td style="padding: 8px 0;">${assignment.student_phone}</td>
-              </tr>` : ''}
-            </table>
-          </div>
-        `;
-      };
-      
-      // Format email body with proper HTML formatting and convert URLs to clickable links
-      const formattedBody = convertLinksToHtml(message.body.replace(/\n/g, '<br>'));
-      
-      // Create the assignment details and student info sections
-      const assignmentDetailsSection = formatAssignmentDetails(assignment);
-      const studentInfoSection = formatStudentInfo(assignment);
-      
-      const emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #4338ca;">Message from Assignment Hub</h2>
-          <p>You have received a message regarding your assignment "${assignment.title}".</p>
-          
-          <div style="background-color: #f9fafb; border-left: 4px solid #4338ca; padding: 15px; margin: 20px 0;">
-            <div style="margin-bottom: 10px;">
-              ${formattedBody}
-            </div>
-          </div>
-          
-          ${assignmentDetailsSection}
-          
-          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from Assignment Hub. You can reply to this email to communicate with your writer.
-          </p>
-        </div>
-      `;
-      
-      console.log('Sending email to student:', recipient.email);
-      
-      try {
-        // Send email using Resend
-        const { data, error } = await resend.emails.send({
-          from: 'Assignment Hub <info@assignmenthub.org>',
-          to: [recipient.email],
-          subject: message.subject,
-          html: emailBody,
-          reply_to: sender.email,
-        });
 
-        if (error) {
-          console.error('Error sending direct email with Resend:', error);
-          throw error;
-        } else {
-          console.log('Direct email sent successfully with Resend:', data);
-        }
-        
-        return new Response(
-          JSON.stringify({ success: true, data }),
-          { 
-            status: 200, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      } catch (emailError) {
-        console.error('Exception sending direct email with Resend:', emailError);
-        throw emailError;
-      }
-    }
-    else if (payload.type === 'assignment_taken') {
-      // This is an assignment update notification
-      const { assignment, writer } = payload;
-      console.log('Processing assignment_taken notification. Assignment ID:', assignment.id);
-      
-      // If the assignment has a user_id, get the student details from profiles
-      // Otherwise, use the student information directly from the assignment
-      let studentEmail = null;
-      let studentName = "Student";
-      
-      if (assignment.user_id) {
-        const { data: student, error: studentError } = await supabase
-          .from('profiles')
-          .select('email, full_name')
-          .eq('id', assignment.user_id)
-          .single();
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
+    console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
 
-        if (studentError || !student) {
-          console.error('Error fetching student from profiles:', studentError);
-        } else {
-          studentEmail = student.email;
-          studentName = student.full_name || "Student";
-          console.log('Found student in profiles:', studentEmail);
-        }
-      }
+    if (payload.type === 'assignment_submitted') {
+      console.log('Processing assignment_submitted notification. Assignment title:', payload.assignment.title);
       
-      // If no user_id or no student found in profiles, use the direct student info from assignment
-      if (!studentEmail && assignment.student_email) {
-        studentEmail = assignment.student_email;
-        studentName = assignment.student_name || "Student";
-        console.log('Using student info from assignment:', studentEmail);
-      }
-      
-      // If we still don't have an email, we can't send a notification
-      if (!studentEmail) {
-        console.log('No student email found for notification, cannot send email');
-        return new Response(
-          JSON.stringify({ warning: 'No student email found for notification' }),
-          { 
-            status: 200, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-
-      // Get writer profile if writer object is not provided
-      let writerInfo = writer;
-      if (!writerInfo && assignment.writer_id) {
-        const { data: writerData, error: writerError } = await supabase
-          .from('profiles')
-          .select('full_name, email')
-          .eq('id', assignment.writer_id)
-          .single();
-          
-        if (writerError) {
-          console.error('Error fetching writer:', writerError);
-        } else {
-          writerInfo = writerData;
-        }
-      }
-      
-      const writerName = writerInfo?.full_name || (writerInfo?.email ? writerInfo.email.split('@')[0] : 'a writer');
-
-      const emailSubject = `Your assignment "${assignment.title}" has been taken by a writer`;
-      const emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #4338ca;">Great news!</h2>
-          <p>Your assignment <strong>"${assignment.title}"</strong> has been taken by ${writerName}.</p>
-          
-          <p>You can now communicate directly with the writer through our messaging system.</p>
-          
-          <h3>Assignment details:</h3>
-          <ul>
-            <li><strong>Title:</strong> ${assignment.title}</li>
-            <li><strong>Subject:</strong> ${assignment.subject}</li>
-          </ul>
-          
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${supabaseUrl.replace('.supabase.co', '')}/assignment-chat/${assignment.id}" 
-               style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-              Start Chatting With Your Writer
-            </a>
-          </div>
-          
-          <p>Login to track the progress of your assignment.</p>
-          
-          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from Assignment Hub. Please do not reply directly to this email.
-          </p>
-        </div>
-      `;
-      
-      console.log('Sending email to student:', studentEmail);
-      console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
-      
-      try {
-        // Send email using Resend
-        const { data, error } = await resend.emails.send({
-          from: 'Assignment Hub <info@assignmenthub.org>',
-          to: [studentEmail],
-          subject: emailSubject,
-          html: emailBody,
-        });
-
-        if (error) {
-          console.error('Error sending email with Resend:', error);
-        } else {
-          console.log('Email sent successfully with Resend:', data);
-        }
-        
-        return new Response(
-          JSON.stringify({ success: true, message: 'Notification sent successfully' }),
-          { 
-            status: 200, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      } catch (emailError) {
-        console.error('Exception sending email with Resend:', emailError);
-        
-        return new Response(
-          JSON.stringify({ error: 'Error sending email notification', details: emailError.message }),
-          { 
-            status: 500, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
-    } 
-    else if (payload.type === 'assignment_submitted') {
-      // This is a new assignment notification for writers
-      const { assignment } = payload;
-      console.log('Processing assignment_submitted notification. Assignment title:', assignment.title);
-      
-      // First, notify all writers (existing functionality)
       // Get all writers
-      const { data: writers, error: writersError } = await supabase
+      const { data: writers, error: writersError } = await supabaseAdmin
         .from('profiles')
-        .select('id, email, full_name')
-        .eq('role', 'writer');
+        .select('email, full_name')
+        .eq('role', 'writer')
 
       if (writersError) {
-        console.error('Error fetching writers:', writersError);
-        return new Response(
-          JSON.stringify({ error: 'Writers not found' }),
-          { 
-            status: 404, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
+        console.error('Error fetching writers:', writersError)
+        throw new Error('Failed to fetch writers')
       }
 
-      console.log(`Found ${writers?.length || 0} writers to notify about new assignment`);
-      
-      if (!writers || writers.length === 0) {
-        console.log('No writers found in the database! Cannot send notifications.');
-        return new Response(
-          JSON.stringify({ warning: 'No writers found to notify' }),
-          { 
-            status: 200, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
-      }
+      console.log('Found', writers?.length || 0, 'writers to notify about new assignment');
 
-      // Format student information for the email
-      const formatStudentInfo = (assignment: any) => {
-        if (!assignment) return '';
-        
-        let studentInfoHtml = '';
-        
-        if (assignment.student_name || assignment.student_email || assignment.student_phone) {
-          studentInfoHtml = `
-            <div style="margin: 20px 0; padding: 15px; background-color: #f0fdf4; border-radius: 8px; border: 1px solid #dcfce7;">
-              <h3 style="margin-top: 0; color: #166534;">Student Information</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-          `;
-          
-          if (assignment.student_name) {
-            studentInfoHtml += `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Name:</td>
-                <td style="padding: 8px 0;">${assignment.student_name}</td>
-              </tr>
-            `;
+      let successCount = 0
+      let failureCount = 0
+
+      // Send emails to all writers
+      if (writers && writers.length > 0) {
+        for (const writer of writers) {
+          try {
+            console.log('Sending email to writer', writer.email, 'about new assignment');
+            
+            const { data, error } = await resend.emails.send({
+              from: 'AssignmentHub <noreply@assignmenthub.org>',
+              to: [writer.email],
+              subject: `New Assignment Available: ${payload.assignment.title}`,
+              html: `
+                <h2>New Assignment Available</h2>
+                <p>Dear ${writer.full_name || 'Writer'},</p>
+                <p>A new assignment has been submitted and is available for you to take:</p>
+                <ul>
+                  <li><strong>Title:</strong> ${payload.assignment.title}</li>
+                  <li><strong>Subject:</strong> ${payload.assignment.subject}</li>
+                  ${payload.assignment.description ? `<li><strong>Description:</strong> ${payload.assignment.description}</li>` : ''}
+                  ${payload.assignment.due_date ? `<li><strong>Due Date:</strong> ${new Date(payload.assignment.due_date).toLocaleDateString()}</li>` : ''}
+                </ul>
+                <p>Log in to your dashboard to view and take this assignment.</p>
+                <p>Best regards,<br>AssignmentHub Team</p>
+              `
+            })
+
+            if (error) {
+              console.error(`Failed to send email to writer ${writer.email}:`, error)
+              failureCount++
+            } else {
+              console.log(`Email sent successfully to writer ${writer.email}:`, { id: data?.id })
+              successCount++
+            }
+          } catch (emailError) {
+            console.error(`Error sending email to writer ${writer.email}:`, emailError)
+            failureCount++
           }
-          
-          if (assignment.student_email) {
-            studentInfoHtml += `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Email:</td>
-                <td style="padding: 8px 0;">${assignment.student_email}</td>
-              </tr>
-            `;
-          }
-          
-          if (assignment.student_phone) {
-            studentInfoHtml += `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Phone:</td>
-                <td style="padding: 8px 0;">${assignment.student_phone}</td>
-              </tr>
-            `;
-          }
-          
-          studentInfoHtml += `
-              </table>
-            </div>
-          `;
         }
-        
-        return studentInfoHtml;
-      };
-      
-      // Format assignment details for rich display
-      const formatAssignmentDetails = (assignment: any) => {
-        if (!assignment) return '';
-        
-        // Format date strings
-        const formatDate = (dateStr: string | null) => {
-          if (!dateStr) return 'Not specified';
-          return new Date(dateStr).toLocaleString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-        };
-        
-        const dueDate = formatDate(assignment.due_date);
-        const createdDate = formatDate(assignment.created_at);
-        
-        return `
-          <div style="margin: 20px 0; padding: 15px; background-color: #f5f7ff; border-radius: 8px; border: 1px solid #e0e7ff;">
-            <h3 style="margin-top: 0; color: #4338ca;">Assignment Details</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Title:</td>
-                <td style="padding: 8px 0;">${assignment.title}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Subject:</td>
-                <td style="padding: 8px 0;">${assignment.subject}</td>
-              </tr>
-              ${assignment.assignment_type ? `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Type:</td>
-                <td style="padding: 8px 0;">${assignment.assignment_type}</td>
-              </tr>` : ''}
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Due Date:</td>
-                <td style="padding: 8px 0;">${dueDate}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Created:</td>
-                <td style="padding: 8px 0;">${createdDate}</td>
-              </tr>
-              ${assignment.description ? `
-              <tr>
-                <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Description:</td>
-                <td style="padding: 8px 0;">${assignment.description}</td>
-              </tr>` : ''}
-            </table>
-          </div>
-        `;
-      };
-      
-      // Create the student info and assignment details sections
-      const studentInfoSection = formatStudentInfo(assignment);
-      const assignmentDetailsSection = formatAssignmentDetails(assignment);
+      }
 
-      const emailSubject = `📚 New Assignment Alert: "${assignment.title}"`;
-      const emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #4338ca;">New Assignment Available</h2>
-          <p>A new assignment is available for you to take:</p>
-          
-          ${assignmentDetailsSection}
-          ${studentInfoSection}
-          
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${supabaseUrl.replace('.supabase.co', '')}/dashboard" 
-               style="background-color: #4338ca; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-              View Assignment Details
-            </a>
-          </div>
-          
-          <p>Login to view more details and take this assignment.</p>
-          
-          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from Assignment Hub. Please do not reply directly to this email.
-          </p>
-        </div>
-      `;
-      
-      // Log the Resend API key status
-      console.log('Using Resend API key:', Deno.env.get('RESEND_API_KEY') ? 'API key exists' : 'API key missing');
-      
-      // Send emails to all writers with enhanced logging
-      let successCount = 0;
-      let failureCount = 0;
-      
-      for (const writer of writers || []) {
-        console.log(`Sending email to writer ${writer.email} about new assignment`);
-        
+      // Send confirmation email to student if they have an account
+      if (payload.assignment.is_verified_account && payload.assignment.user_id) {
         try {
-          // Send email using Resend with updated "from" address
-          const { data, error } = await resend.emails.send({
-            from: 'Assignment Hub <info@assignmenthub.org>',
-            to: [writer.email],
-            subject: emailSubject,
-            html: emailBody,
-          });
+          const { data: student, error: studentError } = await supabaseAdmin
+            .from('profiles')
+            .select('email, full_name')
+            .eq('id', payload.assignment.user_id)
+            .single()
 
-          if (error) {
-            console.error(`Error sending email to writer ${writer.email}:`, error);
-            failureCount++;
-          } else {
-            console.log(`Email sent successfully to writer ${writer.email}:`, data);
-            successCount++;
+          if (!studentError && student) {
+            console.log('Found student in profiles for confirmation email:', student.email);
+            console.log('Sending confirmation email to student:', student.email);
+            
+            const { data, error } = await resend.emails.send({
+              from: 'AssignmentHub <noreply@assignmenthub.org>',
+              to: [student.email],
+              subject: `Assignment Submitted Successfully: ${payload.assignment.title}`,
+              html: `
+                <h2>Assignment Submitted Successfully</h2>
+                <p>Dear ${student.full_name || 'Student'},</p>
+                <p>Your assignment has been submitted successfully and is now available for writers to take:</p>
+                <ul>
+                  <li><strong>Title:</strong> ${payload.assignment.title}</li>
+                  <li><strong>Subject:</strong> ${payload.assignment.subject}</li>
+                  ${payload.assignment.description ? `<li><strong>Description:</strong> ${payload.assignment.description}</li>` : ''}
+                  ${payload.assignment.due_date ? `<li><strong>Due Date:</strong> ${new Date(payload.assignment.due_date).toLocaleDateString()}</li>` : ''}
+                </ul>
+                <p>You will receive an email notification when a writer takes your assignment.</p>
+                <p>Best regards,<br>AssignmentHub Team</p>
+              `
+            })
+
+            if (error) {
+              console.error('Failed to send confirmation email to student:', error)
+            } else {
+              console.log('Confirmation email sent successfully to student:', { id: data?.id })
+            }
           }
-        } catch (emailError) {
-          console.error(`Exception sending email to writer ${writer.email}:`, emailError);
-          failureCount++;
+        } catch (studentEmailError) {
+          console.error('Error sending confirmation email to student:', studentEmailError)
         }
       }
+
+      console.log('Email sending summary:', successCount, 'successful,', failureCount, 'failed');
+
+    } else if (payload.type === 'assignment_taken') {
+      // When a writer takes an assignment, notify the student
+      console.log('Processing assignment_taken notification');
       
-      console.log(`Email sending summary: ${successCount} successful, ${failureCount} failed`);
+      const assignment = payload.assignment;
+      const writer = payload.writer;
       
-      // NEW: Send confirmation email to the student who submitted the assignment
-      // Get the student email either from user_id or from student_email field
-      let studentEmail = null;
-      let studentName = "Student";
+      // Get student email
+      let studentEmail = assignment.student_email;
+      let studentName = assignment.student_name;
       
-      if (assignment.user_id) {
-        const { data: student, error: studentError } = await supabase
+      if (assignment.is_verified_account && assignment.user_id) {
+        const { data: student, error: studentError } = await supabaseAdmin
           .from('profiles')
           .select('email, full_name')
           .eq('id', assignment.user_id)
-          .single();
-
-        if (studentError || !student) {
-          console.error('Error fetching student from profiles:', studentError);
-        } else {
+          .single()
+          
+        if (!studentError && student) {
           studentEmail = student.email;
-          studentName = student.full_name || "Student";
-          console.log('Found student in profiles for confirmation email:', studentEmail);
+          studentName = student.full_name;
         }
       }
       
-      // If no user_id or no student found in profiles, use the direct student info from assignment
-      if (!studentEmail && assignment.student_email) {
-        studentEmail = assignment.student_email;
-        studentName = assignment.student_name || "Student";
-        console.log('Using student info from assignment for confirmation email:', studentEmail);
-      }
-      
-      // If we have a student email, send them a confirmation
-      if (studentEmail) {
-        console.log('Sending confirmation email to student:', studentEmail);
-        
-        // Create the whatsapp link and email address for the buttons
-        const whatsappNumber = "254797280930";
-        const whatsappUrl = `https://wa.me/${whatsappNumber}`;
-        const emailAddress = "queries@assignmenthub.org";
-        
-        const emailSubject = `Your Assignment "${assignment.title}" Has Been Submitted Successfully`;
-        const emailBody = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #4338ca;">Assignment Submitted Successfully!</h2>
-            
-            <p>Thank you for submitting your assignment "${assignment.title}". One of our writers will get in touch with you shortly via email or WhatsApp to discuss your requirements in detail.</p>
-            
-            <h3 style="margin-top: 20px;">Assignment details:</h3>
-            <ul>
-              <li><strong>Title:</strong> ${assignment.title}</li>
-              <li><strong>Subject:</strong> ${assignment.subject}</li>
-              ${assignment.assignment_type ? `<li><strong>Type:</strong> ${assignment.assignment_type}</li>` : ''}
-              ${assignment.due_date ? `<li><strong>Due Date:</strong> ${new Date(assignment.due_date).toLocaleDateString()}</li>` : ''}
-            </ul>
-            
-            <div style="background-color: #f9fafb; padding: 20px; margin: 30px 0; border-radius: 8px; text-align: center;">
-              <p style="font-weight: 500; margin-bottom: 15px;">Need immediate assistance?</p>
-              
-              <div style="display: flex; gap: 10px; justify-content: center;">
-                <a href="${whatsappUrl}" style="background-color: #ffffff; border: 1px solid #e2e8f0; color: #4b5563; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; display: inline-flex; align-items: center;">
-                  <span style="margin-right: 8px;">📱</span> WhatsApp
-                </a>
-                
-                <a href="mailto:${emailAddress}" style="background-color: #ffffff; border: 1px solid #e2e8f0; color: #4b5563; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; display: inline-flex; align-items: center;">
-                  <span style="margin-right: 8px;">📧</span> Email
-                </a>
-              </div>
-            </div>
-            
-            <p>To track the progress of your assignment, login to your account.</p>
-            
-            <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-              This is an automated message from Assignment Hub. Please do not reply directly to this email.
-            </p>
-          </div>
-        `;
-        
-        try {
-          // Send email using Resend
-          const { data, error } = await resend.emails.send({
-            from: 'Assignment Hub <info@assignmenthub.org>',
-            to: [studentEmail],
-            subject: emailSubject,
-            html: emailBody,
-          });
-
-          if (error) {
-            console.error('Error sending confirmation email to student:', error);
-          } else {
-            console.log('Confirmation email sent successfully to student:', data);
-          }
-        } catch (emailError) {
-          console.error('Exception sending confirmation email to student:', emailError);
-        }
-      } else {
-        console.log('No student email found, cannot send confirmation email');
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Notification sent to writers and student`
-        }),
-        { 
-          status: 200, 
-          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-        }
-      );
-    }
-    else if (payload.type === 'assignment_status_update') {
-      // This is a status update notification for students
-      const { assignment, status, writer } = payload;
-      console.log('Processing assignment_status_update notification. Assignment ID:', assignment.id);
-      
-      // Get the student email - either from user_id or from assignment.student_email
-      let studentEmail = null;
-      let studentName = "Student";
-      
-      if (assignment.user_id) {
-        const { data: student, error: studentError } = await supabase
-          .from('profiles')
-          .select('email, full_name')
-          .eq('id', assignment.user_id)
-          .single();
-
-        if (studentError || !student) {
-          console.error('Error fetching student from profiles:', studentError);
-        } else {
-          studentEmail = student.email;
-          studentName = student.full_name || "Student";
-          console.log('Found student in profiles:', studentEmail);
-        }
-      }
-      
-      // If no user_id or no student found in profiles, use the direct student info from assignment
-      if (!studentEmail && assignment.student_email) {
-        studentEmail = assignment.student_email;
-        studentName = assignment.student_name || "Student";
-        console.log('Using student info from assignment:', studentEmail);
-      }
-      
-      // If we still don't have an email, we can't send a notification
       if (!studentEmail) {
-        console.log('No student email found for status update notification, cannot send email');
-        return new Response(
-          JSON.stringify({ warning: 'No student email found for status update notification' }),
-          { 
-            status: 200, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-          }
-        );
+        throw new Error(`No student email available for assignment ${assignment.id}`);
       }
       
-      // Get writer profile if writer object is not provided
-      let writerInfo = writer;
-      if (!writerInfo && assignment.writer_id) {
-        const { data: writerData, error: writerError } = await supabase
+      console.log('Sending assignment taken notification to student:', studentEmail);
+      
+      const { data, error } = await resend.emails.send({
+        from: 'AssignmentHub <noreply@assignmenthub.org>',
+        to: [studentEmail],
+        subject: `Writer Assigned to Your Assignment: ${assignment.title}`,
+        html: `
+          <h2>Writer Assigned to Your Assignment</h2>
+          <p>Dear ${studentName || 'Student'},</p>
+          <p>Great news! A writer has been assigned to your assignment:</p>
+          <ul>
+            <li><strong>Assignment:</strong> ${assignment.title}</li>
+            <li><strong>Subject:</strong> ${assignment.subject}</li>
+            <li><strong>Writer:</strong> ${writer?.full_name || writer?.email || 'Professional Writer'}</li>
+          </ul>
+          <p>The writer will now begin working on your assignment. You can track the progress in your dashboard.</p>
+          <p>Best regards,<br>AssignmentHub Team</p>
+        `
+      })
+      
+      if (error) {
+        console.error('Error sending assignment taken notification:', error)
+        throw error
+      }
+      
+      console.log('Assignment taken notification sent successfully:', { id: data?.id })
+      
+    } else if (payload.type === 'assignment_status_update') {
+      // When a writer updates assignment status, notify the student
+      console.log('Processing assignment_status_update notification');
+      
+      const assignment = payload.assignment;
+      const writer = payload.writer;
+      const status = payload.status;
+      
+      // Get student email
+      let studentEmail = assignment.student_email;
+      let studentName = assignment.student_name;
+      
+      if (assignment.is_verified_account && assignment.user_id) {
+        const { data: student, error: studentError } = await supabaseAdmin
           .from('profiles')
-          .select('full_name, email')
-          .eq('id', assignment.writer_id)
-          .single();
+          .select('email, full_name')
+          .eq('id', assignment.user_id)
+          .single()
           
-        if (writerError) {
-          console.error('Error fetching writer:', writerError);
-        } else {
-          writerInfo = writerData;
+        if (!studentError && student) {
+          studentEmail = student.email;
+          studentName = student.full_name;
         }
       }
       
-      // Different subject and content based on status
-      let emailSubject = '';
-      let statusMessage = '';
-      let statusColor = '';
+      if (!studentEmail) {
+        console.log('No student email available for status update notification');
+        return new Response(JSON.stringify({ success: true, message: 'No email to send to' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
       
-      switch(status) {
-        case 'in_progress':
-          emailSubject = `Your assignment "${assignment.title}" is in progress`;
-          statusMessage = 'Your writer has started working on your assignment.';
-          statusColor = '#3b82f6'; // blue
-          break;
-        case 'almost_done':
-          emailSubject = `Your assignment "${assignment.title}" is almost complete`;
-          statusMessage = 'Your assignment is nearly finished! The writer is putting the final touches on it.';
-          statusColor = '#10b981'; // green
-          break;
-        case 'completed':
-          emailSubject = `Your assignment "${assignment.title}" is complete`;
-          statusMessage = 'Great news! Your assignment has been completed.';
-          statusColor = '#6d28d9'; // purple
-          break;
-        default:
-          emailSubject = `Update on your assignment "${assignment.title}"`;
-          statusMessage = 'There has been an update to your assignment.';
-          statusColor = '#4338ca'; // indigo
+      const statusDisplay = status.replace('_', ' ');
+      
+      console.log('Sending status update notification to student:', studentEmail);
+      
+      const { data, error } = await resend.emails.send({
+        from: 'AssignmentHub <noreply@assignmenthub.org>',
+        to: [studentEmail],
+        subject: `Assignment Status Update: ${assignment.title}`,
+        html: `
+          <h2>Assignment Status Update</h2>
+          <p>Dear ${studentName || 'Student'},</p>
+          <p>Your assignment status has been updated:</p>
+          <ul>
+            <li><strong>Assignment:</strong> ${assignment.title}</li>
+            <li><strong>Subject:</strong> ${assignment.subject}</li>
+            <li><strong>New Status:</strong> ${statusDisplay}</li>
+            <li><strong>Writer:</strong> ${writer?.full_name || writer?.email || 'Professional Writer'}</li>
+          </ul>
+          <p>You can view the updated status in your dashboard.</p>
+          <p>Best regards,<br>AssignmentHub Team</p>
+        `
+      })
+      
+      if (error) {
+        console.error('Error sending status update notification:', error)
+        throw error
+      }
+      
+      console.log('Status update notification sent successfully:', { id: data?.id })
+      
+    } else if (payload.type === 'price_update') {
+      // When a writer sets/updates price, notify the student
+      console.log('Processing price_update notification');
+      
+      // Get assignment details
+      const { data: assignment, error: assignmentError } = await supabaseAdmin
+        .from('assignments')
+        .select('*')
+        .eq('id', payload.assignment_id)
+        .single()
+
+      if (assignmentError) {
+        console.error('Error fetching assignment for price update:', assignmentError)
+        throw new Error('Failed to fetch assignment details')
       }
 
-      const writerName = writerInfo?.full_name || (writerInfo?.email ? writerInfo.email.split('@')[0] : 'Your writer');
+      // Get student email
+      let studentEmail = assignment.student_email;
+      let studentName = assignment.student_name;
       
-      const emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: ${statusColor};">Assignment Update</h2>
+      if (assignment.is_verified_account && assignment.user_id) {
+        const { data: student, error: studentError } = await supabaseAdmin
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', assignment.user_id)
+          .single()
           
-          <p>${statusMessage}</p>
-          
-          <div style="background-color: #f9fafb; border-left: 4px solid ${statusColor}; padding: 15px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">${assignment.title}</h3>
-            <p><strong>Status:</strong> <span style="color: ${statusColor}; font-weight: bold;">${status.replace('_', ' ')}</span></p>
-            <p><strong>Writer:</strong> ${writerName}</p>
-            <p><strong>Subject:</strong> ${assignment.subject}</p>
-          </div>
-          
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${supabaseUrl.replace('.supabase.co', '')}/assignment-chat/${assignment.id}" 
-               style="background-color: ${statusColor}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-              Chat With Your Writer
-            </a>
-          </div>
-          
-          <p>Login to check the details and communicate with your writer.</p>
-          
-          <p style="color: #6b7280; font-size: 0.9em; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px;">
-            This is an automated message from Assignment Hub. Please do not reply directly to this email.
-          </p>
-        </div>
-      `;
-      
-      console.log('Sending status update email to student:', studentEmail);
-      
-      try {
-        // Send email using Resend
-        const { data, error } = await resend.emails.send({
-          from: 'Assignment Hub <info@assignmenthub.org>',
-          to: [studentEmail],
-          subject: emailSubject,
-          html: emailBody,
-        });
-
-        if (error) {
-          console.error('Error sending status update email with Resend:', error);
-          return new Response(
-            JSON.stringify({ error: 'Error sending status update email', details: error }),
-            { 
-              status: 500, 
-              headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-            }
-          );
-        } else {
-          console.log('Status update email sent successfully with Resend:', data);
-          return new Response(
-            JSON.stringify({ success: true, message: 'Status update notification sent successfully' }),
-            { 
-              status: 200, 
-              headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-            }
-          );
+        if (!studentError && student) {
+          studentEmail = student.email;
+          studentName = student.full_name;
         }
-      } catch (emailError) {
-        console.error('Exception sending status update email with Resend:', emailError);
-        return new Response(
-          JSON.stringify({ error: 'Error sending status update email', details: emailError.message }),
-          { 
-            status: 500, 
-            headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-            }
-        );
       }
+      
+      if (!studentEmail) {
+        console.log('No student email available for price update notification');
+        return new Response(JSON.stringify({ success: true, message: 'No email to send to' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      
+      // Get writer details
+      const { data: writer, error: writerError } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', assignment.writer_id)
+        .single()
+      
+      console.log('Sending price update notification to student:', studentEmail);
+      
+      const { data, error } = await resend.emails.send({
+        from: 'AssignmentHub <noreply@assignmenthub.org>',
+        to: [studentEmail],
+        subject: `Price Set for Your Assignment: ${assignment.title}`,
+        html: `
+          <h2>Price Set for Your Assignment</h2>
+          <p>Dear ${studentName || 'Student'},</p>
+          <p>The writer has set a price for your assignment:</p>
+          <ul>
+            <li><strong>Assignment:</strong> ${assignment.title}</li>
+            <li><strong>Subject:</strong> ${assignment.subject}</li>
+            <li><strong>Price:</strong> $${payload.price.toFixed(2)}</li>
+            <li><strong>Writer:</strong> ${writer?.full_name || writer?.email || 'Professional Writer'}</li>
+          </ul>
+          <p>You can now proceed to payment by clicking the "Pay Now" button in your dashboard.</p>
+          <p>Best regards,<br>AssignmentHub Team</p>
+        `
+      })
+      
+      if (error) {
+        console.error('Error sending price update notification:', error)
+        throw error
+      }
+      
+      console.log('Price update notification sent successfully:', { id: data?.id })
+      
+    } else {
+      console.log('Unknown notification type:', payload.type);
+      throw new Error(`Unknown notification type: ${payload.type}`)
     }
-    else {
-      // This is an unknown notification type
-      console.error('Unknown notification type:', payload.type);
-      return new Response(
-        JSON.stringify({ error: 'Unknown notification type' }),
-        { 
-          status: 400, 
-          headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-        }
-      );
-    }
 
-    console.log('Notification processing completed successfully');
-    return new Response(
-      JSON.stringify({ success: true, message: `Notification processed successfully` }),
-      { 
-        status: 200, 
-        headers: { 'Content-Type': 'application/json', ...corsHeaders } 
-      }
-    );
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
 
   } catch (error) {
-    console.error('Error processing notification:', error);
+    console.error('Error in notify-message function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { 'Content-Type': 'application/json', ...corsHeaders } 
+      JSON.stringify({ success: false, error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    );
+    )
   }
-});
+})
