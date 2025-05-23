@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,8 +6,9 @@ import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX, MessageCircle } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Eye, User, Calendar, Mail, Phone, UserCheck, UserX, MessageCircle, Percent } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/integrations/supabase/client';
 import AssignmentDetailsModal from '../assignment/AssignmentDetailsModal';
 import { format, formatRelative } from 'date-fns';
@@ -23,6 +23,14 @@ import {
   TableRow
 } from '@/components/ui/table';
 
+// Student profile data interface
+interface StudentProfile {
+  id: string;
+  full_name: string | null;
+  email: string;
+  phone_number: string | null;
+}
+
 const WriterDashboard = () => {
   const {
     activeAssignments,
@@ -36,6 +44,7 @@ const WriterDashboard = () => {
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const [emailingAssignment, setEmailingAssignment] = useState<Assignment | null>(null);
   const [showContactMessages, setShowContactMessages] = useState(false);
+  const [studentProfiles, setStudentProfiles] = useState<Map<string, StudentProfile>>(new Map());
   const {
     userId,
     userEmail
@@ -44,6 +53,41 @@ const WriterDashboard = () => {
 
   // Only show contact messages button for specific writer emails
   const showMessagesButton = userEmail === 'worldwritingfoundation@gmail.com' || userEmail === 'write.mefoundation@gmail.com';
+
+  // Fetch student profiles for assignments with verified accounts
+  useEffect(() => {
+    const fetchStudentProfiles = async () => {
+      const assignmentsWithUsers = [...activeAssignments, ...completedAssignments]
+        .filter(assignment => assignment.user_id && assignment.is_verified_account);
+      
+      if (assignmentsWithUsers.length === 0) return;
+
+      const userIds = [...new Set(assignmentsWithUsers.map(assignment => assignment.user_id))];
+      
+      try {
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, phone_number')
+          .in('id', userIds);
+          
+        if (error) {
+          console.error('Error fetching student profiles:', error);
+          return;
+        }
+        
+        const profilesMap = new Map<string, StudentProfile>();
+        profiles?.forEach(profile => {
+          profilesMap.set(profile.id, profile);
+        });
+        
+        setStudentProfiles(profilesMap);
+      } catch (error) {
+        console.error('Error fetching student profiles:', error);
+      }
+    };
+
+    fetchStudentProfiles();
+  }, [activeAssignments, completedAssignments]);
 
   // Format date helper
   const formatDate = (dateString: string | null) => {
@@ -168,6 +212,63 @@ const WriterDashboard = () => {
     }
   };
 
+  // New function to update assignment progress
+  const handleProgressUpdate = async (assignmentId: string, progress: number) => {
+    setUpdatingProgressIds(prev => new Set(prev).add(assignmentId));
+    try {
+      await updateAssignment(assignmentId, {
+        progress: progress,
+        updated_at: new Date().toISOString()
+      });
+
+      // Find the assignment to send notification
+      const assignment = activeAssignments.find(a => a.id === assignmentId);
+      if (assignment && assignment.user_id) {
+        // Send notification to student about progress update
+        const projectRef = "ihvgtaxvrqdnrgdddhdx";
+        
+        // Get writer details
+        const { data: writerData, error: writerError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .eq('id', userId)
+          .single();
+          
+        if (writerError) {
+          console.error('Error fetching writer data:', writerError);
+        }
+        
+        // Send notification
+        await fetch(`https://${projectRef}.supabase.co/functions/v1/notify-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'assignment_progress_update',
+            assignment: {
+              ...assignment,
+              progress: progress
+            },
+            writer: writerData,
+            progress: progress
+          }),
+        });
+      }
+
+      toast.success(`Assignment progress updated to ${progress}%`);
+    } catch (error) {
+      console.error('Error updating assignment progress:', error);
+      toast.error('Failed to update assignment progress');
+    } finally {
+      setUpdatingProgressIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(assignmentId);
+        return newSet;
+      });
+    }
+  };
+
   // Status badge styling helper
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -204,53 +305,56 @@ const WriterDashboard = () => {
     setEmailingAssignment(assignment);
   };
 
-  // Updated Student information display component to use is_verified_account flag
+  // Updated Student information display component to use profile data from database
   const StudentInformation = ({
     assignment
   }: {
     assignment: Assignment;
   }) => {
-    // If student has a verified account, fetch details from database 
-    if (assignment.is_verified_account) {
-      return <div className="flex flex-col gap-1">
-          <div className="flex items-center text-sm font-medium">
-            <User className="h-3 w-3 mr-1 text-gray-500" />
-            {assignment.student_name || 'Student'}
-            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              <UserCheck className="h-3 w-3 mr-1" />
-              Has Account
-            </span>
-          </div>
-          <div className="flex items-center text-xs text-gray-500">
-            <Mail className="h-3 w-3 mr-1" />
-            {assignment.student_email}
-          </div>
-          {assignment.student_phone && <div className="flex items-center text-xs text-gray-500">
-              <Phone className="h-3 w-3 mr-1" />
-              {assignment.student_phone}
-            </div>}
-        </div>;
-    } else {
-      // If student does not have a verified account, show details provided during submission
-      return <div className="flex flex-col gap-1">
-          <div className="flex items-center text-sm font-medium">
-            <User className="h-3 w-3 mr-1 text-gray-500" />
-            {assignment.student_name || 'Anonymous Student'}
-            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-              <UserX className="h-3 w-3 mr-1" />
-              No Account
-            </span>
-          </div>
-          <div className="flex items-center text-xs text-gray-500">
-            <Mail className="h-3 w-3 mr-1" />
-            {assignment.student_email || 'No email provided'}
-          </div>
-          <div className="flex items-center text-xs text-gray-500">
-            <Phone className="h-3 w-3 mr-1" />
-            {assignment.student_phone || 'No phone provided'}
-          </div>
-        </div>;
+    // If student has a verified account, use profile data from database
+    if (assignment.is_verified_account && assignment.user_id) {
+      const profile = studentProfiles.get(assignment.user_id);
+      if (profile) {
+        return <div className="flex flex-col gap-1">
+            <div className="flex items-center text-sm font-medium">
+              <User className="h-3 w-3 mr-1 text-gray-500" />
+              {profile.full_name || 'Student'}
+              <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <UserCheck className="h-3 w-3 mr-1" />
+                Has Account
+              </span>
+            </div>
+            <div className="flex items-center text-xs text-gray-500">
+              <Mail className="h-3 w-3 mr-1" />
+              {profile.email}
+            </div>
+            {profile.phone_number && <div className="flex items-center text-xs text-gray-500">
+                <Phone className="h-3 w-3 mr-1" />
+                {profile.phone_number}
+              </div>}
+          </div>;
+      }
     }
+    
+    // If student does not have a verified account, show details provided during submission
+    return <div className="flex flex-col gap-1">
+        <div className="flex items-center text-sm font-medium">
+          <User className="h-3 w-3 mr-1 text-gray-500" />
+          {assignment.student_name || 'Anonymous Student'}
+          <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <UserX className="h-3 w-3 mr-1" />
+            No Account
+          </span>
+        </div>
+        <div className="flex items-center text-xs text-gray-500">
+          <Mail className="h-3 w-3 mr-1" />
+          {assignment.student_email || 'No email provided'}
+        </div>
+        <div className="flex items-center text-xs text-gray-500">
+          <Phone className="h-3 w-3 mr-1" />
+          {assignment.student_phone || 'No phone provided'}
+        </div>
+      </div>;
   };
 
   const AvailableAssignments = () => {
@@ -354,6 +458,7 @@ const WriterDashboard = () => {
                 <TableHead>Student Information</TableHead>
                 <TableHead>Posted</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Progress</TableHead>
                 <TableHead>Update Progress</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -389,6 +494,28 @@ const WriterDashboard = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{assignment.progress || 0}%</span>
+                      <span className="flex items-center bg-gray-100 px-2 py-1 rounded text-xs">
+                        <Percent className="h-3 w-3 mr-1" /> {assignment.progress || 0}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 min-w-[200px]">
+                      <Slider
+                        value={[assignment.progress || 0]}
+                        onValueChange={(value) => handleProgressUpdate(assignment.id, value[0])}
+                        min={0}
+                        max={100}
+                        step={5}
+                        className="flex-1"
+                        disabled={updatingProgressIds.has(assignment.id)}
+                      />
+                      {updatingProgressIds.has(assignment.id) && <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
                       <Select value={assignment.status} onValueChange={value => handleStatusUpdate(assignment.id, value)} disabled={updatingProgressIds.has(assignment.id)}>
                         <SelectTrigger className="w-[140px] bg-white">
                           <SelectValue placeholder="Update Status" />
@@ -399,11 +526,6 @@ const WriterDashboard = () => {
                           <SelectItem value="completed">Completed</SelectItem>
                         </SelectContent>
                       </Select>
-                      {updatingProgressIds.has(assignment.id) && <div className="animate-spin h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full"></div>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleViewAssignment(assignment)}>
                         <Eye className="mr-1 h-3 w-3" />
                         View Details
