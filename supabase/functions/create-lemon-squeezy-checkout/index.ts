@@ -32,10 +32,10 @@ Deno.serve(async (req) => {
 
     // Get Lemon Squeezy credentials
     const apiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
-    const storeId = Deno.env.get('LEMON_SQUEEZY_STORE_ID');
+    const storeId = '184716'; // Your correct Store ID
 
-    if (!apiKey || !storeId) {
-      throw new Error('Lemon Squeezy credentials not configured');
+    if (!apiKey) {
+      throw new Error('Lemon Squeezy API key not configured');
     }
 
     console.log('Using store ID:', storeId);
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
       throw new Error('No variants found. Please ensure your product has at least one variant.');
     }
 
-    // Create checkout session with dynamic pricing
+    // Create checkout session with dynamic pricing - this will override the product's default price
     const priceInCents = Math.round(price * 100); // Convert dollars to cents
     console.log('Setting dynamic price:', `$${price} = ${priceInCents} cents`);
 
@@ -132,8 +132,8 @@ Deno.serve(async (req) => {
             receipt_thank_you_note: 'Thank you for your payment! Your assignment will be processed shortly.',
             receipt_button_text: 'Go to Dashboard',
             name: assignmentTitle,
-            description: `Assignment: ${assignmentTitle} - Custom Price: $${price}`,
-            price: priceInCents // This overrides the product's default price
+            description: `Assignment: ${assignmentTitle} - Writer Price: $${price}`,
+            price: priceInCents // This is the key - it overrides the default product price with your custom price
           },
           test_mode: true // Set to false for production
         },
