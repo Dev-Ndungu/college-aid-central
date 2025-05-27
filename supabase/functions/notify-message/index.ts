@@ -143,8 +143,24 @@ serve(async (req) => {
       // When a writer takes an assignment, notify the student
       console.log('Processing assignment_taken notification');
       
-      const assignment = payload.assignment;
-      const writer = payload.writer;
+      // First get the assignment details
+      const { data: assignment, error: assignmentError } = await supabaseAdmin
+        .from('assignments')
+        .select('*')
+        .eq('id', payload.assignment_id)
+        .single()
+
+      if (assignmentError) {
+        console.error('Error fetching assignment for taken notification:', assignmentError)
+        throw new Error('Failed to fetch assignment details')
+      }
+
+      // Get writer details
+      const { data: writer, error: writerError } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', assignment.writer_id)
+        .single()
       
       // Get student email
       let studentEmail = assignment.student_email;
@@ -255,6 +271,103 @@ serve(async (req) => {
       }
       
       console.log('Status update notification sent successfully:', { id: data?.id })
+      
+    } else if (payload.type === 'assignment_progress_update') {
+      // When a writer updates assignment progress, notify the student
+      console.log('Processing assignment_progress_update notification');
+      
+      const assignment = payload.assignment;
+      const writer = payload.writer;
+      const progress = payload.progress;
+      
+      // Get student email
+      let studentEmail = assignment.student_email;
+      let studentName = assignment.student_name;
+      
+      if (assignment.is_verified_account && assignment.user_id) {
+        const { data: student, error: studentError } = await supabaseAdmin
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', assignment.user_id)
+          .single()
+          
+        if (!studentError && student) {
+          studentEmail = student.email;
+          studentName = student.full_name;
+        }
+      }
+      
+      if (!studentEmail) {
+        console.log('No student email available for progress update notification');
+        return new Response(JSON.stringify({ success: true, message: 'No email to send to' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      
+      console.log('Sending progress update notification to student:', studentEmail);
+      
+      const { data, error } = await resend.emails.send({
+        from: 'AssignmentHub <noreply@assignmenthub.org>',
+        to: [studentEmail],
+        subject: `Assignment Progress Update: ${assignment.title}`,
+        html: `
+          <h2>Assignment Progress Update</h2>
+          <p>Dear ${studentName || 'Student'},</p>
+          <p>Your assignment progress has been updated:</p>
+          <ul>
+            <li><strong>Assignment:</strong> ${assignment.title}</li>
+            <li><strong>Subject:</strong> ${assignment.subject}</li>
+            <li><strong>Progress:</strong> ${progress}%</li>
+            <li><strong>Writer:</strong> ${writer?.full_name || writer?.email || 'Professional Writer'}</li>
+          </ul>
+          <p>You can view the updated progress in your dashboard.</p>
+          <p>Best regards,<br>AssignmentHub Team</p>
+        `
+      })
+      
+      if (error) {
+        console.error('Error sending progress update notification:', error)
+        throw error
+      }
+      
+      console.log('Progress update notification sent successfully:', { id: data?.id })
+      
+    } else if (payload.type === 'writer_direct_email') {
+      // When a writer sends a direct email to a student
+      console.log('Processing writer_direct_email notification');
+      
+      const recipient = payload.recipient;
+      const sender = payload.sender;
+      const assignment = payload.assignment;
+      const message = payload.message;
+      
+      if (!recipient.email) {
+        console.log('No recipient email available for direct email');
+        return new Response(JSON.stringify({ success: false, error: 'No recipient email' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        })
+      }
+      
+      console.log('Sending direct email to student:', recipient.email);
+      
+      const { data, error } = await resend.emails.send({
+        from: 'AssignmentHub <noreply@assignmenthub.org>',
+        to: [recipient.email],
+        subject: message.subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            ${message.body.replace(/\n/g, '<br>')}
+          </div>
+        `
+      })
+      
+      if (error) {
+        console.error('Error sending direct email:', error)
+        throw error
+      }
+      
+      console.log('Direct email sent successfully:', { id: data?.id })
       
     } else if (payload.type === 'price_update') {
       // When a writer sets/updates price, notify the student
