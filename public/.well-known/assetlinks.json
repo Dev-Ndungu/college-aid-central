@@ -1,0 +1,11 @@
+
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "org.assignmenthub.ndungu",
+    "sha256_cert_fingerprints": [
+      "A7:7A:B4:19:FF:2C:37:41:18:C9:B4:56:7B:D4:7C:5F:FA:08:05:B3:0E:66:3C:3E:A1:7F:9E:36:04:FA:5C:A1"
+    ]
+  }
+}]
