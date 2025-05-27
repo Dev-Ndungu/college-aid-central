@@ -1,0 +1,55 @@
+
+{
+  "name": "Assignment Hub - Expert Academic Writing Assistance",
+  "short_name": "Assignment Hub",
+  "description": "Professional academic writing assistance for college and university students. Get expert help with essays, research papers, and assignments.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Access your assignment dashboard",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Submit Assignment",
+      "short_name": "Submit",
+      "description": "Submit a new assignment",
+      "url": "/submit-assignment",
+      "icons": [
+        {
+          "src": "/lovable-uploads/4e412f58-1db5-4ec0-82cc-c4d1adc3ee0c.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
