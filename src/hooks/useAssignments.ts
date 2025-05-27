@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -105,6 +106,26 @@ export const useAssignments = () => {
     }
   };
 
+  const deleteAssignment = async (assignmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', assignmentId);
+
+      if (error) {
+        console.error('Error deleting assignment:', error);
+        return false;
+      }
+
+      fetchAssignments();
+      return true;
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      return false;
+    }
+  };
+
   const activeAssignments = assignments.filter(
     (assignment) => assignment.status !== 'completed'
   );
@@ -120,6 +141,7 @@ export const useAssignments = () => {
     isLoading,
     fetchAssignments,
     takeAssignment,
-    updateAssignment
+    updateAssignment,
+    deleteAssignment
   };
 };

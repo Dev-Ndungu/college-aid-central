@@ -20,4 +20,5 @@ export interface Assignment {
   price?: number;
   paid?: boolean;
   payment_date?: string;
+  progress?: number;
 }
