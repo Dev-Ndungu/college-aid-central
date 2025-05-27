@@ -92,6 +92,36 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          created_at: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          operation: string
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation: string
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          operation?: string
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           assigned_to: string | null
@@ -245,6 +275,10 @@ export type Database = {
       }
       get_user_role: {
         Args: { user_id: string }
+        Returns: string
+      }
+      get_user_role_secure: {
+        Args: { user_uuid: string }
         Returns: string
       }
     }

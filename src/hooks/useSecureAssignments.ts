@@ -48,7 +48,9 @@ export const useSecureAssignments = () => {
           file_urls,
           paid,
           payment_date,
-          is_verified_account
+          is_verified_account,
+          user_id,
+          writer_id
         `);
 
       // Apply role-based filtering (RLS will handle the rest)
@@ -64,13 +66,31 @@ export const useSecureAssignments = () => {
         return;
       }
 
-      // Sanitize data before setting state
-      const sanitizedData = data?.map(assignment => ({
+      // Sanitize data before setting state while maintaining Assignment type
+      const sanitizedData: Assignment[] = data?.map(assignment => ({
         ...assignment,
         title: sanitizeText(assignment.title || ''),
-        description: assignment.description ? sanitizeHtml(assignment.description) : null,
+        description: assignment.description ? sanitizeHtml(assignment.description) : assignment.description,
         subject: sanitizeText(assignment.subject || ''),
-        student_name: assignment.student_name ? sanitizeText(assignment.student_name) : null
+        student_name: assignment.student_name ? sanitizeText(assignment.student_name) : assignment.student_name,
+        user_id: assignment.user_id || '',
+        id: assignment.id,
+        assignment_type: assignment.assignment_type,
+        due_date: assignment.due_date,
+        price: assignment.price,
+        status: assignment.status,
+        progress: assignment.progress,
+        grade: assignment.grade,
+        created_at: assignment.created_at,
+        updated_at: assignment.updated_at,
+        student_email: assignment.student_email,
+        student_phone: assignment.student_phone,
+        is_verified_account: assignment.is_verified_account,
+        file_urls: assignment.file_urls,
+        paid: assignment.paid,
+        payment_date: assignment.payment_date,
+        writer_id: assignment.writer_id,
+        completed_date: assignment.completed_date
       })) || [];
 
       setAssignments(sanitizedData);
