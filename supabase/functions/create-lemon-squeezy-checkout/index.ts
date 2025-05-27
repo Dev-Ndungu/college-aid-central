@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
     const { assignmentId, price, assignmentTitle, studentEmail } = await req.json() as CheckoutRequest;
 
     console.log('Creating Lemon Squeezy checkout for assignment:', assignmentId);
+    console.log('Dynamic price from writer:', price);
 
     // Get Lemon Squeezy credentials
     const apiKey = Deno.env.get('LEMON_SQUEEZY_API_KEY');
@@ -39,8 +40,25 @@ Deno.serve(async (req) => {
 
     console.log('Using store ID:', storeId);
 
-    // First, let's get available products and variants
-    const productsResponse = await fetch('https://api.lemonsqueezy.com/v1/products', {
+    // First, verify the store exists by fetching store details
+    const storeResponse = await fetch(`https://api.lemonsqueezy.com/v1/stores/${storeId}`, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/vnd.api+json'
+      }
+    });
+
+    if (!storeResponse.ok) {
+      const errorText = await storeResponse.text();
+      console.error('Store not found:', storeResponse.status, errorText);
+      throw new Error(`Store ID ${storeId} not found. Please check your store ID in Lemon Squeezy dashboard.`);
+    }
+
+    const storeData = await storeResponse.json();
+    console.log('Store verified:', storeData.data.attributes.name);
+
+    // Get products for this specific store
+    const productsResponse = await fetch(`https://api.lemonsqueezy.com/v1/products?filter[store_id]=${storeId}`, {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/vnd.api+json'
@@ -54,37 +72,42 @@ Deno.serve(async (req) => {
     }
 
     const productsData = await productsResponse.json();
-    console.log('Available products:', JSON.stringify(productsData, null, 2));
+    console.log('Available products for store:', productsData.data?.length || 0);
+
+    if (!productsData.data || productsData.data.length === 0) {
+      throw new Error(`No products found in store ${storeId}. Please create a product in your Lemon Squeezy store first.`);
+    }
 
     // Get variants for the first available product
     let variantId = null;
-    if (productsData.data && productsData.data.length > 0) {
-      const firstProduct = productsData.data[0];
-      console.log('Using product:', firstProduct.id);
+    const firstProduct = productsData.data[0];
+    console.log('Using product:', firstProduct.id, firstProduct.attributes.name);
 
-      const variantsResponse = await fetch(`https://api.lemonsqueezy.com/v1/variants?filter[product_id]=${firstProduct.id}`, {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Accept': 'application/vnd.api+json'
-        }
-      });
+    const variantsResponse = await fetch(`https://api.lemonsqueezy.com/v1/variants?filter[product_id]=${firstProduct.id}`, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'application/vnd.api+json'
+      }
+    });
 
-      if (variantsResponse.ok) {
-        const variantsData = await variantsResponse.json();
-        console.log('Available variants:', JSON.stringify(variantsData, null, 2));
-        
-        if (variantsData.data && variantsData.data.length > 0) {
-          variantId = variantsData.data[0].id;
-          console.log('Using variant ID:', variantId);
-        }
+    if (variantsResponse.ok) {
+      const variantsData = await variantsResponse.json();
+      console.log('Available variants:', variantsData.data?.length || 0);
+      
+      if (variantsData.data && variantsData.data.length > 0) {
+        variantId = variantsData.data[0].id;
+        console.log('Using variant ID:', variantId);
       }
     }
 
     if (!variantId) {
-      throw new Error('No products or variants found. Please create a product in your Lemon Squeezy store first.');
+      throw new Error('No variants found. Please ensure your product has at least one variant.');
     }
 
-    // Create checkout session with Lemon Squeezy
+    // Create checkout session with dynamic pricing
+    const priceInCents = Math.round(price * 100); // Convert dollars to cents
+    console.log('Setting dynamic price:', `$${price} = ${priceInCents} cents`);
+
     const checkoutData = {
       data: {
         type: 'checkouts',
@@ -93,7 +116,8 @@ Deno.serve(async (req) => {
             email: studentEmail || '',
             custom: {
               assignment_id: assignmentId,
-              assignment_title: assignmentTitle
+              assignment_title: assignmentTitle,
+              writer_price: price
             }
           },
           checkout_options: {
@@ -108,8 +132,8 @@ Deno.serve(async (req) => {
             receipt_thank_you_note: 'Thank you for your payment! Your assignment will be processed shortly.',
             receipt_button_text: 'Go to Dashboard',
             name: assignmentTitle,
-            description: `Assignment: ${assignmentTitle}`,
-            price: Math.round(price * 100) // Convert to cents
+            description: `Assignment: ${assignmentTitle} - Custom Price: $${price}`,
+            price: priceInCents // This overrides the product's default price
           },
           test_mode: true // Set to false for production
         },
@@ -130,7 +154,7 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log('Creating checkout with data:', JSON.stringify(checkoutData, null, 2));
+    console.log('Creating checkout with dynamic price of $' + price);
 
     const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
       method: 'POST',
@@ -149,12 +173,14 @@ Deno.serve(async (req) => {
     }
 
     const checkoutSession = await response.json();
-    console.log('Checkout session created:', checkoutSession.data.id);
+    console.log('Checkout session created successfully with dynamic price!');
 
     return new Response(
       JSON.stringify({ 
         checkoutUrl: checkoutSession.data.attributes.url,
-        checkoutId: checkoutSession.data.id 
+        checkoutId: checkoutSession.data.id,
+        price: price,
+        priceInCents: priceInCents
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -167,7 +193,11 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'Make sure you have created at least one product with a variant in your Lemon Squeezy store.'
+        troubleshooting: {
+          step1: 'Verify your Store ID in Lemon Squeezy Dashboard > Settings',
+          step2: 'Ensure you have at least one published product',
+          step3: 'Check your API key has the correct permissions'
+        }
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
