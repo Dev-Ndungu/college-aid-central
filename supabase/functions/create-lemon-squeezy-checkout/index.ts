@@ -108,16 +108,19 @@ Deno.serve(async (req) => {
     const priceInCents = Math.round(price * 100); // Convert dollars to cents
     console.log('Setting dynamic price:', `$${price} = ${priceInCents} cents`);
 
+    // Ensure we have a valid email or use a default
+    const checkoutEmail = studentEmail && studentEmail.trim() ? studentEmail.trim() : 'customer@example.com';
+
     const checkoutData = {
       data: {
         type: 'checkouts',
         attributes: {
           checkout_data: {
-            email: studentEmail || '',
+            email: checkoutEmail,
             custom: {
               assignment_id: assignmentId,
               assignment_title: assignmentTitle,
-              writer_price: price
+              writer_price: price.toString() // Convert to string as required by API
             }
           },
           checkout_options: {
@@ -126,14 +129,15 @@ Deno.serve(async (req) => {
             logo: true
           },
           product_options: {
-            enabled_variants: [variantId],
+            name: assignmentTitle,
+            description: `Assignment: ${assignmentTitle} - Writer Price: $${price}`,
+            media: [],
             redirect_url: `${req.headers.get('origin')}/dashboard?payment=success&assignment=${assignmentId}`,
             receipt_link_url: `${req.headers.get('origin')}/dashboard`,
             receipt_thank_you_note: 'Thank you for your payment! Your assignment will be processed shortly.',
             receipt_button_text: 'Go to Dashboard',
-            name: assignmentTitle,
-            description: `Assignment: ${assignmentTitle} - Writer Price: $${price}`,
-            price: priceInCents // This is the key - it overrides the default product price with your custom price
+            enabled_variants: [parseInt(variantId)], // This should be an array of integers
+            price: priceInCents // This overrides the default product price with your custom price
           },
           test_mode: true // Set to false for production
         },
