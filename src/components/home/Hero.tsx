@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { supabase, submitAnonymousAssignment } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import AssignmentSubmissionConfirmation from '@/components/dialogs/AssignmentSubmissionConfirmation';
+import MobileAppDownloadPopup from '@/components/dialogs/MobileAppDownloadPopup';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const Hero = () => {
@@ -379,6 +380,8 @@ const Hero = () => {
     };
   }, [api, onSelect]);
   return <section className="hero home-bg">
+      <MobileAppDownloadPopup />
+      
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="animate-fade-in">
