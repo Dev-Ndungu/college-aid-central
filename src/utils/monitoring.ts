@@ -74,7 +74,7 @@ export const checkMemoryUsage = (): void => {
 };
 
 // Network connectivity monitoring
-export const monitorNetworkStatus = (): void => {
+export const monitorNetworkStatus = (): (() => void) => {
   const handleOnline = () => {
     console.log('Network connection restored');
   };
