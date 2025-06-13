@@ -97,8 +97,8 @@ const Checkout = () => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
-            <h1 className="text-3xl font-bold">Checkout</h1>
-            <p className="text-gray-600">Payment for your assignment</p>
+            <h1 className="text-3xl font-bold">Payment Information</h1>
+            <p className="text-gray-600">Assignment payment details</p>
           </div>
 
           <div className="space-y-6">
@@ -164,17 +164,17 @@ const Checkout = () => {
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 text-sm text-amber-600 mb-4">
                   <AlertCircle className="h-4 w-4" />
-                  <span>Payment processing is currently unavailable</span>
+                  <span>Online payment is currently unavailable</span>
                 </div>
                 
                 <div className="text-center text-gray-500">
-                  <p className="mb-4">Payment integration has been removed. Please contact support for payment instructions.</p>
+                  <p className="mb-4">To complete payment for this assignment, please contact our support team for manual payment processing.</p>
                   <Button
                     onClick={() => navigate('/contact')}
                     variant="outline"
                     className="w-full"
                   >
-                    Contact Support
+                    Contact Support for Payment
                   </Button>
                 </div>
               </CardContent>
