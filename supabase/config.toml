@@ -24,12 +24,6 @@ port = 54323
 [functions.notify-message]
 verify_jwt = false
 
-[functions.create-lemon-squeezy-checkout]
-verify_jwt = true
-
-[functions.lemon-squeezy-webhook]
-verify_jwt = false
-
 [db]
 port = 54322
 

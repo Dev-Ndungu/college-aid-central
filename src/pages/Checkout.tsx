@@ -1,10 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CreditCard, DollarSign, Calendar, User, CheckCircle } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, User, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Assignment } from '@/hooks/useAssignments';
@@ -15,11 +15,9 @@ import { toast } from 'sonner';
 const Checkout = () => {
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { isAuthenticated, userRole } = useAuth();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || userRole !== 'student') {
@@ -32,16 +30,8 @@ const Checkout = () => {
       return;
     }
 
-    // Check for payment success from URL params
-    const paymentStatus = searchParams.get('payment');
-    if (paymentStatus === 'success') {
-      toast.success('Payment successful! Your assignment will be processed shortly.');
-      navigate('/dashboard');
-      return;
-    }
-
     fetchAssignment();
-  }, [assignmentId, isAuthenticated, userRole, searchParams]);
+  }, [assignmentId, isAuthenticated, userRole]);
 
   const fetchAssignment = async () => {
     try {
@@ -66,45 +56,6 @@ const Checkout = () => {
       navigate('/dashboard');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handlePayment = async () => {
-    if (!assignment) return;
-
-    setIsProcessing(true);
-    try {
-      console.log('Creating Lemon Squeezy checkout for assignment:', assignment.id);
-
-      // Create checkout session with Lemon Squeezy
-      const { data, error } = await supabase.functions.invoke('create-lemon-squeezy-checkout', {
-        body: {
-          assignmentId: assignment.id,
-          price: assignment.price,
-          assignmentTitle: assignment.title,
-          studentEmail: assignment.student_email
-        }
-      });
-
-      if (error) {
-        console.error('Error creating checkout:', error);
-        throw new Error(error.message || 'Failed to create checkout session');
-      }
-
-      if (!data?.checkoutUrl) {
-        throw new Error('No checkout URL received');
-      }
-
-      console.log('Redirecting to Lemon Squeezy checkout:', data.checkoutUrl);
-      
-      // Redirect to Lemon Squeezy checkout
-      window.location.href = data.checkoutUrl;
-
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast.error('Failed to initiate payment. Please try again.');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -147,7 +98,7 @@ const Checkout = () => {
               Back to Dashboard
             </Button>
             <h1 className="text-3xl font-bold">Checkout</h1>
-            <p className="text-gray-600">Complete payment for your assignment</p>
+            <p className="text-gray-600">Payment for your assignment</p>
           </div>
 
           <div className="space-y-6">
@@ -208,35 +159,24 @@ const Checkout = () => {
               </CardContent>
             </Card>
 
-            {/* Payment Security Notice */}
+            {/* Payment Not Available Notice */}
             <Card>
               <CardContent className="pt-6">
-                <div className="flex items-center gap-2 text-sm text-green-600 mb-4">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Secure payment powered by Lemon Squeezy</span>
+                <div className="flex items-center gap-2 text-sm text-amber-600 mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Payment processing is currently unavailable</span>
                 </div>
                 
-                <Button
-                  onClick={handlePayment}
-                  disabled={isProcessing}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Pay ${assignment.price?.toFixed(2)}
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-gray-500 text-center mt-2">
-                  Your payment is secure and encrypted with Lemon Squeezy
-                </p>
+                <div className="text-center text-gray-500">
+                  <p className="mb-4">Payment integration has been removed. Please contact support for payment instructions.</p>
+                  <Button
+                    onClick={() => navigate('/contact')}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Contact Support
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
