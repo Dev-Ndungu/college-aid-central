@@ -26,6 +26,16 @@ const LoginForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Clean up any Lemon Squeezy or payment-related parameters on component mount
+  useEffect(() => {
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('lemon') || currentUrl.includes('store') || currentUrl.includes('checkout') || currentUrl.includes('payment')) {
+      console.log("Detected payment-related parameters, cleaning URL");
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
+
   // Check URL for OAuth related parameters
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
