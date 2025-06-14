@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import Hero from '@/components/home/Hero';
 import HowItWorks from '@/components/home/HowItWorks';
@@ -8,8 +7,50 @@ import Testimonials from '@/components/home/Testimonials';
 import CTA from '@/components/home/CTA';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
+  const [assignmentCount, setAssignmentCount] = useState<number | null>(null);
+
+  // Fetch and subscribe to total assignment count for trust-building
+  useEffect(() => {
+    const fetchAssignmentCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('assignments')
+          .select('*', { count: 'exact', head: true });
+
+        if (error) {
+          console.error('Error fetching assignment count:', error);
+          return;
+        }
+
+        setAssignmentCount(count);
+      } catch (error) {
+        console.error('An error occurred while fetching assignment count:', error);
+      }
+    };
+
+    fetchAssignmentCount();
+
+    // Subscribe to new assignments to update the count in real-time
+    const assignmentsSubscription = supabase
+      .channel('assignments-count-realtime-home')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'assignments' },
+        () => {
+          fetchAssignmentCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(assignmentsSubscription);
+    };
+  }, []);
+
   return (
     <>
       <Helmet>
@@ -126,6 +167,25 @@ const Index = () => {
         </header>
         <main className="flex-grow">
           <Hero />
+          
+          {/* Trust-building assignment count */}
+          {assignmentCount !== null && (
+            <section className="py-8 bg-green-50">
+              <div className="container mx-auto px-4">
+                <Card className="bg-green-100 border-green-200 max-w-4xl mx-auto">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-xl md:text-2xl font-bold text-green-800">
+                      🎓 Join {assignmentCount.toLocaleString()}+ Students Who Trust Assignment Hub
+                    </p>
+                    <p className="text-green-700 mt-2">
+                      Assignments completed successfully with our expert writers
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+          )}
+          
           <HowItWorks />
           <Features />
           <Testimonials />
