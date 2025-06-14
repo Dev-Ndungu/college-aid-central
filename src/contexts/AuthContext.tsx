@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -36,6 +37,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Clean up payment-related URL parameters on mount
+  useEffect(() => {
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('provider_token') || currentUrl.includes('lemon') || currentUrl.includes('store')) {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, []);
   
   // Handle OAuth redirects in the URL - for cases when the user is redirected back to the app
   useEffect(() => {
@@ -111,6 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   // New user with Google, redirect to profile completion
                   navigate('/profile-completion', { replace: true });
                 }
+                
+                // Clean up the URL after successful auth
+                const cleanUrl = window.location.origin + '/dashboard';
+                window.history.replaceState({}, document.title, cleanUrl);
               }
             }
           } else {

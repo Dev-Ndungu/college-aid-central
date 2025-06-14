@@ -22,6 +22,13 @@ const baseTag = document.createElement('base');
 baseTag.href = window.location.pathname || '/';
 document.head.prepend(baseTag);
 
+// Clean up any payment-related URL parameters that might cause issues
+if (window.location.hash.includes('access_token') && window.location.hash.includes('provider_token')) {
+  // This might be a redirect from a payment provider - clean it up
+  const cleanUrl = window.location.origin + window.location.pathname;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
+
 // Render the app
 createRoot(rootElement).render(
   <React.StrictMode>
