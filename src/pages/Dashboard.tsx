@@ -30,6 +30,7 @@ const Dashboard = () => {
   const [userName, setUserName] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [assignmentCount, setAssignmentCount] = useState<number | null>(null);
   
   // Check if this is an authorized writer email
   const isAuthorizedWriter = userEmail === 'worldwritingfoundation@gmail.com' || userEmail === 'write.mefoundation@gmail.com';
@@ -80,6 +81,44 @@ const Dashboard = () => {
     
     fetchUnreadMessageCount();
   }, [isAuthenticated, isAuthorizedWriter, userEmail]);
+
+  // Fetch and subscribe to total assignment count for trust-building
+  useEffect(() => {
+    const fetchAssignmentCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('assignments')
+          .select('*', { count: 'exact', head: true });
+
+        if (error) {
+          console.error('Error fetching assignment count:', error);
+          return;
+        }
+
+        setAssignmentCount(count);
+      } catch (error) {
+        console.error('An error occurred while fetching assignment count:', error);
+      }
+    };
+
+    fetchAssignmentCount();
+
+    // Subscribe to new assignments to update the count in real-time
+    const assignmentsSubscription = supabase
+      .channel('assignments-count-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'assignments' },
+        () => {
+          fetchAssignmentCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(assignmentsSubscription);
+    };
+  }, []);
 
   // Fetch user name from profile
   useEffect(() => {
@@ -178,6 +217,19 @@ const Dashboard = () => {
               )}
             </div>
           </header>
+
+          {/* Trust-building assignment count */}
+          {assignmentCount !== null && (
+            <div className={isMobile ? 'px-4' : ''}>
+              <Card className="mb-4 md:mb-8 bg-green-50 border-green-200">
+                <CardContent className="p-4 flex items-center justify-center">
+                  <p className="text-lg font-semibold text-green-800 text-center">
+                    🏆 Over {assignmentCount.toLocaleString()} assignments submitted by students like you!
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Dashboard content */}
           <div className="dashboard-content">
