@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -13,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square, DollarSign, CreditCard } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 const StudentDashboard = () => {
   const { activeAssignments, completedAssignments, isLoading } = useAssignments();
@@ -49,135 +49,41 @@ const StudentDashboard = () => {
       );
     }
 
-    if (isMobile) {
-      return (
-        <div className="space-y-4">
-          {activeAssignments.map(assignment => (
-            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
-              <div className="mb-2">
-                <h3 className="font-medium">{assignment.title}</h3>
-                {assignment.description && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                    {assignment.description}
-                  </p>
-                )}
-              </div>
-              
-              {/* Price and Payment Section */}
-              {assignment.price && (
-                <div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-green-600" />
-                      <span className="font-semibold text-green-800">
-                        ${assignment.price.toFixed(2)}
-                      </span>
-                    </div>
-                    {!assignment.paid && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => handlePayNow(assignment.id)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CreditCard className="h-3 w-3 mr-1" />
-                        Pay Now
-                      </Button>
-                    )}
-                    {assignment.paid && (
-                      <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-800 rounded">
-                        Paid
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center text-sm">
-                <div>
-                  <p className="text-gray-500">Subject: {assignment.subject}</p>
-                  <p className="text-gray-500">
-                    Due: {assignment.due_date ? 
-                      new Date(assignment.due_date).toLocaleDateString() : 
-                      'Not set'
-                    }
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  <AssignmentStatusBadge status={assignment.status} />
-                  {assignment.status === 'submitted' && !assignment.writer_id && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-8"
-                      onClick={() => handleEditAssignment(assignment.id)}
-                    >
-                      <Edit2 className="h-4 w-4 mr-1" /> Edit
-                    </Button>
+    return (
+      <div>
+        {/* Animated tally for active assignments */}
+        <div className="text-center mb-4">
+          <span className="text-2xl font-bold text-green-700">
+            <AnimatedCounter value={activeAssignments.length} duration={800} />
+          </span>
+          <span className="text-green-700 ml-2 font-medium">
+            Active Assignment{activeAssignments.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        {isMobile ? (
+          <div className="space-y-4">
+            {/* ... keep existing code (active assignments mobile cards) ... */}
+            {activeAssignments.map(assignment => (
+              <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="mb-2">
+                  <h3 className="font-medium">{assignment.title}</h3>
+                  {assignment.description && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {assignment.description}
+                    </p>
                   )}
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        <div className="overflow-auto">
-          <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="p-3 text-left font-medium">Assignment</th>
-                <th className="p-3 text-left font-medium">Subject</th>
-                <th className="p-3 text-left font-medium">Price</th>
-                <th className="p-3 text-left font-medium">Status</th>
-                <th className="p-3 text-left font-medium">Due Date</th>
-                <th className="p-3 text-left font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {activeAssignments.map(assignment => (
-                <tr key={assignment.id} className="border-b">
-                  <td className="p-3">
-                    <div className="font-medium">{assignment.title}</div>
-                    {assignment.description && (
-                      <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {assignment.description}
+                {/* Price and Payment Section */}
+                {assignment.price && (
+                  <div className="mb-3 p-2 bg-green-50 rounded border border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        <span className="font-semibold text-green-800">
+                          ${assignment.price.toFixed(2)}
+                        </span>
                       </div>
-                    )}
-                  </td>
-                  <td className="p-3">{assignment.subject}</td>
-                  <td className="p-3">
-                    {assignment.price ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-green-600" />
-                          <span className="font-semibold">${assignment.price.toFixed(2)}</span>
-                        </div>
-                        {assignment.paid && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Paid
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">Not set</span>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    <AssignmentStatusBadge status={assignment.status} />
-                  </td>
-                  <td className="p-3">
-                    {assignment.due_date ? 
-                      new Date(assignment.due_date).toLocaleDateString() : 
-                      'Not set'
-                    }
-                  </td>
-                  <td className="p-3">
-                    <div className="flex items-center gap-2">
-                      {/* Show Pay Now button if price is set and not paid */}
-                      {assignment.price && !assignment.paid && (
+                      {!assignment.paid && (
                         <Button 
                           size="sm" 
                           onClick={() => handlePayNow(assignment.id)}
@@ -187,25 +93,127 @@ const StudentDashboard = () => {
                           Pay Now
                         </Button>
                       )}
-                      
-                      {/* Only allow editing if the assignment is still in submitted status */}
-                      {assignment.status === 'submitted' && !assignment.writer_id && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8" 
-                          onClick={() => handleEditAssignment(assignment.id)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
+                      {assignment.paid && (
+                        <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-800 rounded">
+                          Paid
+                        </span>
                       )}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-sm">
+                  <div>
+                    <p className="text-gray-500">Subject: {assignment.subject}</p>
+                    <p className="text-gray-500">
+                      Due: {assignment.due_date ? 
+                        new Date(assignment.due_date).toLocaleDateString() : 
+                        'Not set'
+                      }
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 items-end">
+                    <AssignmentStatusBadge status={assignment.status} />
+                    {assignment.status === 'submitted' && !assignment.writer_id && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-8"
+                        onClick={() => handleEditAssignment(assignment.id)}
+                      >
+                        <Edit2 className="h-4 w-4 mr-1" /> Edit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="overflow-auto">
+              <table className="w-full min-w-[800px] text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="p-3 text-left font-medium">Assignment</th>
+                    <th className="p-3 text-left font-medium">Subject</th>
+                    <th className="p-3 text-left font-medium">Price</th>
+                    <th className="p-3 text-left font-medium">Status</th>
+                    <th className="p-3 text-left font-medium">Due Date</th>
+                    <th className="p-3 text-left font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {activeAssignments.map(assignment => (
+                    <tr key={assignment.id} className="border-b">
+                      <td className="p-3">
+                        <div className="font-medium">{assignment.title}</div>
+                        {assignment.description && (
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {assignment.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3">{assignment.subject}</td>
+                      <td className="p-3">
+                        {assignment.price ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3 text-green-600" />
+                              <span className="font-semibold">${assignment.price.toFixed(2)}</span>
+                            </div>
+                            {assignment.paid && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Paid
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not set</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <AssignmentStatusBadge status={assignment.status} />
+                      </td>
+                      <td className="p-3">
+                        {assignment.due_date ? 
+                          new Date(assignment.due_date).toLocaleDateString() : 
+                          'Not set'
+                        }
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          {/* Show Pay Now button if price is set and not paid */}
+                          {assignment.price && !assignment.paid && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => handlePayNow(assignment.id)}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CreditCard className="h-3 w-3 mr-1" />
+                              Pay Now
+                            </Button>
+                          )}
+                          
+                          {/* Only allow editing if the assignment is still in submitted status */}
+                          {assignment.status === 'submitted' && !assignment.writer_id && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8" 
+                              onClick={() => handleEditAssignment(assignment.id)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -225,84 +233,94 @@ const StudentDashboard = () => {
       );
     }
 
-    if (isMobile) {
-      return (
-        <div className="space-y-4">
-          {completedAssignments.map(assignment => (
-            <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
-              <div className="mb-2">
-                <h3 className="font-medium">{assignment.title}</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <p className="text-gray-500">Subject: {assignment.subject}</p>
-                <p className="text-gray-500 text-right">
-                  Grade: {assignment.grade || 'Not graded'}
-                </p>
-                <p className="text-gray-500">
-                  Completed: {assignment.completed_date ? 
-                    new Date(assignment.completed_date).toLocaleDateString() : 
-                    'N/A'
-                  }
-                </p>
-                {assignment.price && (
-                  <p className="text-gray-500 text-right">
-                    Price: ${assignment.price.toFixed(2)}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
     return (
-      <div className="space-y-4">
-        <div className="overflow-auto">
-          <table className="w-full min-w-[800px] text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="p-3 text-left font-medium">Assignment</th>
-                <th className="p-3 text-left font-medium">Subject</th>
-                <th className="p-3 text-left font-medium">Price</th>
-                <th className="p-3 text-left font-medium">Completed Date</th>
-                <th className="p-3 text-left font-medium">Grade</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {completedAssignments.map(assignment => (
-                <tr key={assignment.id} className="border-b">
-                  <td className="p-3">
-                    <div className="font-medium">{assignment.title}</div>
-                  </td>
-                  <td className="p-3">{assignment.subject}</td>
-                  <td className="p-3">
-                    {assignment.price ? (
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-3 w-3 text-green-600" />
-                        <span className="font-semibold">${assignment.price.toFixed(2)}</span>
-                        {assignment.paid && (
-                          <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Paid
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">Not set</span>
-                    )}
-                  </td>
-                  <td className="p-3">
-                    {assignment.completed_date ? 
+      <div>
+        {/* Animated tally for completed assignments */}
+        <div className="text-center mb-4">
+          <span className="text-2xl font-bold text-blue-700">
+            <AnimatedCounter value={completedAssignments.length} duration={800} />
+          </span>
+          <span className="text-blue-700 ml-2 font-medium">
+            Completed Assignment{completedAssignments.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        {isMobile ? (
+          <div className="space-y-4">
+            {/* ... keep existing code (completed assignments mobile cards) ... */}
+            {completedAssignments.map(assignment => (
+              <div key={assignment.id} className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="mb-2">
+                  <h3 className="font-medium">{assignment.title}</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <p className="text-gray-500">Subject: {assignment.subject}</p>
+                  <p className="text-gray-500 text-right">
+                    Grade: {assignment.grade || 'Not graded'}
+                  </p>
+                  <p className="text-gray-500">
+                    Completed: {assignment.completed_date ? 
                       new Date(assignment.completed_date).toLocaleDateString() : 
                       'N/A'
                     }
-                  </td>
-                  <td className="p-3">{assignment.grade || 'Not graded'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </p>
+                  {assignment.price && (
+                    <p className="text-gray-500 text-right">
+                      Price: ${assignment.price.toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="overflow-auto">
+              <table className="w-full min-w-[800px] text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="p-3 text-left font-medium">Assignment</th>
+                    <th className="p-3 text-left font-medium">Subject</th>
+                    <th className="p-3 text-left font-medium">Price</th>
+                    <th className="p-3 text-left font-medium">Completed Date</th>
+                    <th className="p-3 text-left font-medium">Grade</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {completedAssignments.map(assignment => (
+                    <tr key={assignment.id} className="border-b">
+                      <td className="p-3">
+                        <div className="font-medium">{assignment.title}</div>
+                      </td>
+                      <td className="p-3">{assignment.subject}</td>
+                      <td className="p-3">
+                        {assignment.price ? (
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3 text-green-600" />
+                            <span className="font-semibold">${assignment.price.toFixed(2)}</span>
+                            {assignment.paid && (
+                              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Paid
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Not set</span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {assignment.completed_date ? 
+                          new Date(assignment.completed_date).toLocaleDateString() : 
+                          'N/A'
+                        }
+                      </td>
+                      <td className="p-3">{assignment.grade || 'Not graded'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
