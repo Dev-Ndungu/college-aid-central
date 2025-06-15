@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import ReferralManager from "./ReferralManager";
 
 const WriterDashboard = () => {
   const {
@@ -36,6 +37,7 @@ const WriterDashboard = () => {
   const [viewingAssignment, setViewingAssignment] = useState<Assignment | null>(null);
   const [emailingAssignment, setEmailingAssignment] = useState<Assignment | null>(null);
   const [showContactMessages, setShowContactMessages] = useState(false);
+  const [showReferralManager, setShowReferralManager] = useState(false);
   const {
     userId,
     userEmail
@@ -558,6 +560,12 @@ const WriterDashboard = () => {
           </Button>
         </div>
       )}
+      {/* Referral Management Button */}
+      <div className="flex justify-end px-4">
+        <Button variant="outline" onClick={() => setShowReferralManager(true)} className="mb-2">
+          Referral Program
+        </Button>
+      </div>
       <Tabs defaultValue="available" className="w-full">
         <TabsList className="grid grid-cols-3 mb-8 bg-gray-100 border border-gray-200 rounded-none w-full">
           <TabsTrigger value="available" className="data-[state=active]:bg-white">Available</TabsTrigger>
@@ -636,6 +644,9 @@ const WriterDashboard = () => {
         isOpen={showContactMessages} 
         onClose={() => setShowContactMessages(false)} 
       />
+
+      {/* Referral Manager Modal */}
+      <ReferralManager open={showReferralManager} onClose={() => setShowReferralManager(false)} />
     </div>
   );
 };

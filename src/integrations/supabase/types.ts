@@ -289,6 +289,70 @@ export type Database = {
         }
         Relationships: []
       }
+      referrals: {
+        Row: {
+          assignment_id: string | null
+          created_at: string
+          id: string
+          invitee_email: string | null
+          invitee_user_id: string | null
+          referral_code: string | null
+          referrer_user_id: string
+          reward_status: string
+          reward_type: string | null
+          reward_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string
+          id?: string
+          invitee_email?: string | null
+          invitee_user_id?: string | null
+          referral_code?: string | null
+          referrer_user_id: string
+          reward_status?: string
+          reward_type?: string | null
+          reward_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string
+          id?: string
+          invitee_email?: string | null
+          invitee_user_id?: string | null
+          referral_code?: string | null
+          referrer_user_id?: string
+          reward_status?: string
+          reward_type?: string | null
+          reward_value?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_user_id_fkey"
+            columns: ["referrer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
