@@ -549,7 +549,7 @@ const WriterDashboard = () => {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-none px-0 container mx-0">
+    <div className="space-y-6 w-full max-w-none px-0 container mx-0 !max-w-full !container !px-0">
       {/* Contact Messages Button - Only for specific writers */}
       {showMessagesButton && (
         <div className="flex justify-end">

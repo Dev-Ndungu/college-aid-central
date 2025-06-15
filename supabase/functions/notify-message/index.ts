@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { Resend } from 'npm:resend@4.0.0'
@@ -338,7 +337,6 @@ serve(async (req) => {
       
       const recipient = payload.recipient;
       const sender = payload.sender;
-      // assignment may be null for contact replies
       const assignment = payload.assignment;
       const message = payload.message;
       
@@ -352,28 +350,46 @@ serve(async (req) => {
       
       console.log('Sending direct email to student:', recipient.email);
 
-      // --- Use a good looking HTML email template for all outgoing emails ---
-      const niceHtml = `
-        <div style="font-family: Arial, sans-serif; max-width:600px; padding:32px 20px; margin:0 auto; background:#f7f9fc; border-radius:10px; border:1px solid #EDF1F7;">
-          <div style="background:#2774fd; color:#fff; border-radius:6px 6px 0 0; padding:16px 24px;">
-            <h2 style="margin:0 0 8px 0;">Message from Assignment Hub</h2>
-            <div style="font-size:15px;opacity:0.95;font-style:italic;">${sender.full_name ? sender.full_name : "A staff member"}</div>
-          </div>
-          <div style="background:#fff; padding:32px 24px; border-radius:0 0 6px 6px;">
-            <h3 style="margin-top:0;">${message.subject || "You have a new message"}</h3>
-            <div style="margin:24px 0; font-size:16px; color:#222; line-height:1.7;">${(message.body || '').replace(/\n/g, "<br>")}</div>
-            ${
-              assignment && assignment.title
-              ? `<div style="margin:16px 0 0 0; background:#f5f9ff; border-radius:5px; padding:10px 16px; border:1px solid #e3e8f8;">
-                  <div><b>Assignment:</b> ${assignment.title}</div>
-                  ${assignment.subject ? `<div><b>Subject:</b> ${assignment.subject}</div>` : ''}
-                </div>`
-              : ""
-            }
-            <div style="margin-top:30px; text-align:right; color:#666; font-size:12.5px;">
-              <i>This message was sent via Assignment Hub.</i>
-            </div>
-          </div>
+      // --- UI-IMPROVED HTML EMAIL TEMPLATE for ALL outgoing emails ---
+      const modernHtml = `
+        <div style="width:100vw;min-width:100%;background:#f5f9fa;padding:0;margin:0;">
+          <table width="100%" style="background:#f5f9fa;padding:0;margin:0;border:none;" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="center">
+                <table style="max-width:530px;width:100%;background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(60,80,130,.05);border:1px solid #e7eaf3;margin:42px 0 24px 0;">
+                  <tr>
+                    <td style="background:#2774fd;color:#fff;border-radius:14px 14px 0 0;padding:28px 36px 19px 36px;text-align:left;">
+                      <img src="https://assignmenthub.org/assets/logo-horizontal.png" style="height:38px;width:auto;margin-bottom:14px;" alt="Assignment Hub Logo" />
+                      <h2 style="margin:0 0 6px 0;font-size:1.35em;font-weight:700;letter-spacing:.5px;line-height:1.3;">Message from Assignment Hub</h2>
+                      <p style="font-size:15px;opacity:.93;font-style:italic;margin:0 0 4px;">${sender.full_name ? sender.full_name : "A staff member"}</p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:36px 36px 22px 36px;text-align:left;">
+                      <h3 style="margin:0 0 14px 0;color:#154c8e;">${message.subject || "Message from Assignment Hub"}</h3>
+                      <div style="margin:13px 0 21px 0;font-size:16px;color:#212e45;line-height:1.7;">${(message.body || '').replace(/\n/g, "<br>")}</div>
+                      ${
+                        assignment && assignment.title
+                        ? `<div style="margin:18px 0 0 0;background:#f5f9ff;border-radius:7px;padding:10px 18px;border:1px solid #e3e8f8;">
+                            <div><b>Assignment:</b> ${assignment.title}</div>
+                            ${assignment.subject ? `<div><b>Subject:</b> ${assignment.subject}</div>` : ""}
+                            ${assignment.due_date ? `<div><b>Due:</b> ${new Date(assignment.due_date).toLocaleDateString()}</div>` : ""}
+                          </div>`
+                        : ""
+                      }
+                      <div style="margin-top:35px;font-size:12px;color:#8491b1;text-align:right;">
+                        <em>This email was sent via <a style="color:#2774fd;text-decoration:none;font-weight:600;" href="https://assignmenthub.org" target="_blank">assignmenthub.org</a></em>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+                <div style="color:#aab4bb;font-size:12.5px;text-align:center;padding:8px 0 20px 0;">
+                  &copy; Assignment Hub, ${new Date().getFullYear()}.
+                  <span style="margin-left:8px;"><a href="https://assignmenthub.org" style="color:#2774fd;text-decoration:none;">Visit our website</a></span>
+                </div>
+              </td>
+            </tr>
+          </table>
         </div>
       `;
 
@@ -381,16 +397,16 @@ serve(async (req) => {
         from: 'AssignmentHub <noreply@assignmenthub.org>',
         to: [recipient.email],
         subject: message.subject,
-        html: niceHtml
+        html: modernHtml
       })
-      
+
       if (error) {
         console.error('Error sending direct email:', error)
         throw error
       }
-      
+
       console.log('Direct email sent successfully:', { id: data?.id })
-      
+
     } else if (payload.type === 'price_update') {
       // When a writer sets/updates price, notify the student
       console.log('Processing price_update notification');
