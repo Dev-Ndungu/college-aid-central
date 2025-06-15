@@ -549,10 +549,10 @@ const WriterDashboard = () => {
   };
 
   return (
-    <div className="space-y-6 w-full max-w-none px-0 container mx-0 !max-w-full !container !px-0">
+    <div className="space-y-6 w-full px-0 !max-w-none">
       {/* Contact Messages Button - Only for specific writers */}
       {showMessagesButton && (
-        <div className="flex justify-end">
+        <div className="flex justify-end px-4">
           <Button variant="outline" onClick={() => setShowContactMessages(true)} className="mb-2">
             <MessageCircle className="mr-2 h-4 w-4" /> View Contact Messages
           </Button>
@@ -560,7 +560,7 @@ const WriterDashboard = () => {
       )}
 
       <Tabs defaultValue="available" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-8 bg-gray-100 border border-gray-200">
+        <TabsList className="grid grid-cols-3 mb-8 bg-gray-100 border border-gray-200 rounded-none w-full">
           <TabsTrigger value="available" className="data-[state=active]:bg-white">Available</TabsTrigger>
           <TabsTrigger value="active" className="data-[state=active]:bg-white">My Assignments</TabsTrigger>
           <TabsTrigger value="completed" className="data-[state=active]:bg-white">Completed</TabsTrigger>
