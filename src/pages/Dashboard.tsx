@@ -193,6 +193,18 @@ const Dashboard = () => {
     return null; // Will redirect to login in useEffect
   }
 
+  // Helper to deterministically generate a pseudo-random number between min and max
+  function pseudoRandom(seed: string, day: number, min: number = 5, max: number = 15) {
+    // Simple xorshift
+    let h = 2166136261 ^ (seed.charCodeAt(0) || 0);
+    h ^= day;
+    h = Math.imul(h ^ h >>> 17, 105903 ^ day);
+    h = Math.imul(h ^ h >>> 11, 86813 ^ day);
+    h ^= h >>> 15;
+    // Map to range
+    return min + (Math.abs(h) % (max - min + 1));
+  }
+
   // Helper to get days since initial_date
   const getDaysSince = (dateString: string | null) => {
     if (!dateString) return 0;
@@ -202,14 +214,18 @@ const Dashboard = () => {
     return Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
-  // Always use incremented count based on initial value + days * 10
+  // Always use incremented count based on initial value + sum of daily pseudo random increments
   let dynamicAssignmentCount = null;
   if (
     assignmentDisplayFields &&
     typeof assignmentDisplayFields.initial_assignments_value === 'number'
   ) {
     const days = getDaysSince(assignmentDisplayFields.initial_date);
-    dynamicAssignmentCount = assignmentDisplayFields.initial_assignments_value + (days * 10);
+    let incrementSum = 0;
+    for (let i = 0; i < days; i++) {
+      incrementSum += pseudoRandom(assignmentDisplayFields.initial_date, i, 5, 15);
+    }
+    dynamicAssignmentCount = assignmentDisplayFields.initial_assignments_value + incrementSum;
   }
 
   // Display either user name if available, or fall back to email's prefix

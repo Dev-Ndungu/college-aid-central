@@ -62,6 +62,18 @@ const Index = () => {
     };
   }, []);
 
+  // Helper to deterministically generate a pseudo-random number between min and max
+  function pseudoRandom(seed: string, day: number, min: number = 5, max: number = 15) {
+    // Simple xorshift
+    let h = 2166136261 ^ (seed.charCodeAt(0) || 0);
+    h ^= day;
+    h = Math.imul(h ^ h >>> 17, 105903 ^ day);
+    h = Math.imul(h ^ h >>> 11, 86813 ^ day);
+    h ^= h >>> 15;
+    // Map to range
+    return min + (Math.abs(h) % (max - min + 1));
+  }
+
   // Helper to get days since initial_date
   const getDaysSince = (dateString: string | null) => {
     if (!dateString) return 0;
@@ -74,7 +86,13 @@ const Index = () => {
   let studentsCount = null;
   if (assignmentDisplayFields) {
     const days = getDaysSince(assignmentDisplayFields.initial_date);
-    assignmentCount = (assignmentDisplayFields.initial_assignments_value || 0) + (days * 10);
+
+    // Calculate random assignment increments for each day since initial_date
+    let incrementSum = 0;
+    for (let i = 0; i < days; i++) {
+      incrementSum += pseudoRandom(assignmentDisplayFields.initial_date, i, 5, 15);
+    }
+    assignmentCount = (assignmentDisplayFields.initial_assignments_value || 0) + incrementSum;
     studentsCount = (assignmentDisplayFields.initial_students_value || 0) + (days * 5);
   }
 
