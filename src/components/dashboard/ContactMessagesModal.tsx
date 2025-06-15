@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -20,6 +19,7 @@ import {
 import { format } from 'date-fns';
 import { Mail, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import ContactReplyEmailModal from "./ContactReplyEmailModal";
 
 type ContactMessage = {
   id: string;
@@ -42,6 +42,8 @@ const ContactMessagesModal = ({ isOpen, onClose }: ContactMessagesModalProps) =>
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
+  const [replyModalOpen, setReplyModalOpen] = useState(false);
+  const [replyMessage, setReplyMessage] = useState<ContactMessage | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -81,6 +83,11 @@ const ContactMessagesModal = ({ isOpen, onClose }: ContactMessagesModalProps) =>
 
   const handleGoBack = () => {
     setSelectedMessage(null);
+  };
+
+  const handleReplyClick = (message: ContactMessage) => {
+    setReplyMessage(message);
+    setReplyModalOpen(true);
   };
 
   return (
@@ -124,7 +131,11 @@ const ContactMessagesModal = ({ isOpen, onClose }: ContactMessagesModalProps) =>
               </div>
               
               <div className="border-t pt-3 flex gap-2">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleReplyClick(selectedMessage)}
+                >
                   <Mail className="mr-1 h-4 w-4" /> Reply via Email
                 </Button>
               </div>
@@ -179,9 +190,15 @@ const ContactMessagesModal = ({ isOpen, onClose }: ContactMessagesModalProps) =>
             )}
           </div>
         )}
+        <ContactReplyEmailModal 
+          isOpen={replyModalOpen}
+          onClose={() => setReplyModalOpen(false)}
+          message={replyMessage}
+        />
       </DialogContent>
     </Dialog>
   );
 };
 
+export type { ContactMessage };
 export default ContactMessagesModal;

@@ -338,6 +338,7 @@ serve(async (req) => {
       
       const recipient = payload.recipient;
       const sender = payload.sender;
+      // assignment may be null for contact replies
       const assignment = payload.assignment;
       const message = payload.message;
       
@@ -350,16 +351,37 @@ serve(async (req) => {
       }
       
       console.log('Sending direct email to student:', recipient.email);
-      
+
+      // --- Use a good looking HTML email template for all outgoing emails ---
+      const niceHtml = `
+        <div style="font-family: Arial, sans-serif; max-width:600px; padding:32px 20px; margin:0 auto; background:#f7f9fc; border-radius:10px; border:1px solid #EDF1F7;">
+          <div style="background:#2774fd; color:#fff; border-radius:6px 6px 0 0; padding:16px 24px;">
+            <h2 style="margin:0 0 8px 0;">Message from Assignment Hub</h2>
+            <div style="font-size:15px;opacity:0.95;font-style:italic;">${sender.full_name ? sender.full_name : "A staff member"}</div>
+          </div>
+          <div style="background:#fff; padding:32px 24px; border-radius:0 0 6px 6px;">
+            <h3 style="margin-top:0;">${message.subject || "You have a new message"}</h3>
+            <div style="margin:24px 0; font-size:16px; color:#222; line-height:1.7;">${(message.body || '').replace(/\n/g, "<br>")}</div>
+            ${
+              assignment && assignment.title
+              ? `<div style="margin:16px 0 0 0; background:#f5f9ff; border-radius:5px; padding:10px 16px; border:1px solid #e3e8f8;">
+                  <div><b>Assignment:</b> ${assignment.title}</div>
+                  ${assignment.subject ? `<div><b>Subject:</b> ${assignment.subject}</div>` : ''}
+                </div>`
+              : ""
+            }
+            <div style="margin-top:30px; text-align:right; color:#666; font-size:12.5px;">
+              <i>This message was sent via Assignment Hub.</i>
+            </div>
+          </div>
+        </div>
+      `;
+
       const { data, error } = await resend.emails.send({
         from: 'AssignmentHub <noreply@assignmenthub.org>',
         to: [recipient.email],
         subject: message.subject,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            ${message.body.replace(/\n/g, '<br>')}
-          </div>
-        `
+        html: niceHtml
       })
       
       if (error) {

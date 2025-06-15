@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from "@/components/ui/card";
@@ -550,7 +549,7 @@ const WriterDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-none px-0 container mx-0">
       {/* Contact Messages Button - Only for specific writers */}
       {showMessagesButton && (
         <div className="flex justify-end">
