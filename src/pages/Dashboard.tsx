@@ -235,56 +235,92 @@ const Dashboard = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-grow bg-gray-50 py-4 md:py-8 px-0 md:px-4">
-        <div className="container mx-auto">
-          <header className={`mb-4 md:mb-8 ${isMobile ? 'px-4' : ''}`}>
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-              <div>
-                {!isMobile && (
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-3xl font-bold">Dashboard</h1>
-                    <span className="bg-brand-100 text-brand-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
-                      <UserRound className="h-3 w-3 mr-1" />
-                      {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                    </span>
-                    
-                    {/* Message notification for authorized writers */}
-                    {isAuthorizedWriter && unreadMessageCount > 0 && (
-                      <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center ml-2">
-                        <MessageCircle className="h-3 w-3 mr-1" />
-                        {unreadMessageCount} unread message{unreadMessageCount !== 1 ? 's' : ''}
+        {/* Only the `StudentDashboard` gets container constraints. 
+            The `WriterDashboard` will be absolutely full-width edge-to-edge (no container/wrappers). */}
+        {userRole === 'student' ? (
+          <div className="container mx-auto">
+            <header className={`mb-4 md:mb-8 ${isMobile ? 'px-4' : ''}`}>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div>
+                  {!isMobile && (
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-3xl font-bold">Dashboard</h1>
+                      <span className="bg-brand-100 text-brand-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                        <UserRound className="h-3 w-3 mr-1" />
+                        {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                       </span>
-                    )}
-                  </div>
-                )}
-                <p className="text-gray-600">Welcome back, {displayName}</p>
+                      {isAuthorizedWriter && unreadMessageCount > 0 && (
+                        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center ml-2">
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          {unreadMessageCount} unread message{unreadMessageCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-gray-600">Welcome back, {displayName}</p>
+                </div>
               </div>
-              
-              {userRole === 'student' && (
-                <Button onClick={() => navigate('/submit-assignment')} className={isMobile ? 'w-full' : ''}>
-                  <Plus className="mr-2 h-4 w-4" /> New Assignment
-                </Button>
-              )}
+            </header>
+            {/* Trust-building assignment count */}
+            {dynamicAssignmentCount !== null && (
+              <div className={isMobile ? 'px-4' : ''}>
+                <Card className="mb-4 md:mb-8 bg-green-50 border-green-200">
+                  <CardContent className="p-4 flex items-center justify-center">
+                    <p className="text-lg font-semibold text-green-800 text-center">
+                      🏆 Over {dynamicAssignmentCount.toLocaleString()} assignments submitted by students like you!
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            {/* Dashboard content */}
+            <div className="dashboard-content">
+              <StudentDashboard />
             </div>
-          </header>
-
-          {/* Trust-building assignment count */}
-          {dynamicAssignmentCount !== null && (
-            <div className={isMobile ? 'px-4' : ''}>
-              <Card className="mb-4 md:mb-8 bg-green-50 border-green-200">
-                <CardContent className="p-4 flex items-center justify-center">
-                  <p className="text-lg font-semibold text-green-800 text-center">
-                    🏆 Over {dynamicAssignmentCount.toLocaleString()} assignments submitted by students like you!
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Dashboard content */}
-          <div className="dashboard-content">
-            {userRole === 'student' ? <StudentDashboard /> : <WriterDashboard />}
           </div>
-        </div>
+        ) : (
+          // WRITER DASHBOARD: Edge-to-Edge, no `container`, no max-w, no mx-auto!
+          <>
+            <header className="mb-4 md:mb-8 px-4 md:px-8">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div>
+                  {!isMobile && (
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-3xl font-bold">Dashboard</h1>
+                      <span className="bg-brand-100 text-brand-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center">
+                        <UserRound className="h-3 w-3 mr-1" />
+                        {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                      </span>
+                      {isAuthorizedWriter && unreadMessageCount > 0 && (
+                        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center ml-2">
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          {unreadMessageCount} unread message{unreadMessageCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-gray-600">Welcome back, {displayName}</p>
+                </div>
+              </div>
+            </header>
+            {/* Writer assignment count bar visible and full width */}
+            {dynamicAssignmentCount !== null && (
+              <div>
+                <Card className="mb-4 md:mb-8 bg-green-50 border-green-200 rounded-none">
+                  <CardContent className="p-4 flex items-center justify-center">
+                    <p className="text-lg font-semibold text-green-800 text-center">
+                      🏆 Over {dynamicAssignmentCount.toLocaleString()} assignments submitted by students like you!
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            {/* FULL WIDTH WRITER DASHBOARD */}
+            <div className="w-full">
+              <WriterDashboard />
+            </div>
+          </>
+        )}
       </main>
       <Footer />
     </div>
