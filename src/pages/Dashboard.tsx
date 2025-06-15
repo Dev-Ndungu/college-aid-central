@@ -102,21 +102,8 @@ const Dashboard = () => {
           return;
         }
         setAssignmentDisplayFields(displaySettings);
-
-        if (displaySettings.use_actual_count) {
-          const { count, error } = await supabase
-            .from('assignments')
-            .select('*', { count: 'exact', head: true });
-
-          if (error) {
-            console.error('Error fetching assignment count:', error);
-            setAssignmentCount(null);
-            return;
-          }
-          setAssignmentCount(count);
-        } else {
-          setAssignmentCount(displaySettings.display_count);
-        }
+        // DO NOT override assignmentCount – always use dynamic calculation below!
+        setAssignmentCount(null);
       } catch (error) {
         console.error('An error occurred while fetching assignment count:', error);
       }
@@ -124,7 +111,6 @@ const Dashboard = () => {
 
     fetchAssignmentCount();
 
-    // Subscribe to changes in both tables
     const assignmentsSubscription = supabase
       .channel('assignments-count-realtime')
       .on(
@@ -216,11 +202,10 @@ const Dashboard = () => {
     return Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
-  // Calculate incremented assignment count for dashboard card
-  let dynamicAssignmentCount = assignmentCount;
+  // Always use incremented count based on initial value + days * 10
+  let dynamicAssignmentCount = null;
   if (
     assignmentDisplayFields &&
-    !assignmentDisplayFields.use_actual_count &&
     typeof assignmentDisplayFields.initial_assignments_value === 'number'
   ) {
     const days = getDaysSince(assignmentDisplayFields.initial_date);

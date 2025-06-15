@@ -19,7 +19,6 @@ const Index = () => {
     initial_date: string;
   } | null>(null);
 
-  // Fetch assignment count from the new display count table
   useEffect(() => {
     const fetchDisplayFields = async () => {
       try {
@@ -71,21 +70,12 @@ const Index = () => {
     return Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
   };
 
-  // Calculate increments:
   let assignmentCount = null;
-  if (assignmentDisplayFields) {
-    if (assignmentDisplayFields.use_actual_count) {
-      assignmentCount = null; // You might want to fetch actual count here if needed
-    } else {
-      const days = getDaysSince(assignmentDisplayFields.initial_date);
-      assignmentCount = assignmentDisplayFields.initial_assignments_value + (days * 10);
-    }
-  }
-
   let studentsCount = null;
   if (assignmentDisplayFields) {
     const days = getDaysSince(assignmentDisplayFields.initial_date);
-    studentsCount = assignmentDisplayFields.initial_students_value + (days * 5);
+    assignmentCount = (assignmentDisplayFields.initial_assignments_value || 0) + (days * 10);
+    studentsCount = (assignmentDisplayFields.initial_students_value || 0) + (days * 5);
   }
 
   return (
