@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      assignment_display_count: {
+        Row: {
+          display_count: number
+          id: string
+          updated_at: string
+          updated_by: string | null
+          use_actual_count: boolean
+        }
+        Insert: {
+          display_count?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          use_actual_count?: boolean
+        }
+        Update: {
+          display_count?: number
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          use_actual_count?: boolean
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           assignment_type: string | null

@@ -13,20 +13,37 @@ import { supabase } from '@/integrations/supabase/client';
 const Index = () => {
   const [assignmentCount, setAssignmentCount] = useState<number | null>(null);
 
-  // Fetch and subscribe to total assignment count for trust-building
+  // Fetch assignment count from the new display count table
   useEffect(() => {
     const fetchAssignmentCount = async () => {
       try {
-        const { count, error } = await supabase
-          .from('assignments')
-          .select('*', { count: 'exact', head: true });
+        // First, get the display settings
+        const { data: displaySettings, error: settingsError } = await supabase
+          .from('assignment_display_count')
+          .select('display_count, use_actual_count')
+          .single();
 
-        if (error) {
-          console.error('Error fetching assignment count:', error);
+        if (settingsError) {
+          console.error('Error fetching display settings:', settingsError);
           return;
         }
 
-        setAssignmentCount(count);
+        if (displaySettings.use_actual_count) {
+          // Use actual count from assignments table
+          const { count, error } = await supabase
+            .from('assignments')
+            .select('*', { count: 'exact', head: true });
+
+          if (error) {
+            console.error('Error fetching assignment count:', error);
+            return;
+          }
+
+          setAssignmentCount(count);
+        } else {
+          // Use custom display count
+          setAssignmentCount(displaySettings.display_count);
+        }
       } catch (error) {
         console.error('An error occurred while fetching assignment count:', error);
       }
@@ -34,12 +51,19 @@ const Index = () => {
 
     fetchAssignmentCount();
 
-    // Subscribe to new assignments to update the count in real-time
+    // Subscribe to changes in both tables
     const assignmentsSubscription = supabase
       .channel('assignments-count-realtime-home')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'assignments' },
+        () => {
+          fetchAssignmentCount();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'assignment_display_count' },
         () => {
           fetchAssignmentCount();
         }
