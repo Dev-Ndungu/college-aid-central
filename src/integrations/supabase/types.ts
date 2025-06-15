@@ -13,6 +13,9 @@ export type Database = {
         Row: {
           display_count: number
           id: string
+          initial_assignments_value: number
+          initial_date: string
+          initial_students_value: number
           updated_at: string
           updated_by: string | null
           use_actual_count: boolean
@@ -20,6 +23,9 @@ export type Database = {
         Insert: {
           display_count?: number
           id?: string
+          initial_assignments_value?: number
+          initial_date?: string
+          initial_students_value?: number
           updated_at?: string
           updated_by?: string | null
           use_actual_count?: boolean
@@ -27,6 +33,9 @@ export type Database = {
         Update: {
           display_count?: number
           id?: string
+          initial_assignments_value?: number
+          initial_date?: string
+          initial_students_value?: number
           updated_at?: string
           updated_by?: string | null
           use_actual_count?: boolean

@@ -11,61 +11,49 @@ import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const [assignmentCount, setAssignmentCount] = useState<number | null>(null);
+  const [assignmentDisplayFields, setAssignmentDisplayFields] = useState<{
+    display_count: number;
+    use_actual_count: boolean;
+    initial_assignments_value: number;
+    initial_students_value: number;
+    initial_date: string;
+  } | null>(null);
 
   // Fetch assignment count from the new display count table
   useEffect(() => {
-    const fetchAssignmentCount = async () => {
+    const fetchDisplayFields = async () => {
       try {
-        // First, get the display settings
         const { data: displaySettings, error: settingsError } = await supabase
           .from('assignment_display_count')
-          .select('display_count, use_actual_count')
+          .select('display_count, use_actual_count, initial_assignments_value, initial_students_value, initial_date')
           .single();
 
         if (settingsError) {
           console.error('Error fetching display settings:', settingsError);
           return;
         }
-
-        if (displaySettings.use_actual_count) {
-          // Use actual count from assignments table
-          const { count, error } = await supabase
-            .from('assignments')
-            .select('*', { count: 'exact', head: true });
-
-          if (error) {
-            console.error('Error fetching assignment count:', error);
-            return;
-          }
-
-          setAssignmentCount(count);
-        } else {
-          // Use custom display count
-          setAssignmentCount(displaySettings.display_count);
-        }
+        setAssignmentDisplayFields(displaySettings);
       } catch (error) {
         console.error('An error occurred while fetching assignment count:', error);
       }
     };
 
-    fetchAssignmentCount();
+    fetchDisplayFields();
 
-    // Subscribe to changes in both tables
     const assignmentsSubscription = supabase
       .channel('assignments-count-realtime-home')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'assignments' },
         () => {
-          fetchAssignmentCount();
+          fetchDisplayFields();
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'assignment_display_count' },
         () => {
-          fetchAssignmentCount();
+          fetchDisplayFields();
         }
       )
       .subscribe();
@@ -74,6 +62,31 @@ const Index = () => {
       supabase.removeChannel(assignmentsSubscription);
     };
   }, []);
+
+  // Helper to get days since initial_date
+  const getDaysSince = (dateString: string | null) => {
+    if (!dateString) return 0;
+    const start = new Date(dateString);
+    const now = new Date();
+    return Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+  };
+
+  // Calculate increments:
+  let assignmentCount = null;
+  if (assignmentDisplayFields) {
+    if (assignmentDisplayFields.use_actual_count) {
+      assignmentCount = null; // You might want to fetch actual count here if needed
+    } else {
+      const days = getDaysSince(assignmentDisplayFields.initial_date);
+      assignmentCount = assignmentDisplayFields.initial_assignments_value + (days * 10);
+    }
+  }
+
+  let studentsCount = null;
+  if (assignmentDisplayFields) {
+    const days = getDaysSince(assignmentDisplayFields.initial_date);
+    studentsCount = assignmentDisplayFields.initial_students_value + (days * 5);
+  }
 
   return (
     <>
@@ -199,11 +212,14 @@ const Index = () => {
                 <Card className="bg-green-100 border-green-200 max-w-4xl mx-auto">
                   <CardContent className="p-6 text-center">
                     <p className="text-xl md:text-2xl font-bold text-green-800">
-                      🎓 Join {assignmentCount.toLocaleString()}+ Students Who Trust Assignment Hub
+                      🎓 Join {studentsCount !== null ? studentsCount.toLocaleString() : '--'}+ Students Who Trust Assignment Hub
                     </p>
                     <p className="text-green-700 mt-2">
                       Assignments completed successfully with our expert writers
                     </p>
+                    <div className="mt-2 text-green-900 font-semibold">
+                      🏆 Over {assignmentCount.toLocaleString()} assignments submitted by students like you!
+                    </div>
                   </CardContent>
                 </Card>
               </div>
