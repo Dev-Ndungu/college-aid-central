@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from '@/integrations/supabase/client';
+import AnimatedCounter from "@/components/AnimatedCounter";
 
 const Index = () => {
   const [assignmentDisplayFields, setAssignmentDisplayFields] = useState<{
@@ -63,14 +64,12 @@ const Index = () => {
   }, []);
 
   // Helper to deterministically generate a pseudo-random number between min and max
-  function pseudoRandom(seed: string, day: number, min: number = 5, max: number = 15) {
-    // Simple xorshift
+  function pseudoRandom(seed: string, day: number, min: number, max: number) {
     let h = 2166136261 ^ (seed.charCodeAt(0) || 0);
     h ^= day;
     h = Math.imul(h ^ h >>> 17, 105903 ^ day);
     h = Math.imul(h ^ h >>> 11, 86813 ^ day);
     h ^= h >>> 15;
-    // Map to range
     return min + (Math.abs(h) % (max - min + 1));
   }
 
@@ -87,13 +86,19 @@ const Index = () => {
   if (assignmentDisplayFields) {
     const days = getDaysSince(assignmentDisplayFields.initial_date);
 
-    // Calculate random assignment increments for each day since initial_date
-    let incrementSum = 0;
+    // Calculate pseudo-random assignment increments for each day (5–15)
+    let assignmentSum = 0;
     for (let i = 0; i < days; i++) {
-      incrementSum += pseudoRandom(assignmentDisplayFields.initial_date, i, 5, 15);
+      assignmentSum += pseudoRandom(assignmentDisplayFields.initial_date, i, 5, 15);
     }
-    assignmentCount = (assignmentDisplayFields.initial_assignments_value || 0) + incrementSum;
-    studentsCount = (assignmentDisplayFields.initial_students_value || 0) + (days * 5);
+    assignmentCount = (assignmentDisplayFields.initial_assignments_value || 0) + assignmentSum;
+
+    // Calculate pseudo-random student increments for each day (4–8)
+    let studentsSum = 0;
+    for (let i = 0; i < days; i++) {
+      studentsSum += pseudoRandom(assignmentDisplayFields.initial_date, i + 777, 4, 8); // day+777 keeps a different trajectory
+    }
+    studentsCount = (assignmentDisplayFields.initial_students_value || 0) + studentsSum;
   }
 
   return (
@@ -220,13 +225,24 @@ const Index = () => {
                 <Card className="bg-green-100 border-green-200 max-w-4xl mx-auto">
                   <CardContent className="p-6 text-center">
                     <p className="text-xl md:text-2xl font-bold text-green-800">
-                      🎓 Join {studentsCount !== null ? studentsCount.toLocaleString() : '--'}+ Students Who Trust Assignment Hub
+                      🎓 Join{" "}
+                      <AnimatedCounter
+                        value={studentsCount ?? 0}
+                        className="text-green-900"
+                        suffix="+"
+                      />{" "}
+                      Students Who Trust Assignment Hub
                     </p>
                     <p className="text-green-700 mt-2">
                       Assignments completed successfully with our expert writers
                     </p>
-                    <div className="mt-2 text-green-900 font-semibold">
-                      🏆 Over {assignmentCount.toLocaleString()} assignments submitted by students like you!
+                    <div className="mt-2 text-green-900 font-semibold text-2xl">
+                      🏆 Over{" "}
+                      <AnimatedCounter
+                        value={assignmentCount ?? 0}
+                        className="text-green-900"
+                      />{" "}
+                      assignments submitted by students like you!
                     </div>
                   </CardContent>
                 </Card>
