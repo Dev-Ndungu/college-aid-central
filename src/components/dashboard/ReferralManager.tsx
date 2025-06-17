@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,11 +41,12 @@ type ReferralManagerProps = {
 };
 
 const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
-  const { userId } = useAuth();
+  const { userId, userRole } = useAuth();
   const { toast } = useToast();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [inviteeProfiles, setInviteeProfiles] = useState<{ [id: string]: Profile }>({});
   const [assignments, setAssignments] = useState<{ [id: string]: Assignment }>({});
+  const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [inviteeEmail, setInviteeEmail] = useState("");
@@ -58,13 +58,27 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    const fetchReferrals = async () => {
+    const fetchData = async () => {
+      // Fetch current user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('id', userId)
+        .single();
+      
+      if (profile) {
+        setCurrentUserProfile(profile);
+      }
+
+      // Fetch referrals - only show referrals made by the current user
       let { data, error } = await supabase
         .from('referrals')
         .select('*')
         .eq('referrer_user_id', userId)
         .order('created_at', { ascending: false });
+      
       if (error) {
+        console.error('Error fetching referrals:', error);
         setReferrals([]);
         setLoading(false);
         return;
@@ -101,33 +115,49 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
       }
       setLoading(false);
     };
-    fetchReferrals();
+    fetchData();
   }, [open, userId]);
 
   // Simple discount update
   const updateReward = async (referralId: string, newRewardValue: number) => {
-    await supabase
+    const { error } = await supabase
       .from('referrals')
       .update({ reward_value: newRewardValue, reward_status: 'rewarded' })
       .eq('id', referralId);
-    // Refresh
-    setReferrals(referrals => referrals.map(r => r.id === referralId ? { ...r, reward_value: newRewardValue, reward_status: 'rewarded' } : r));
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update reward value.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setReferrals(referrals => referrals.map(r => 
+      r.id === referralId 
+        ? { ...r, reward_value: newRewardValue, reward_status: 'rewarded' } 
+        : r
+    ));
+    
+    toast({
+      title: "Success",
+      description: "Reward value updated successfully.",
+    });
   };
 
   const generateReferralLink = async () => {
     setIsGeneratingLink(true);
     try {
-      // Generate a unique referral code
       const referralCode = `REF_${userId}_${Date.now()}`;
       
-      // Create referral record
       const { data, error } = await supabase
         .from('referrals')
         .insert({
           referrer_user_id: userId,
           referral_code: referralCode,
           reward_type: 'discount',
-          reward_value: 10, // 10% discount
+          reward_value: 10,
           reward_status: 'pending'
         })
         .select()
@@ -135,7 +165,6 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
 
       if (error) throw error;
 
-      // Generate referral link
       const link = `${window.location.origin}/signup?ref=${referralCode}`;
       setReferralLink(link);
       
@@ -184,25 +213,50 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
     }
 
     if (!referralLink) {
-      await generateReferralLink();
+      toast({
+        title: "Error",
+        description: "Please generate a referral link first.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsSendingEmail(true);
     try {
+      // Get the referral code from the link
+      const referralCode = referralLink.split('ref=')[1];
+      
       // Create referral record with email
-      const { error } = await supabase
+      const { error: dbError } = await supabase
         .from('referrals')
         .insert({
           referrer_user_id: userId,
           invitee_email: inviteeEmail,
-          referral_code: referralLink.split('ref=')[1],
+          referral_code: referralCode,
           reward_type: 'discount',
           reward_value: 10,
           reward_status: 'pending'
         });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
+
+      // Send email via edge function
+      const response = await fetch('/functions/v1/send-referral-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inviteeEmail,
+          referrerName: currentUserProfile?.full_name || currentUserProfile?.email || 'A friend',
+          referralLink,
+          discountValue: 10
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send email');
+      }
 
       toast({
         title: "Referral sent!",
@@ -246,18 +300,20 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             Referral Program Manager
-            <Button
-              onClick={handleAddReferral}
-              size="sm"
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Referral
-            </Button>
+            {userRole === 'student' && (
+              <Button
+                onClick={handleAddReferral}
+                size="sm"
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Referral
+              </Button>
+            )}
           </DialogTitle>
         </DialogHeader>
         
-        {showAddReferral && (
+        {showAddReferral && userRole === 'student' && (
           <Card className="mb-4">
             <CardHeader>
               <CardTitle className="text-lg">Create New Referral</CardTitle>
@@ -335,7 +391,10 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
 
         <div className="mt-4">
           <p className="mb-4 text-gray-500 text-sm">
-            See who you referred, the status of their assignments, and manage your referral rewards and discounts.
+            {userRole === 'student' 
+              ? "Manage your referrals and track the status of people you've invited."
+              : "Manage referral rewards and discount values for all referrals."
+            }
           </p>
           {loading ? (
             <p>Loading referrals...</p>
@@ -349,14 +408,17 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
                     <TableHead>Assignment</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Reward</TableHead>
-                    <TableHead>Update Discount</TableHead>
+                    {userRole === 'writer' && <TableHead>Update Discount</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {referrals.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-gray-500">
-                        No referrals yet. Click "Add Referral" to get started!
+                      <TableCell colSpan={userRole === 'writer' ? 6 : 5} className="text-center text-gray-500">
+                        {userRole === 'student' 
+                          ? "No referrals yet. Click \"Add Referral\" to get started!"
+                          : "No referrals to manage yet."
+                        }
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -378,25 +440,33 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
                             : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          {ref.reward_status}
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            ref.reward_status === 'rewarded' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {ref.reward_status}
+                          </span>
                         </TableCell>
                         <TableCell>
                           {ref.reward_type === "discount"
                             ? (ref.reward_value || 0) + "%"
                             : ref.reward_type}
                         </TableCell>
-                        <TableCell>
-                          <input
-                            type="number"
-                            className="border rounded p-1 w-20 mr-1"
-                            min={0}
-                            max={100}
-                            value={ref.reward_value ?? 0}
-                            onChange={e =>
-                              updateReward(ref.id, Number(e.target.value))
-                            }
-                          />
-                        </TableCell>
+                        {userRole === 'writer' && (
+                          <TableCell>
+                            <input
+                              type="number"
+                              className="border rounded p-1 w-20 mr-1"
+                              min={0}
+                              max={100}
+                              value={ref.reward_value ?? 0}
+                              onChange={e =>
+                                updateReward(ref.id, Number(e.target.value))
+                              }
+                            />
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}
