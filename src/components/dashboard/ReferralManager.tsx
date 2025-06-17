@@ -4,8 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Copy, Mail, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type Referral = {
   id: string;
@@ -39,10 +43,17 @@ type ReferralManagerProps = {
 
 const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
   const { userId } = useAuth();
+  const { toast } = useToast();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [inviteeProfiles, setInviteeProfiles] = useState<{ [id: string]: Profile }>({});
   const [assignments, setAssignments] = useState<{ [id: string]: Assignment }>({});
   const [loading, setLoading] = useState(false);
+  const [showAddReferral, setShowAddReferral] = useState(false);
+  const [inviteeEmail, setInviteeEmail] = useState("");
+  const [referralLink, setReferralLink] = useState("");
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -103,12 +114,225 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
     setReferrals(referrals => referrals.map(r => r.id === referralId ? { ...r, reward_value: newRewardValue, reward_status: 'rewarded' } : r));
   };
 
+  const generateReferralLink = async () => {
+    setIsGeneratingLink(true);
+    try {
+      // Generate a unique referral code
+      const referralCode = `REF_${userId}_${Date.now()}`;
+      
+      // Create referral record
+      const { data, error } = await supabase
+        .from('referrals')
+        .insert({
+          referrer_user_id: userId,
+          referral_code: referralCode,
+          reward_type: 'discount',
+          reward_value: 10, // 10% discount
+          reward_status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Generate referral link
+      const link = `${window.location.origin}/signup?ref=${referralCode}`;
+      setReferralLink(link);
+      
+      toast({
+        title: "Referral link generated!",
+        description: "You can now copy the link or send it via email.",
+      });
+    } catch (error) {
+      console.error('Error generating referral link:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate referral link. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const copyReferralLink = async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setLinkCopied(true);
+      toast({
+        title: "Link copied!",
+        description: "Referral link has been copied to your clipboard.",
+      });
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy link. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const sendReferralEmail = async () => {
+    if (!inviteeEmail) {
+      toast({
+        title: "Error",
+        description: "Please enter an email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!referralLink) {
+      await generateReferralLink();
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      // Create referral record with email
+      const { error } = await supabase
+        .from('referrals')
+        .insert({
+          referrer_user_id: userId,
+          invitee_email: inviteeEmail,
+          referral_code: referralLink.split('ref=')[1],
+          reward_type: 'discount',
+          reward_value: 10,
+          reward_status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Referral sent!",
+        description: `Referral invitation has been sent to ${inviteeEmail}.`,
+      });
+      
+      setInviteeEmail("");
+      setShowAddReferral(false);
+      setReferralLink("");
+      
+      // Refresh referrals list
+      const { data } = await supabase
+        .from('referrals')
+        .select('*')
+        .eq('referrer_user_id', userId)
+        .order('created_at', { ascending: false });
+      if (data) setReferrals(data);
+      
+    } catch (error) {
+      console.error('Error sending referral email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send referral email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleAddReferral = () => {
+    setShowAddReferral(true);
+    setReferralLink("");
+    setInviteeEmail("");
+    setLinkCopied(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Referral Program Manager</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            Referral Program Manager
+            <Button
+              onClick={handleAddReferral}
+              size="sm"
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Referral
+            </Button>
+          </DialogTitle>
         </DialogHeader>
+        
+        {showAddReferral && (
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle className="text-lg">Create New Referral</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address (Optional)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email to send referral invitation"
+                  value={inviteeEmail}
+                  onChange={(e) => setInviteeEmail(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={generateReferralLink}
+                  disabled={isGeneratingLink}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  Generate Link
+                </Button>
+                
+                {inviteeEmail && (
+                  <Button
+                    onClick={sendReferralEmail}
+                    disabled={isSendingEmail}
+                    className="gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    {isSendingEmail ? "Sending..." : "Send Email"}
+                  </Button>
+                )}
+              </div>
+
+              {referralLink && (
+                <div className="space-y-2">
+                  <Label>Referral Link</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={referralLink}
+                      readOnly
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={copyReferralLink}
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                    >
+                      {linkCopied ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowAddReferral(false)}
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="mt-4">
           <p className="mb-4 text-gray-500 text-sm">
             See who you referred, the status of their assignments, and manage your referral rewards and discounts.
@@ -132,7 +356,7 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
                   {referrals.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-gray-500">
-                        No referrals yet.
+                        No referrals yet. Click "Add Referral" to get started!
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -141,7 +365,7 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
                         <TableCell>
                           {ref.invitee_user_id && inviteeProfiles[ref.invitee_user_id]?.full_name
                             ? inviteeProfiles[ref.invitee_user_id].full_name
-                            : 'Unknown'}
+                            : 'Pending'}
                         </TableCell>
                         <TableCell>
                           {ref.invitee_email ||
