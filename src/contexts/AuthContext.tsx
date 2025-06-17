@@ -10,6 +10,7 @@ type UserProfile = {
   avatar_url?: string | null;
   phone_number?: string | null;
   institution_type?: string | null;
+  referral_code?: string | null;
 };
 
 type AuthContextType = {
