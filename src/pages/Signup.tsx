@@ -1,17 +1,15 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import SignupForm from '@/components/auth/SignupForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 const Signup = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
   const [referralInfo, setReferralInfo] = useState<{
     code: string;
     discount: number;
@@ -45,11 +43,7 @@ const Signup = () => {
 
       if (error || !referral) {
         console.error('Referral not found:', error);
-        toast({
-          title: "Invalid Referral",
-          description: "This referral link is invalid or has expired.",
-          variant: "destructive",
-        });
+        toast.error("This referral link is invalid or has expired.");
         return;
       }
 
@@ -59,10 +53,7 @@ const Signup = () => {
         referrerName: referral.profiles?.full_name || referral.profiles?.email || 'A friend'
       });
 
-      toast({
-        title: "Referral Applied!",
-        description: `You'll get ${referral.reward_value || 10}% off your first assignment!`,
-      });
+      toast.success(`You'll get ${referral.reward_value || 10}% off your first assignment!`);
     } catch (error) {
       console.error('Error fetching referral info:', error);
     }

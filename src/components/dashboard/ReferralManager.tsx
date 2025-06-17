@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Copy, Mail, Check } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type Referral = {
   id: string;
@@ -42,7 +42,6 @@ type ReferralManagerProps = {
 
 const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
   const { userId, userRole } = useAuth();
-  const { toast } = useToast();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [inviteeProfiles, setInviteeProfiles] = useState<{ [id: string]: Profile }>({});
   const [assignments, setAssignments] = useState<{ [id: string]: Assignment }>({});
@@ -126,11 +125,7 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
       .eq('id', referralId);
     
     if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update reward value.",
-        variant: "destructive",
-      });
+      toast.error("Failed to update reward value.");
       return;
     }
 
@@ -140,10 +135,7 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
         : r
     ));
     
-    toast({
-      title: "Success",
-      description: "Reward value updated successfully.",
-    });
+    toast.success("Reward value updated successfully.");
   };
 
   const generateReferralLink = async () => {
@@ -168,17 +160,10 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
       const link = `${window.location.origin}/signup?ref=${referralCode}`;
       setReferralLink(link);
       
-      toast({
-        title: "Referral link generated!",
-        description: "You can now copy the link or send it via email.",
-      });
+      toast.success("Referral link generated! You can now copy the link or send it via email.");
     } catch (error) {
       console.error('Error generating referral link:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate referral link. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to generate referral link. Please try again.");
     } finally {
       setIsGeneratingLink(false);
     }
@@ -188,36 +173,21 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
     try {
       await navigator.clipboard.writeText(referralLink);
       setLinkCopied(true);
-      toast({
-        title: "Link copied!",
-        description: "Referral link has been copied to your clipboard.",
-      });
+      toast.success("Referral link has been copied to your clipboard.");
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy link. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to copy link. Please try again.");
     }
   };
 
   const sendReferralEmail = async () => {
     if (!inviteeEmail) {
-      toast({
-        title: "Error",
-        description: "Please enter an email address.",
-        variant: "destructive",
-      });
+      toast.error("Please enter an email address.");
       return;
     }
 
     if (!referralLink) {
-      toast({
-        title: "Error",
-        description: "Please generate a referral link first.",
-        variant: "destructive",
-      });
+      toast.error("Please generate a referral link first.");
       return;
     }
 
@@ -258,10 +228,7 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
         throw new Error('Failed to send email');
       }
 
-      toast({
-        title: "Referral sent!",
-        description: `Referral invitation has been sent to ${inviteeEmail}.`,
-      });
+      toast.success(`Referral invitation has been sent to ${inviteeEmail}.`);
       
       setInviteeEmail("");
       setShowAddReferral(false);
@@ -277,11 +244,7 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
       
     } catch (error) {
       console.error('Error sending referral email:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send referral email. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to send referral email. Please try again.");
     } finally {
       setIsSendingEmail(false);
     }

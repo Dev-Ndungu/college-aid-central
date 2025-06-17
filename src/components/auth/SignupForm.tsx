@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 const signupSchema = z.object({
@@ -36,7 +37,6 @@ interface SignupFormProps {
 const SignupForm: React.FC<SignupFormProps> = ({ referralCode }) => {
   const { signUp } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -57,17 +57,14 @@ const SignupForm: React.FC<SignupFormProps> = ({ referralCode }) => {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     try {
-      const { error } = await signUp(data.email, data.password, {
-        role: data.role,
+      await signUp(data.email, data.password, {
         full_name: data.fullName,
         gender: data.gender,
         phone_number: data.phoneNumber,
         institution: data.institution,
         institution_type: data.institutionType,
-        referral_code: referralCode, // Pass referral code to signup
+        referral_code: referralCode,
       });
-
-      if (error) throw error;
 
       // If there's a referral code, update the referral record
       if (referralCode) {
@@ -86,21 +83,14 @@ const SignupForm: React.FC<SignupFormProps> = ({ referralCode }) => {
         }
       }
 
-      toast({
-        title: "Account created successfully!",
-        description: referralCode 
-          ? "Welcome! Your referral discount has been applied to your account."
-          : "Please check your email to verify your account.",
-      });
+      toast.success(referralCode 
+        ? "Welcome! Your referral discount has been applied to your account."
+        : "Account created successfully! Please check your email to verify your account.");
       
       navigate('/profile-completion');
     } catch (error: any) {
       console.error('Signup error:', error);
-      toast({
-        title: "Error creating account",
-        description: error.message || "Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Error creating account. Please try again.");
     } finally {
       setIsLoading(false);
     }
