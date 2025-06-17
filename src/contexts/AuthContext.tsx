@@ -9,6 +9,7 @@ type UserProfile = {
   gender?: string | null;
   avatar_url?: string | null;
   phone_number?: string | null;
+  institution_type?: string | null;
 };
 
 type AuthContextType = {
