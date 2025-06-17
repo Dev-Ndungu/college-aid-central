@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -9,6 +8,7 @@ type UserProfile = {
   institution?: string | null;
   gender?: string | null;
   avatar_url?: string | null;
+  phone_number?: string | null;
 };
 
 type AuthContextType = {
