@@ -9,7 +9,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square, DollarSign, CreditCard } from "lucide-react";
+import { Edit2, Clock, CheckCircle, Mail, BookOpen, Square, DollarSign, CreditCard, Plus } from "lucide-react";
 import { Assignment, useAssignments } from '@/hooks/useAssignments';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AnimatedCounter from '@/components/AnimatedCounter';
@@ -327,8 +327,15 @@ const StudentDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Email Support Button - Right aligned on desktop, full-width on mobile */}
-      <div className={`flex ${isMobile ? 'justify-center px-4' : 'justify-end'}`}>
+      {/* Action buttons - Submit New Assignment and Email Support */}
+      <div className={`flex ${isMobile ? 'flex-col gap-2 px-4' : 'justify-end gap-2'}`}>
+        <Button 
+          onClick={() => navigate('/submit-assignment')}
+          className={`gap-2 ${isMobile ? 'w-full' : ''}`}
+        >
+          <Plus className="h-4 w-4" />
+          Submit New Assignment
+        </Button>
         <Button 
           variant="outline" 
           onClick={handleEmailSupport}
