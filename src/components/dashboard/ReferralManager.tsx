@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
-import { Modal } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Referral = {
   id: string;
@@ -104,12 +104,12 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
   };
 
   return (
-    <Modal open={open} onOpenChange={onClose}>
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>Referral Program Manager</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Referral Program Manager</DialogTitle>
+        </DialogHeader>
+        <div className="mt-4">
           <p className="mb-4 text-gray-500 text-sm">
             See who you referred, the status of their assignments, and manage your referral rewards and discounts.
           </p>
@@ -183,11 +183,10 @@ const ReferralManager: React.FC<ReferralManagerProps> = ({ open, onClose }) => {
           <div className="flex justify-end mt-4">
             <Button onClick={onClose} variant="outline">Close</Button>
           </div>
-        </CardContent>
-      </Card>
-    </Modal>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
 export default ReferralManager;
-
