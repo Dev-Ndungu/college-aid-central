@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, FileText } from 'lucide-react';
 
 const CTA = () => {
   return (
@@ -23,6 +23,11 @@ const CTA = () => {
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" asChild>
               <Link to="/contact">
                 Contact Us
+              </Link>
+            </Button>
+            <Button size="lg" variant="default" className="bg-blue-600 hover:bg-blue-700 text-white" asChild>
+              <Link to="/submit-assignment">
+                <FileText className="mr-2 h-4 w-4" /> Submit Assignment
               </Link>
             </Button>
           </div>
